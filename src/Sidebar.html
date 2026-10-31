@@ -317,9 +317,9 @@
       <div class="form-group">
         <label for="modelSelect">Pilihan Model Gemini</label>
         <select id="modelSelect" onchange="onModelSelectChange()">
-          <option value="gemini-3.6-flash">gemini-3.6-flash (Pilihan Utama)</option>
-          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Rekomendasi - Bebas Kuota)</option>
+          <option value="gemini-3.5-flash-lite" selected>gemini-3.5-flash-lite (Rekomendasi Utama - Cepat & Kuota Aman)</option>
           <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Ringan & Cepat)</option>
+          <option value="gemini-3.6-flash">gemini-3.6-flash (Model Multimodal 3.6)</option>
           <option value="gemini-flash-lite-latest">gemini-flash-lite-latest</option>
           <option value="gemini-flash-latest">gemini-flash-latest</option>
           <option value="gemini-3.8-flash">gemini-3.8-flash</option>
@@ -496,13 +496,13 @@
       const select = document.getElementById('modelSelect');
       if (select.value === 'custom') {
         const customVal = document.getElementById('customModelInput').value.trim();
-        return customVal || 'gemini-3.6-flash';
+        return customVal || 'gemini-3.5-flash-lite';
       }
       return select.value;
     }
 
     function setSelectedModel(model) {
-      if (!model) model = 'gemini-3.6-flash';
+      if (!model) model = 'gemini-3.5-flash-lite';
       const select = document.getElementById('modelSelect');
       let found = false;
       for (let i = 0; i < select.options.length; i++) {

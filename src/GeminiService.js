@@ -11,7 +11,7 @@ const GeminiService = {
    */
   testConnection(apiKey, model) {
     try {
-      const selectedModel = model || 'gemini-3.6-flash';
+      const selectedModel = model || 'gemini-3.5-flash-lite';
       const cleanKey = apiKey ? apiKey.trim() : '';
       if (!cleanKey) {
         return { success: false, message: 'Gemini API Key belum dimasukkan.' };
@@ -81,7 +81,7 @@ const GeminiService = {
    * @return {Object}
    */
   extractRubricFromTask(taskQuestionData, apiKey, model) {
-    const selectedModel = model || 'gemini-3.6-flash';
+    const selectedModel = model || 'gemini-3.5-flash-lite';
     if (!apiKey) {
       throw new Error('Gemini API Key belum dikonfigurasi.');
     }
@@ -204,7 +204,7 @@ TUGAS ANDA:
    * @return {Object} Hasil penilaian terstruktur
    */
   evaluateSubmission(submissionData, studentInfo, rubricText, apiKey, model, taskQuestionData) {
-    const selectedModel = model || 'gemini-3.6-flash';
+    const selectedModel = model || 'gemini-3.5-flash-lite';
     if (!apiKey) {
       throw new Error('Gemini API Key belum dikonfigurasi.');
     }

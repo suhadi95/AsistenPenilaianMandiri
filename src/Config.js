@@ -34,7 +34,7 @@ Total Porsi Nilai: 100 Poin
 *Anda bebas mengubah nomor soal dan porsi poin di atas sesuai rincian tugas Anda.*`;
 
 const DEFAULT_SETTINGS = {
-  modelName: 'gemini-3.6-flash',
+  modelName: 'gemini-3.5-flash-lite',
   driveFolderId: '',
   taskQuestionRef: '',
   rubricText: DEFAULT_RUBRIC,
