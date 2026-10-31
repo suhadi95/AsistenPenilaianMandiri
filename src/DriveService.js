@@ -36,9 +36,76 @@ const DriveService = {
     } catch (error) {
       return {
         success: false,
-        message: 'Tidak dapat mengakses folder Google Drive. Pastikan ID folder valid dan izin akses telah diberikan: ' + error.message
+        message: 'Tidak dapat mengakses folder Google Drive: ' + error.message
       };
     }
+  },
+
+  /**
+   * Memvalidasi dan membaca berkas Soal Tugas / Kunci Jawaban di Google Drive
+   * @param {string} ref - URL atau ID berkas di Drive atau teks soal
+   * @return {Object}
+   */
+  validateTaskFile(ref) {
+    if (!ref || !ref.trim()) {
+      return { success: false, message: 'Tautan berkas atau teks soal tugas belum diisi.' };
+    }
+
+    const trimmed = ref.trim();
+    const fileId = this.extractFileId(trimmed);
+
+    if (fileId) {
+      try {
+        const file = DriveApp.getFileById(fileId);
+        return {
+          success: true,
+          fileName: file.getName(),
+          sizeBytes: file.getSize(),
+          message: `Berkas Soal ditemukan: "${file.getName()}" (${(file.getSize() / 1024).toFixed(1)} KB)`
+        };
+      } catch (err) {
+        return {
+          success: false,
+          message: 'Gagal mengakses berkas soal di Drive: ' + err.message
+        };
+      }
+    }
+
+    // Jika bukan ID/URL Drive, diperlakukan sebagai teks deskripsi soal langsung
+    return {
+      success: true,
+      fileName: 'Teks Soal Langsung',
+      message: `Teks Soal langsung terdeteksi (${trimmed.length} karakter).`
+    };
+  },
+
+  /**
+   * Mengambil konten multimodal Soal Tugas / Kunci Jawaban
+   * @param {string} ref 
+   * @return {Object|null}
+   */
+  getTaskQuestionPayload(ref) {
+    if (!ref || !ref.trim()) return null;
+    const trimmed = ref.trim();
+    const fileId = this.extractFileId(trimmed);
+
+    if (fileId) {
+      try {
+        const file = DriveApp.getFileById(fileId);
+        return this.processFileForGemini(file);
+      } catch (err) {
+        // Jika gagal membaca sebagai berkas, gunakan sebagai teks
+      }
+    }
+
+    return {
+      success: true,
+      fileName: 'Instruksi Soal Tugas',
+      isTextOnly: true,
+      textContent: trimmed,
+      base64Data: null,
+      mimeType: 'text/plain'
+    };
   },
 
   /**
@@ -117,8 +184,11 @@ const DriveService = {
         return file;
       }
 
-      // Prioritas 2: Cocok persis dengan NIM
-      if (cleanNim && fileNameLower.includes(cleanNim)) {
+      // Prioritas 2: Cocok dengan NIM (menghilangkan tanda titik/strip)
+      const sanitizedNim = cleanNim.replace(/[^0-9a-z]/g, '');
+      const sanitizedFileName = fileNameLower.replace(/[^0-9a-z]/g, '');
+
+      if (cleanNim && (fileNameLower.includes(cleanNim) || (sanitizedNim.length >= 4 && sanitizedFileName.includes(sanitizedNim)))) {
         return file;
       }
 
@@ -155,12 +225,12 @@ const DriveService = {
     const fileName = file.getName();
     const fileSize = file.getSize();
 
-    // Batasan ukuran aman untuk Base64 inlineData di GAS (maksimum ~20MB)
+    // Batasan ukuran aman untuk Base64 inlineData di GAS (maksimum 20MB)
     const MAX_SAFE_SIZE = 20 * 1024 * 1024;
     if (fileSize > MAX_SAFE_SIZE) {
       return {
         success: false,
-        message: `Ukuran berkas (${(fileSize / (1024 * 1024)).toFixed(1)} MB) melebihi batas aman inline multimodal (20 MB).`
+        message: `Ukuran berkas (${(fileSize / (1024 * 1024)).toFixed(1)} MB) melebihi batas aman (20 MB).`
       };
     }
 
@@ -175,8 +245,6 @@ const DriveService = {
       blob = file.getAs(MimeType.PDF);
       mimeType = 'application/pdf';
     } else if (mimeType.includes('officedocument') || mimeType.includes('msword')) {
-      // Untuk DOCX, coba convert ke PDF via Drive temporary conversion jika didukung,
-      // atau gunakan MIME bawaan
       try {
         blob = file.getAs(MimeType.PDF);
         mimeType = 'application/pdf';
@@ -229,7 +297,12 @@ const DriveService = {
    */
   extractFileId(input) {
     if (!input) return null;
-    const match = input.match(/\/d\/([a-zA-Z0-9_-]+)/) || input.match(/id=([a-zA-Z0-9_-]+)/);
-    return match ? match[1] : (input.length > 20 && !input.includes('/') ? input : null);
+    const trimmed = input.trim();
+    const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || 
+                  trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                  trimmed.match(/id=([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) return match[1];
+    if (trimmed.length > 24 && !trimmed.includes('/') && !trimmed.includes(' ')) return trimmed;
+    return null;
   }
 };

@@ -122,6 +122,10 @@ function apiValidateDriveFolder(folderId) {
   return DriveService.validateFolder(folderId);
 }
 
+function apiValidateTaskFile(ref) {
+  return DriveService.validateTaskFile(ref);
+}
+
 function apiRunGrading(onlyUnassessed) {
   return GradingEngine.runBatchGrading(onlyUnassessed);
 }

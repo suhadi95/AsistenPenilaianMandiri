@@ -75,14 +75,15 @@ const GeminiService = {
 
   /**
    * Mengevaluasi berkas tugas mahasiswa menggunakan Gemini Multimodal
-   * @param {Object} submissionData - Data dari DriveService (fileId, mimeType, base64Data / textContent)
+   * @param {Object} submissionData - Data jawaban mahasiswa dari DriveService
    * @param {Object} studentInfo - { nim, nama }
-   * @param {string} rubricText - Teks kriteria rubrik
+   * @param {string} rubricText - Teks kriteria rubrik & porsi nilai
    * @param {string} apiKey - API Key Gemini
    * @param {string} model - Nama model Gemini
+   * @param {Object|null} taskQuestionData - Data Soal Tugas / Kunci Jawaban dari DriveService
    * @return {Object} Hasil penilaian terstruktur
    */
-  evaluateSubmission(submissionData, studentInfo, rubricText, apiKey, model) {
+  evaluateSubmission(submissionData, studentInfo, rubricText, apiKey, model, taskQuestionData) {
     const selectedModel = model || 'gemini-3.6-flash';
     if (!apiKey) {
       throw new Error('Gemini API Key belum dikonfigurasi.');
@@ -90,14 +91,34 @@ const GeminiService = {
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
 
-    // Siapkan bagian konten multimodal
     const parts = [];
 
-    // Tambahkan data berkas (Base64 atau Plain Text)
-    if (submissionData.isTextOnly) {
+    // 1. Lampirkan Soal Tugas / Kunci Jawaban Acuan jika tersedia
+    if (taskQuestionData) {
       parts.push({
-        text: `=== ISI BERKAS TUGAS MAHASISWA (${submissionData.fileName}) ===\n${submissionData.textContent}\n=== AKHIR BERKAS ===`
+        text: `=== DOKUMEN ACUAN: SOAL TUGAS / PETUNJUK PENILAIAN (${taskQuestionData.fileName || 'Soal Tugas'}) ===`
       });
+
+      if (taskQuestionData.isTextOnly) {
+        parts.push({ text: taskQuestionData.textContent });
+      } else if (taskQuestionData.base64Data) {
+        parts.push({
+          inline_data: {
+            mime_type: taskQuestionData.mimeType,
+            data: taskQuestionData.base64Data
+          }
+        });
+      }
+      parts.push({ text: `=== AKHIR DOKUMEN SOAL ACUAN ===\n` });
+    }
+
+    // 2. Lampirkan Berkas Jawaban Mahasiswa
+    parts.push({
+      text: `=== BERKAS JAWABAN MAHASISWA: ${studentInfo.nama || '-'} (NIM: ${studentInfo.nim || '-'}) - File: ${submissionData.fileName} ===`
+    });
+
+    if (submissionData.isTextOnly) {
+      parts.push({ text: submissionData.textContent });
     } else if (submissionData.base64Data) {
       parts.push({
         inline_data: {
@@ -106,76 +127,77 @@ const GeminiService = {
         }
       });
     }
+    parts.push({ text: `=== AKHIR BERKAS JAWABAN MAHASISWA ===\n` });
 
-    // Tambahkan instruksi spesifik penilaian
+    // 3. Instruksi Evaluasi Komprehensif
     const evaluationPrompt = `
-Lakukan penilaian tugas mahasiswa berikut secara objektif dan mendalam.
+Lakukan penilaian tugas mahasiswa secara seksama, adil, dan objektif.
 
 IDENTITAS MAHASISWA:
-- NIM  : ${studentInfo.nim || '-'}
-- Nama : ${studentInfo.nama || '-'}
-- Berkas: ${submissionData.fileName}
+• NIM  : ${studentInfo.nim || '-'}
+• Nama : ${studentInfo.nama || '-'}
+• Berkas Jawaban: ${submissionData.fileName}
 
-PANDUAN RUBRIK & BOBOT:
+PANDUAN PORSI NILAI & RUBRIK:
 ${rubricText}
 
 INSTRUKSI PENILAIAN:
-1. Periksa berkas tugas mahasiswa yang terlampir dengan teliti.
-2. Evaluasi setiap kriteria sesuai dengan deskripsi dan bobot pada rubrik di atas.
-3. Berikan skor per kriteria dan hitung Nilai Total (skala 0 - 100).
-4. Buat rangkuman masukan (summaryFeedback) yang konstruktif dalam Bahasa Indonesia formal, sopan, dan mengedukasi.
-5. Sebutkan poin-poin kekuatan (strengths) dan area perbaikan (improvements).
+1. Bacalah jawaban mahasiswa dan bandingkan dengan SOAL TUGAS / PANDUAN JAWABAN di atas.
+2. Nilai setiap butir soal/kriteria secara ketat berdasarkan PORSI POIN MAKSIMAL yang telah ditentukan.
+3. Hitung Nilai Total akumulatif (totalScore).
+4. Buat rangkuman masukan (summaryFeedback) yang menjelaskan justifikasi perolehan nilai: bagian mana yang sudah benar, bagian mana yang kurang/salah, dan apa solusi yang benar secara santun dan mengedukasi.
+5. Sebutkan poin-poin kelebihan (strengths) dan poin perbaikan (improvements).
 `;
 
     parts.push({ text: evaluationPrompt });
 
-    // Payload dengan Response Schema JSON Terstruktur
+    // 4. Payload Terstruktur dengan Schema JSON
     const payload = {
       system_instruction: {
         parts: [
           {
-            text: 'Anda adalah Asisten Dosen dan Penilai Akademik Profesional yang sangat teliti, adil, objektif, dan suportif. Anda selalu menilai berdasarkan rubrik yang diberikan tanpa bias dan menghasilkan keluaran dalam format JSON terstruktur.'
+            text: 'Anda adalah Asisten Dosen Senior dan Penilai Akademik Profesional yang sangat teliti, adil, objektif, dan suportif. Anda memeriksa jawaban mahasiswa berdasarkan soal dan pedoman rubrik/porsi nilai yang ditentukan, menghitung skor secara matematis tepat, dan mengembalikan hasil dalam format JSON terstruktur.'
           }
         ]
       },
       contents: [{ parts: parts }],
       generationConfig: {
-        temperature: 0.1, // Rendah untuk konsistensi dan akurasi skor
+        temperature: 0.1, // Rendah untuk konsistensi nilai
         responseMimeType: 'application/json',
         responseSchema: {
           type: 'OBJECT',
           properties: {
             totalScore: {
               type: 'NUMBER',
-              description: 'Nilai total akhir akumulatif (skala 0 - 100)'
+              description: 'Nilai total akhir mahasiswa (penjumlahan skor semua kriteria/soal)'
             },
             criteriaScores: {
               type: 'ARRAY',
-              description: 'Daftar penilaian untuk setiap kriteria rubrik',
+              description: 'Daftar nilai untuk setiap butir soal atau kriteria rubrik',
               items: {
                 type: 'OBJECT',
                 properties: {
-                  criterion: { type: 'STRING', description: 'Nama kriteria' },
-                  score: { type: 'NUMBER', description: 'Nilai yang diperoleh' },
-                  maxScore: { type: 'NUMBER', description: 'Nilai maksimal kriteria' },
-                  feedback: { type: 'STRING', description: 'Ulasan spesifik untuk kriteria ini' }
+                  criterion: { type: 'STRING', description: 'Nama butir soal atau kriteria penilaian' },
+                  score: { type: 'NUMBER', description: 'Poin nilai yang diperoleh mahasiswa' },
+                  maxScore: { type: 'NUMBER', description: 'Poin maksimal untuk kriteria ini' },
+                  feedback: { type: 'STRING', description: 'Alasan/justifikasi perolehan nilai pada butir ini' }
                 },
                 required: ['criterion', 'score', 'maxScore', 'feedback']
               }
             },
             summaryFeedback: {
               type: 'STRING',
-              description: 'Ulasan menyeluruh, catatan evaluasi, dan saran perbaikan untuk mahasiswa'
+              description: 'Rangkuman ulasan komprehensif, evaluasi objektif, dan justifikasi total nilai'
             },
             strengths: {
               type: 'ARRAY',
               items: { type: 'STRING' },
-              description: 'Kelebihan utama tugas ini'
+              description: 'Kelebihan utama jawaban mahasiswa'
             },
             improvements: {
               type: 'ARRAY',
               items: { type: 'STRING' },
-              description: 'Hal-hal yang perlu ditingkatkan di masa mendatang'
+              description: 'Kekurangan jawaban dan hal yang perlu diperbaiki'
             }
           },
           required: ['totalScore', 'criteriaScores', 'summaryFeedback']
@@ -190,7 +212,6 @@ INSTRUKSI PENILAIAN:
       muteHttpExceptions: true
     };
 
-    // Eksekusi pemanggilan API
     const response = UrlFetchApp.fetch(url, options);
     const statusCode = response.getResponseCode();
     const responseBody = response.getContentText();
@@ -205,7 +226,7 @@ INSTRUKSI PENILAIAN:
       } catch (e) {}
 
       if (statusCode === 429) {
-        throw new Error(`Limit Rate Gemini API tercapai (429 Quota Exceeded). Silakan jeda beberapa saat atau periksa kuota Anda.`);
+        throw new Error(`Limit kuota tercapai (HTTP 429). Coba ganti model ke gemini-3.5-flash-lite di Pengaturan.`);
       }
       throw new Error(`Gemini API Error: ${errorMessage}`);
     }

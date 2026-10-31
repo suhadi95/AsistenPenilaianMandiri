@@ -6,36 +6,37 @@ const CONFIG_KEYS = {
   GEMINI_API_KEY: 'GEMINI_API_KEY',
   MODEL_NAME: 'MODEL_NAME',
   DRIVE_FOLDER_ID: 'DRIVE_FOLDER_ID',
+  TASK_QUESTION_REF: 'TASK_QUESTION_REF', // ID/URL file soal di Drive atau teks soal langsung
   RUBRIC_TEXT: 'RUBRIC_TEXT',
   MAX_EXECUTION_TIME_SEC: 'MAX_EXECUTION_TIME_SEC'
 };
 
-const DEFAULT_RUBRIC = `## RUBRIK PENILAIAN TUGAS MULTIMODAL
+const DEFAULT_RUBRIC = `## PANDUAN PORSI NILAI & RUBRIK TUGAS
 
-Silakan evaluasi berkas jawaban mahasiswa secara objektif dan mendalam berdasarkan kriteria berikut:
+Total Porsi Nilai: 100 Poin
 
-1. Kelengkapan & Struktur Dokumen (Bobot: 20%, Maksimal 20 poin)
-   - Sistematika penulisan rapi, memuat pendahuluan, pembahasan, dan kesimpulan.
-   - Format sesuai instruksi berkas (header, penomoran, kelengkapan lampiran).
+1. Pemahaman & Ketepatan Jawaban Soal 1 (Porsi: 35 Poin)
+   - Ketepatan konsep, logika pemikiran, dan kesesuaian dengan instruksi soal.
+   - Poin maksimal: 35.
 
-2. Ketepatan Konsep & Analisis Masalah (Bobot: 40%, Maksimal 40 poin)
-   - Pemahaman materi kuat, argumen logis dan didukung data/literatur yang relevan.
-   - Solusi atau penjelasan teknis tepat sasaran dan akurat.
+2. Analisis & Pembahasan Mendalam Soal 2 (Porsi: 40 Poin)
+   - Kelengkapan langkah penyelesaian, keakuratan data/metode, dan kedalaman argumen.
+   - Poin maksimal: 40.
 
-3. Orisinalitas & Kreativitas Penyelesaian (Bobot: 25%, Maksimal 25 poin)
-   - Gagasan orisinal, menunjukkan eksplorasi mandiri, tidak sekadar salin-tempel.
-   - Pendekatan atau penyajian visual (diagram, grafik, flowchart) informatif dan menarik.
+3. Orisinalitas & Sintesis Kesimpulan (Porsi: 15 Poin)
+   - Pendapat kritis mandiri, sintesis hasil, dan tidak sekadar salin-tempel.
+   - Poin maksimal: 15.
 
-4. Kerapian & Bahasa (Bobot: 15%, Maksimal 15 poin)
-   - Tata bahasa baku, ejaan benar, istilah teknis digunakan secara konsisten.
-   - Keterbacaan visual (tata letak diagram/gambar/tabel) jelas dan bersih.
+4. Kerapian, Tata Bahasa, & Sistematika (Porsi: 10 Poin)
+   - Format dokumen rapi, penulisan baku, tabel/diagram jelas dan terbaca.
+   - Poin maksimal: 10.
 
-Skala Total: 0 - 100.
-Berikan masukan konstruktif yang spesifik menunjuk bagian mana yang sudah baik dan bagian mana yang perlu diperbaiki.`;
+*Anda bebas mengubah nomor soal dan porsi poin di atas sesuai rincian tugas Anda.*`;
 
 const DEFAULT_SETTINGS = {
   modelName: 'gemini-3.6-flash',
   driveFolderId: '',
+  taskQuestionRef: '',
   rubricText: DEFAULT_RUBRIC,
   maxExecutionTimeSec: 300 // 5 menit checkpoint (batas GAS 6 menit)
 };
@@ -58,6 +59,9 @@ function getAppSettings() {
   const driveFolderId = docProps.getProperty(CONFIG_KEYS.DRIVE_FOLDER_ID) || 
                         userProps.getProperty(CONFIG_KEYS.DRIVE_FOLDER_ID) || '';
 
+  const taskQuestionRef = docProps.getProperty(CONFIG_KEYS.TASK_QUESTION_REF) || 
+                          DEFAULT_SETTINGS.taskQuestionRef;
+
   const rubricText = docProps.getProperty(CONFIG_KEYS.RUBRIC_TEXT) || 
                      DEFAULT_SETTINGS.rubricText;
 
@@ -67,6 +71,7 @@ function getAppSettings() {
     rawApiKey: apiKey,
     modelName: modelName,
     driveFolderId: driveFolderId,
+    taskQuestionRef: taskQuestionRef,
     rubricText: rubricText,
     maxExecutionTimeSec: DEFAULT_SETTINGS.maxExecutionTimeSec
   };
@@ -91,9 +96,12 @@ function saveAppSettings(data) {
     }
 
     if (data.driveFolderId !== undefined) {
-      // Ekstrak folder ID murni jika pengguna memasukkan URL lengkap Google Drive
       const cleanFolderId = extractDriveFolderId(data.driveFolderId);
       docProps.setProperty(CONFIG_KEYS.DRIVE_FOLDER_ID, cleanFolderId);
+    }
+
+    if (data.taskQuestionRef !== undefined) {
+      docProps.setProperty(CONFIG_KEYS.TASK_QUESTION_REF, data.taskQuestionRef.trim());
     }
 
     if (data.rubricText !== undefined) {
@@ -124,7 +132,6 @@ function maskApiKey(key) {
 function extractDriveFolderId(input) {
   if (!input) return '';
   const trimmed = input.trim();
-  // Pola regex mencakup format URL Drive: /folders/ID atau id=ID
   const folderUrlMatch = trimmed.match(/folders\/([a-zA-Z0-9_-]+)/);
   if (folderUrlMatch && folderUrlMatch[1]) {
     return folderUrlMatch[1];

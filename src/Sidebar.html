@@ -40,7 +40,7 @@
       gap: 10px;
       padding-bottom: 14px;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .header-icon {
@@ -64,16 +64,16 @@
     /* Tabs */
     .tabs {
       display: flex;
-      gap: 4px;
+      gap: 3px;
       background: #e2e8f0;
       padding: 3px;
       border-radius: var(--radius);
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .tab-btn {
       flex: 1;
-      padding: 6px 4px;
+      padding: 6px 2px;
       border: none;
       background: transparent;
       font-size: 11px;
@@ -221,6 +221,7 @@
       font-size: 11px;
       margin-top: 8px;
       display: none;
+      line-height: 1.4;
     }
     .alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
     .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
@@ -291,9 +292,10 @@
   <!-- Navigation Tabs -->
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('tab-api')">🔑 API</button>
-    <button class="tab-btn" onclick="switchTab('tab-drive')">📁 Drive</button>
-    <button class="tab-btn" onclick="switchTab('tab-rubric')">📝 Rubrik</button>
-    <button class="tab-btn" onclick="switchTab('tab-run')">⚡ Penilaian</button>
+    <button class="tab-btn" onclick="switchTab('tab-task')">📄 Soal</button>
+    <button class="tab-btn" onclick="switchTab('tab-drive')">📁 Jawaban</button>
+    <button class="tab-btn" onclick="switchTab('tab-rubric')">⚖️ Porsi Nilai</button>
+    <button class="tab-btn" onclick="switchTab('tab-run')">⚡ Nilai</button>
   </div>
 
   <!-- TAB 1: API & MODEL -->
@@ -302,12 +304,12 @@
       <div class="form-group">
         <label for="apiKey">Gemini API Key</label>
         <div class="input-row">
-          <input type="password" id="apiKey" placeholder="AIzaSy...">
+          <input type="password" id="apiKey" placeholder="AIzaSy... / AQ.Ab...">
           <button class="btn btn-secondary btn-sm" type="button" onclick="toggleApiKeyVisibility()">👁️</button>
         </div>
         <div style="margin-top: 4px;">
           <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size: 10px; color: var(--primary); text-decoration: none;">
-            ↗ Dapatkan API Key di Google AI Studio
+            ↗ Dapatkan / Periksa API Key di Google AI Studio
           </a>
         </div>
       </div>
@@ -315,10 +317,10 @@
       <div class="form-group">
         <label for="modelSelect">Pilihan Model Gemini</label>
         <select id="modelSelect" onchange="onModelSelectChange()">
-          <option value="gemini-3.6-flash">gemini-3.6-flash (Model Utama - Cerdas)</option>
-          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Rekomendasi Bebas Kuota)</option>
+          <option value="gemini-3.6-flash">gemini-3.6-flash (Pilihan Utama)</option>
+          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Rekomendasi - Bebas Kuota)</option>
           <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Ringan & Cepat)</option>
-          <option value="gemini-flash-lite-latest">gemini-flash-lite-latest (Versi Terbaru)</option>
+          <option value="gemini-flash-lite-latest">gemini-flash-lite-latest</option>
           <option value="gemini-flash-latest">gemini-flash-latest</option>
           <option value="gemini-3.8-flash">gemini-3.8-flash</option>
           <option value="custom">Model Kustom Lainnya...</option>
@@ -335,14 +337,32 @@
     </div>
   </div>
 
-  <!-- TAB 2: GOOGLE DRIVE -->
+  <!-- TAB 2: SOAL TUGAS / KUNCI JAWABAN -->
+  <div id="tab-task" class="tab-content">
+    <div class="card">
+      <div class="form-group">
+        <label for="taskQuestionRef">Berkas Soal Tugas di Google Drive</label>
+        <input type="text" id="taskQuestionRef" placeholder="Tempel URL atau ID Berkas Soal di Drive">
+        <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">
+          Mendukung format: PDF, Google Docs, Word, Gambar Soal, atau teks instruksi langsung.
+        </p>
+      </div>
+
+      <button class="btn btn-secondary" onclick="testTaskFile()" id="btnTestTask">
+        🔍 Verifikasi Berkas Soal
+      </button>
+      <div id="taskAlert" class="alert"></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: FOLDER JAWABAN MAHASISWA -->
   <div id="tab-drive" class="tab-content">
     <div class="card">
       <div class="form-group">
-        <label for="driveFolderId">Folder Jawaban / Tugas Mahasiswa</label>
+        <label for="driveFolderId">Folder Jawaban Mahasiswa (Google Drive)</label>
         <input type="text" id="driveFolderId" placeholder="Tempel URL Folder atau ID Google Drive">
         <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">
-          Contoh: https://drive.google.com/drive/folders/1aBcD... atau cukup salin ID foldernya.
+          Folder tempat file jawaban mahasiswa (PDF, Gambar, Docs, Zip) tersimpan.
         </p>
       </div>
 
@@ -353,25 +373,26 @@
     </div>
   </div>
 
-  <!-- TAB 3: RUBRIK PENILAIAN -->
+  <!-- TAB 4: RUBRIK & PORSI NILAI -->
   <div id="tab-rubric" class="tab-content">
     <div class="card">
       <div class="form-group">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <label for="rubricText" style="margin: 0;">Panduan Rubrik & Bobot</label>
+          <label for="rubricText" style="margin: 0;">Rincian Porsi Poin & Kriteria</label>
           <select id="rubricPreset" onchange="applyRubricPreset()" style="width: auto; padding: 2px 6px; font-size: 10px;">
-            <option value="">-- Pilih Preset --</option>
-            <option value="umum">Laporan Praktikum / Makalah</option>
-            <option value="coding">Tugas Coding / Pemrograman</option>
+            <option value="">-- Pilih Template --</option>
+            <option value="ujian">Ujian / Tugas Esai Berbutir</option>
+            <option value="coding">Tugas Coding & Pemrograman</option>
+            <option value="laporan">Laporan Praktikum & Data</option>
             <option value="desain">Presentasi / Desain Visual</option>
           </select>
         </div>
-        <textarea id="rubricText" placeholder="Tuliskan kriteria dan bobot penilaian..."></textarea>
+        <textarea id="rubricText" placeholder="Tuliskan kriteria penilaian dan porsi poin masing-masing..."></textarea>
       </div>
     </div>
   </div>
 
-  <!-- TAB 4: PENILAIAN & AKSI -->
+  <!-- TAB 5: AKSI PENILAIAN -->
   <div id="tab-run" class="tab-content">
     <div class="card">
       <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -385,7 +406,7 @@
         </label>
 
         <button class="btn btn-success" onclick="startGrading()" id="btnStartGrading">
-          ▶️ Mulai / Lanjutkan Penilaian
+          ▶️ Mulai / Lanjutkan Penilaian Otomatis
         </button>
 
         <button class="btn btn-secondary btn-sm" onclick="resetFailed()" style="width: 100%;">
@@ -407,7 +428,6 @@
   </div>
 
   <script>
-    // State lokal
     let currentSettings = {};
 
     window.onload = function() {
@@ -487,7 +507,7 @@
       }
     }
 
-    // Memuat pengaturan dari Google Apps Script
+    // Memuat pengaturan tersimpan dari Google Apps Script
     function loadSettings() {
       google.script.run
         .withSuccessHandler(function(settings) {
@@ -497,6 +517,9 @@
           }
           if (settings.modelName) {
             setSelectedModel(settings.modelName);
+          }
+          if (settings.taskQuestionRef) {
+            document.getElementById('taskQuestionRef').value = settings.taskQuestionRef;
           }
           if (settings.driveFolderId) {
             document.getElementById('driveFolderId').value = settings.driveFolderId;
@@ -521,6 +544,7 @@
       const data = {
         apiKey: document.getElementById('apiKey').value,
         modelName: getSelectedModel(),
+        taskQuestionRef: document.getElementById('taskQuestionRef').value,
         driveFolderId: document.getElementById('driveFolderId').value,
         rubricText: document.getElementById('rubricText').value
       };
@@ -544,7 +568,7 @@
         .apiSaveSettings(data);
     }
 
-    // Menguji koneksi Gemini API
+    // Uji koneksi Gemini API
     function testApiConnection() {
       const btn = document.getElementById('btnTestApi');
       const apiKey = document.getElementById('apiKey').value;
@@ -572,7 +596,34 @@
         .apiTestConnection(apiKey, model);
     }
 
-    // Verifikasi akses folder Google Drive
+    // Verifikasi berkas soal tugas di Google Drive
+    function testTaskFile() {
+      const btn = document.getElementById('btnTestTask');
+      const ref = document.getElementById('taskQuestionRef').value;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Memeriksa...';
+      showAlert('taskAlert', 'Memeriksa berkas soal di Drive...', 'info');
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '🔍 Verifikasi Berkas Soal';
+          if (res.success) {
+            showAlert('taskAlert', '✅ ' + res.message, 'success');
+          } else {
+            showAlert('taskAlert', '❌ ' + res.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '🔍 Verifikasi Berkas Soal';
+          showAlert('taskAlert', 'Kesalahan: ' + err.message, 'error');
+        })
+        .apiValidateTaskFile(ref);
+    }
+
+    // Verifikasi akses folder jawaban mahasiswa
     function testDriveFolder() {
       const btn = document.getElementById('btnTestDrive');
       const folderId = document.getElementById('driveFolderId').value;
@@ -599,7 +650,7 @@
         .apiValidateDriveFolder(folderId);
     }
 
-    // Siapkan Template Sheet
+    // Siapkan Template Kolom Sheet
     function setupTemplate() {
       google.script.run
         .withSuccessHandler(function(res) {
@@ -630,13 +681,13 @@
 
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span> Menilai Baris...';
-      showAlert('gradingAlert', 'Proses penilaian sedang berjalan di Google Sheets. Pantau perubahan langsung pada sheet...', 'info');
-      appendLog('Memulai batch penilaian otomatis...');
+      showAlert('gradingAlert', 'Proses penilaian otomatis sedang berjalan. Nilai dan ulasan langsung diinputkan ke Google Sheets baris demi baris...', 'info');
+      appendLog('Memulai evaluasi berkas jawaban vs soal...');
 
       google.script.run
         .withSuccessHandler(function(res) {
           btn.disabled = false;
-          btn.innerHTML = '▶️ Mulai / Lanjutkan Penilaian';
+          btn.innerHTML = '▶️ Mulai / Lanjutkan Penilaian Otomatis';
           appendLog(res.message);
           if (res.success) {
             showAlert('gradingAlert', (res.isTimeout ? '⚠️ ' : '✅ ') + res.message, res.isTimeout ? 'info' : 'success');
@@ -646,66 +697,89 @@
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
-          btn.innerHTML = '▶️ Mulai / Lanjutkan Penilaian';
+          btn.innerHTML = '▶️ Mulai / Lanjutkan Penilaian Otomatis';
           appendLog('ERROR: ' + err.message);
           showAlert('gradingAlert', 'Kesalahan Penilaian: ' + err.message, 'error');
         })
         .apiRunGrading(onlyUnassessed);
     }
 
-    // Presets Rubrik
+    // Presets Rubrik & Porsi Nilai
     function applyRubricPreset() {
       const type = document.getElementById('rubricPreset').value;
       const textarea = document.getElementById('rubricText');
-      if (type === 'coding') {
-        textarea.value = `## RUBRIK PENILAIAN TUGAS PEMROGRAMAN & KODING
+      if (type === 'ujian') {
+        textarea.value = `## PANDUAN PORSI NILAI TUGAS / UJIAN ESAI (TOTAL: 100 POIN)
 
-1. Fungsionalitas & Logika Algoritma (Bobot: 40%, Maksimal 40 poin)
-   - Kode berjalan sesuai spesifikasi tanpa bug fatal.
-   - Penanganan error, validasi input, dan corner cases ditangani dengan baik.
+1. Soal Nomor 1 (Porsi: 25 Poin)
+   - Kebenaran konsep dasar dan pemahaman definisi.
+   - Poin maksimal: 25.
 
-2. Struktur Kode & Best Practices (Bobot: 30%, Maksimal 30 poin)
-   - Modularitas (Clean Code, fungsi/method terpisah sesuai SRP).
-   - Penamaan variabel dan fungsi deskriptif serta konsisten.
+2. Soal Nomor 2 (Porsi: 35 Poin)
+   - Langkah penyelesaian matematis/logika pemecahan masalah dan ketepatan hasil akhir.
+   - Poin maksimal: 35.
 
-3. Efisiensi & Kinerja (Bobot: 15%, Maksimal 15 poin)
-   - Kompleksitas waktu dan memori optimal.
-   - Tidak ada proses komputasi atau query redundan.
+3. Soal Nomor 3 (Porsi: 25 Poin)
+   - Analisis kasus, penalaran logis, dan argumentasi pendukung.
+   - Poin maksimal: 25.
 
-4. Dokumentasi & Pengujian (Bobot: 15%, Maksimal 15 poin)
-   - Komentar penjelas pada algoritma kompleks.
-   - Dilengkapi contoh output, screenshot pengujian, atau test cases.`;
+4. Kerapian & Sistematika Jawaban (Porsi: 15 Poin)
+   - Kejelasan tulisan/diagram, sistematika alur pengerjaan, dan format dokumen.
+   - Poin maksimal: 15.`;
+      } else if (type === 'coding') {
+        textarea.value = `## PANDUAN PORSI NILAI TUGAS CODING & PEMROGRAMAN (TOTAL: 100 POIN)
+
+1. Fungsionalitas & Kebenaran Algoritma (Porsi: 40 Poin)
+   - Kode menyelesaikan persoalan sesuai spesifikasi dan bebas bug fatal.
+   - Poin maksimal: 40.
+
+2. Struktur Kode, Best Practices & Clean Code (Porsi: 30 Poin)
+   - Modularitas, fungsi/metode terpisah, penamaan variabel jelas dan rapi.
+   - Poin maksimal: 30.
+
+3. Efisiensi Algoritma & Penanganan Kasus Ekstrem (Porsi: 15 Poin)
+   - Efisiensi komputasi dan penanganan error/edge cases.
+   - Poin maksimal: 15.
+
+4. Dokumentasi, Pengujian & Screenshot Output (Porsi: 15 Poin)
+   - Komentar penjelasan kode dan bukti pengujian program berjalan.
+   - Poin maksimal: 15.`;
+      } else if (type === 'laporan') {
+        textarea.value = `## PANDUAN PORSI NILAI LAPORAN PRAKTIKUM (TOTAL: 100 POIN)
+
+1. Metodologi & Langkah Eksperimen (Porsi: 25 Poin)
+   - Kelengkapan parameter dan kesesuaian prosedur pengujian.
+   - Poin maksimal: 25.
+
+2. Penyajian Data & Analisis Hasil (Porsi: 45 Poin)
+   - Tabel/grafik hasil akurat, pembahasan mendalam, dan interpretasi tepat.
+   - Poin maksimal: 45.
+
+3. Kesimpulan & Relevansi Teori (Porsi: 20 Poin)
+   - Menjawab tujuan praktikum dan didukung literatur yang relevan.
+   - Poin maksimal: 20.
+
+4. Format & Sistematika Laporan (Porsi: 10 Poin)
+   - Kerapian format, tata bahasa baku, dan daftar pustaka.
+   - Poin maksimal: 10.`;
       } else if (type === 'desain') {
-        textarea.value = `## RUBRIK PENILAIAN PRESENTASI & DESAIN VISUAL
+        textarea.value = `## PANDUAN PORSI NILAI PRESENTASI & DESAIN (TOTAL: 100 POIN)
 
-1. Kesesuaian Pesan & Konten (Bobot: 35%, Maksimal 35 poin)
-   - Narasi terstruktur, gagasan utama tersampaikan dengan jelas dan meyakinkan.
-   - Relevansi materi dengan tema yang ditentukan.
+1. Kesesuaian Pesan & Kedalaman Konten (Porsi: 35 Poin)
+   - Narasi terstruktur dan pesan utama tersampaikan secara jelas.
+   - Poin maksimal: 35.
 
-2. Tata Letak & Hierarki Visual (Bobot: 30%, Maksimal 30 poin)
-   - Komposisi seimbang, hierarki informasi (judul, subjudul, isi) jelas.
-   - Pemanfaatan ruang kosong (white space) proporsional.
+2. Tata Letak, Komposisi & Visual (Porsi: 30 Poin)
+   - Komposisi seimbang, hierarki visual jelas, pemanfaatan ruang proporsional.
+   - Poin maksimal: 30.
 
-3. Estetika & Tipografi (Bobot: 20%, Maksimal 20 poin)
-   - Pemilihan palet warna harmonis dan kontras terbaca dengan baik.
-   - Pemilihan font konsisten dan mudah dibaca.
+3. Estetika & Tipografi (Porsi: 20 Poin)
+   - Pemilihan palet warna harmonis dan font mudah dibaca.
+   - Poin maksimal: 20.
 
-4. Orisinalitas & Nilai Tambah (Bobot: 15%, Maksimal 15 poin)
-   - Menghadirkan visualisasi infografis, diagram, atau ilustrasi kreatif mandiri.`;
-      } else if (type === 'umum') {
-        textarea.value = `## RUBRIK PENILAIAN LAPORAN PRAKTIKUM / MAKALAH
-
-1. Kelengkapan & Format Penulisan (Bobot: 20%, Maksimal 20 poin)
-   - Format standar, kelengkapan bab (Pendahuluan, Metodologi, Hasil, Analisis, Kesimpulan).
-
-2. Analisis & Pembahasan Masalah (Bobot: 40%, Maksimal 40 poin)
-   - Pembahasan mendalam, interpretasi data akurat dan didukung literatur.
-
-3. Hasil Eksperimen / Studi Kasus (Bobot: 25%, Maksimal 25 poin)
-   - Penyajian data (tabel, grafik, screenshot) rapi dan valid.
-
-4. Tata Bahasa & Sitasi (Bobot: 15%, Maksimal 15 poin)
-   - Bahasa baku, ejaan benar, sitasi dan daftar pustaka konsisten.`;
+4. Orisinalitas & Kreativitas Karya (Porsi: 15 Poin)
+   - Infografis atau ilustrasi kreatif orisinal mandiri.
+   - Poin maksimal: 15.`;
       }
     }
   </script>
