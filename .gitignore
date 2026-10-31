@@ -1,0 +1,17 @@
+# Dependency & build
+node_modules/
+package-lock.json
+
+# Clasp auth credentials (sangat penting: jangan pernah commit kredensial ini)
+.clasprc.json
+
+# Environment / local configs
+.env
+.env.local
+*.log
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

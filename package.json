@@ -1,0 +1,28 @@
+{
+  "name": "asisten-penilaian-gas",
+  "version": "1.0.0",
+  "description": "Aplikasi Otomatisasi Penilaian Mahasiswa Multimodal berbasis Google Apps Script, Google Sheets, dan Gemini API",
+  "main": "src/Code.js",
+  "scripts": {
+    "login": "clasp login",
+    "create:sheet": "clasp create --type sheets --title \"Sistem Penilaian Mahasiswa Multimodal\" --rootDir ./src",
+    "push": "clasp push",
+    "push:watch": "clasp push --watch",
+    "pull": "clasp pull",
+    "open": "clasp open"
+  },
+  "keywords": [
+    "google-apps-script",
+    "clasp",
+    "gemini-api",
+    "multimodal",
+    "google-sheets",
+    "google-drive"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "@types/google-apps-script": "^1.0.89"
+  }
+}

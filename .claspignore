@@ -1,0 +1,10 @@
+# Clasp ignore - berkas lokal yang tidak perlu di-upload ke Google Apps Script
+node_modules/**
+package.json
+package-lock.json
+.git/**
+.gitignore
+.claspignore
+README.md
+tsconfig.json
+jsconfig.json

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengaturan Asisten Penilaian</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 16px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .header-icon {
+      font-size: 24px;
+      background: #eff6ff;
+      padding: 6px 10px;
+      border-radius: var(--radius);
+    }
+
+    .header-title h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .header-title p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: #e2e8f0;
+      padding: 3px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 6px 4px;
+      border: none;
+      background: transparent;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Cards & Forms */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 12px;
+      color: var(--text);
+      background: #fff;
+      transition: border-color 0.2s;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 140px;
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+    }
+    .btn-success:hover {
+      background: #15803d;
+    }
+
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 11px;
+      width: auto;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Status Alert */
+    .alert {
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      font-size: 11px;
+      margin-top: 8px;
+      display: none;
+    }
+    .alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    /* Action Panel */
+    .action-panel {
+      position: sticky;
+      bottom: 0;
+      background: var(--bg);
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #475569;
+      text-transform: none;
+      font-weight: normal;
+      cursor: pointer;
+    }
+
+    /* Log Box */
+    .log-box {
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 10px;
+      padding: 8px;
+      border-radius: var(--radius);
+      max-height: 120px;
+      overflow-y: auto;
+      margin-top: 8px;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-icon">🎓</div>
+    <div class="header-title">
+      <h1>Asisten Penilaian</h1>
+      <p>Multimodal Google Apps Script & Gemini</p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('tab-api')">🔑 API</button>
+    <button class="tab-btn" onclick="switchTab('tab-drive')">📁 Drive</button>
+    <button class="tab-btn" onclick="switchTab('tab-rubric')">📝 Rubrik</button>
+    <button class="tab-btn" onclick="switchTab('tab-run')">⚡ Penilaian</button>
+  </div>
+
+  <!-- TAB 1: API & MODEL -->
+  <div id="tab-api" class="tab-content active">
+    <div class="card">
+      <div class="form-group">
+        <label for="apiKey">Gemini API Key</label>
+        <div class="input-row">
+          <input type="password" id="apiKey" placeholder="AIzaSy...">
+          <button class="btn btn-secondary btn-sm" type="button" onclick="toggleApiKeyVisibility()">👁️</button>
+        </div>
+        <div style="margin-top: 4px;">
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size: 10px; color: var(--primary); text-decoration: none;">
+            ↗ Dapatkan API Key di Google AI Studio
+          </a>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="modelName">Pilihan Model Gemini</label>
+        <select id="modelName">
+          <option value="gemini-2.5-flash">gemini-2.5-flash (Direkomendasikan - Cepat & Cerdas)</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro (Penalaran Komprehensif)</option>
+          <option value="gemini-1.5-flash">gemini-1.5-flash (Hemat Kuota)</option>
+          <option value="gemini-1.5-pro">gemini-1.5-pro (Analisis Panjang)</option>
+        </select>
+      </div>
+
+      <button class="btn btn-secondary" onclick="testApiConnection()" id="btnTestApi">
+        🔍 Uji Koneksi API Key
+      </button>
+      <div id="apiAlert" class="alert"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: GOOGLE DRIVE -->
+  <div id="tab-drive" class="tab-content">
+    <div class="card">
+      <div class="form-group">
+        <label for="driveFolderId">Folder Jawaban / Tugas Mahasiswa</label>
+        <input type="text" id="driveFolderId" placeholder="Tempel URL Folder atau ID Google Drive">
+        <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">
+          Contoh: https://drive.google.com/drive/folders/1aBcD... atau cukup salin ID foldernya.
+        </p>
+      </div>
+
+      <button class="btn btn-secondary" onclick="testDriveFolder()" id="btnTestDrive">
+        📂 Verifikasi Akses Folder
+      </button>
+      <div id="driveAlert" class="alert"></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: RUBRIK PENILAIAN -->
+  <div id="tab-rubric" class="tab-content">
+    <div class="card">
+      <div class="form-group">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <label for="rubricText" style="margin: 0;">Panduan Rubrik & Bobot</label>
+          <select id="rubricPreset" onchange="applyRubricPreset()" style="width: auto; padding: 2px 6px; font-size: 10px;">
+            <option value="">-- Pilih Preset --</option>
+            <option value="umum">Laporan Praktikum / Makalah</option>
+            <option value="coding">Tugas Coding / Pemrograman</option>
+            <option value="desain">Presentasi / Desain Visual</option>
+          </select>
+        </div>
+        <textarea id="rubricText" placeholder="Tuliskan kriteria dan bobot penilaian..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: PENILAIAN & AKSI -->
+  <div id="tab-run" class="tab-content">
+    <div class="card">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn btn-secondary" onclick="setupTemplate()">
+          📋 Siapkan Kolom Template Sheet
+        </button>
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="onlyUnassessed" checked>
+          <span>Hanya nilai baris yang belum dinilai atau gagal (Resume otomatis)</span>
+        </label>
+
+        <button class="btn btn-success" onclick="startGrading()" id="btnStartGrading">
+          ▶️ Mulai / Lanjutkan Penilaian
+        </button>
+
+        <button class="btn btn-secondary btn-sm" onclick="resetFailed()" style="width: 100%;">
+          🔄 Reset Baris Status Gagal
+        </button>
+      </div>
+
+      <div id="gradingAlert" class="alert"></div>
+      <div id="logConsole" class="log-box"></div>
+    </div>
+  </div>
+
+  <!-- STICKY ACTION PANEL: SIMPAN PENGATURAN -->
+  <div class="action-panel">
+    <button class="btn btn-primary" onclick="saveSettings()" id="btnSave">
+      💾 Simpan Pengaturan
+    </button>
+    <div id="saveAlert" class="alert"></div>
+  </div>
+
+  <script>
+    // State lokal
+    let currentSettings = {};
+
+    window.onload = function() {
+      loadSettings();
+    };
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+      event.currentTarget.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function toggleApiKeyVisibility() {
+      const input = document.getElementById('apiKey');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function showAlert(elementId, message, type = 'info') {
+      const el = document.getElementById(elementId);
+      el.className = 'alert alert-' + type;
+      el.textContent = message;
+      el.style.display = 'block';
+    }
+
+    function hideAlert(elementId) {
+      const el = document.getElementById(elementId);
+      el.style.display = 'none';
+    }
+
+    function appendLog(msg) {
+      const box = document.getElementById('logConsole');
+      box.style.display = 'block';
+      const time = new Date().toLocaleTimeString();
+      box.textContent += `[${time}] ${msg}\n`;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // Memuat pengaturan dari Google Apps Script
+    function loadSettings() {
+      google.script.run
+        .withSuccessHandler(function(settings) {
+          currentSettings = settings;
+          if (settings.apiKey) {
+            document.getElementById('apiKey').value = settings.apiKey;
+          }
+          if (settings.modelName) {
+            document.getElementById('modelName').value = settings.modelName;
+          }
+          if (settings.driveFolderId) {
+            document.getElementById('driveFolderId').value = settings.driveFolderId;
+          }
+          if (settings.rubricText) {
+            document.getElementById('rubricText').value = settings.rubricText;
+          }
+        })
+        .withFailureHandler(function(err) {
+          showAlert('saveAlert', 'Gagal memuat pengaturan: ' + err.message, 'error');
+        })
+        .apiGetSettings();
+    }
+
+    // Menyimpan pengaturan ke GAS
+    function saveSettings() {
+      const btn = document.getElementById('btnSave');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
+      hideAlert('saveAlert');
+
+      const data = {
+        apiKey: document.getElementById('apiKey').value,
+        modelName: document.getElementById('modelName').value,
+        driveFolderId: document.getElementById('driveFolderId').value,
+        rubricText: document.getElementById('rubricText').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '💾 Simpan Pengaturan';
+          if (res.success) {
+            showAlert('saveAlert', '✅ ' + res.message, 'success');
+            setTimeout(() => hideAlert('saveAlert'), 4000);
+          } else {
+            showAlert('saveAlert', '❌ ' + res.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '💾 Simpan Pengaturan';
+          showAlert('saveAlert', 'Kesalahan: ' + err.message, 'error');
+        })
+        .apiSaveSettings(data);
+    }
+
+    // Menguji koneksi Gemini API
+    function testApiConnection() {
+      const btn = document.getElementById('btnTestApi');
+      const apiKey = document.getElementById('apiKey').value;
+      const model = document.getElementById('modelName').value;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Menguji...';
+      showAlert('apiAlert', 'Menghubungkan ke Gemini API...', 'info');
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '🔍 Uji Koneksi API Key';
+          if (res.success) {
+            showAlert('apiAlert', '✅ ' + res.message, 'success');
+          } else {
+            showAlert('apiAlert', '❌ ' + res.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '🔍 Uji Koneksi API Key';
+          showAlert('apiAlert', 'Kesalahan: ' + err.message, 'error');
+        })
+        .apiTestConnection(apiKey, model);
+    }
+
+    // Verifikasi akses folder Google Drive
+    function testDriveFolder() {
+      const btn = document.getElementById('btnTestDrive');
+      const folderId = document.getElementById('driveFolderId').value;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Memeriksa...';
+      showAlert('driveAlert', 'Memeriksa folder di Google Drive...', 'info');
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '📂 Verifikasi Akses Folder';
+          if (res.success) {
+            showAlert('driveAlert', '✅ ' + res.message, 'success');
+          } else {
+            showAlert('driveAlert', '❌ ' + res.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '📂 Verifikasi Akses Folder';
+          showAlert('driveAlert', 'Kesalahan: ' + err.message, 'error');
+        })
+        .apiValidateDriveFolder(folderId);
+    }
+
+    // Siapkan Template Sheet
+    function setupTemplate() {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          showAlert('gradingAlert', '✅ ' + res.message, 'success');
+        })
+        .withFailureHandler(function(err) {
+          showAlert('gradingAlert', 'Kesalahan: ' + err.message, 'error');
+        })
+        .apiSetupTemplate();
+    }
+
+    // Reset baris status gagal
+    function resetFailed() {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          showAlert('gradingAlert', '✅ ' + res.message, 'success');
+        })
+        .withFailureHandler(function(err) {
+          showAlert('gradingAlert', 'Kesalahan: ' + err.message, 'error');
+        })
+        .apiResetFailed();
+    }
+
+    // Mulai proses penilaian batch
+    function startGrading() {
+      const btn = document.getElementById('btnStartGrading');
+      const onlyUnassessed = document.getElementById('onlyUnassessed').checked;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Menilai Baris...';
+      showAlert('gradingAlert', 'Proses penilaian sedang berjalan di Google Sheets. Pantau perubahan langsung pada sheet...', 'info');
+      appendLog('Memulai batch penilaian otomatis...');
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '▶️ Mulai / Lanjutkan Penilaian';
+          appendLog(res.message);
+          if (res.success) {
+            showAlert('gradingAlert', (res.isTimeout ? '⚠️ ' : '✅ ') + res.message, res.isTimeout ? 'info' : 'success');
+          } else {
+            showAlert('gradingAlert', '❌ ' + res.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '▶️ Mulai / Lanjutkan Penilaian';
+          appendLog('ERROR: ' + err.message);
+          showAlert('gradingAlert', 'Kesalahan Penilaian: ' + err.message, 'error');
+        })
+        .apiRunGrading(onlyUnassessed);
+    }
+
+    // Presets Rubrik
+    function applyRubricPreset() {
+      const type = document.getElementById('rubricPreset').value;
+      const textarea = document.getElementById('rubricText');
+      if (type === 'coding') {
+        textarea.value = `## RUBRIK PENILAIAN TUGAS PEMROGRAMAN & KODING
+
+1. Fungsionalitas & Logika Algoritma (Bobot: 40%, Maksimal 40 poin)
+   - Kode berjalan sesuai spesifikasi tanpa bug fatal.
+   - Penanganan error, validasi input, dan corner cases ditangani dengan baik.
+
+2. Struktur Kode & Best Practices (Bobot: 30%, Maksimal 30 poin)
+   - Modularitas (Clean Code, fungsi/method terpisah sesuai SRP).
+   - Penamaan variabel dan fungsi deskriptif serta konsisten.
+
+3. Efisiensi & Kinerja (Bobot: 15%, Maksimal 15 poin)
+   - Kompleksitas waktu dan memori optimal.
+   - Tidak ada proses komputasi atau query redundan.
+
+4. Dokumentasi & Pengujian (Bobot: 15%, Maksimal 15 poin)
+   - Komentar penjelas pada algoritma kompleks.
+   - Dilengkapi contoh output, screenshot pengujian, atau test cases.`;
+      } else if (type === 'desain') {
+        textarea.value = `## RUBRIK PENILAIAN PRESENTASI & DESAIN VISUAL
+
+1. Kesesuaian Pesan & Konten (Bobot: 35%, Maksimal 35 poin)
+   - Narasi terstruktur, gagasan utama tersampaikan dengan jelas dan meyakinkan.
+   - Relevansi materi dengan tema yang ditentukan.
+
+2. Tata Letak & Hierarki Visual (Bobot: 30%, Maksimal 30 poin)
+   - Komposisi seimbang, hierarki informasi (judul, subjudul, isi) jelas.
+   - Pemanfaatan ruang kosong (white space) proporsional.
+
+3. Estetika & Tipografi (Bobot: 20%, Maksimal 20 poin)
+   - Pemilihan palet warna harmonis dan kontras terbaca dengan baik.
+   - Pemilihan font konsisten dan mudah dibaca.
+
+4. Orisinalitas & Nilai Tambah (Bobot: 15%, Maksimal 15 poin)
+   - Menghadirkan visualisasi infografis, diagram, atau ilustrasi kreatif mandiri.`;
+      } else if (type === 'umum') {
+        textarea.value = `## RUBRIK PENILAIAN LAPORAN PRAKTIKUM / MAKALAH
+
+1. Kelengkapan & Format Penulisan (Bobot: 20%, Maksimal 20 poin)
+   - Format standar, kelengkapan bab (Pendahuluan, Metodologi, Hasil, Analisis, Kesimpulan).
+
+2. Analisis & Pembahasan Masalah (Bobot: 40%, Maksimal 40 poin)
+   - Pembahasan mendalam, interpretasi data akurat dan didukung literatur.
+
+3. Hasil Eksperimen / Studi Kasus (Bobot: 25%, Maksimal 25 poin)
+   - Penyajian data (tabel, grafik, screenshot) rapi dan valid.
+
+4. Tata Bahasa & Sitasi (Bobot: 15%, Maksimal 15 poin)
+   - Bahasa baku, ejaan benar, sitasi dan daftar pustaka konsisten.`;
+      }
+    }
+  </script>
+</body>
+</html>
