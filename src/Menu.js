@@ -111,7 +111,11 @@ function apiSaveSettings(data) {
 }
 
 function apiTestConnection(apiKey, model) {
-  return GeminiService.testConnection(apiKey, model);
+  let keyToUse = apiKey ? apiKey.trim() : '';
+  if (!keyToUse || keyToUse.includes('****')) {
+    keyToUse = getAppSettings().rawApiKey;
+  }
+  return GeminiService.testConnection(keyToUse, model);
 }
 
 function apiValidateDriveFolder(folderId) {

@@ -11,7 +11,7 @@ const GeminiService = {
    */
   testConnection(apiKey, model) {
     try {
-      const selectedModel = model || 'gemini-2.5-flash';
+      const selectedModel = model || 'gemini-3.6-flash';
       const cleanKey = apiKey ? apiKey.trim() : '';
       if (!cleanKey) {
         return { success: false, message: 'Gemini API Key belum dimasukkan.' };
@@ -21,11 +21,11 @@ const GeminiService = {
       const payload = {
         contents: [
           {
-            parts: [{ text: 'Halo Gemini! Uji koneksi asisten penilaian. Jawab "OK".' }]
+            parts: [{ text: 'Halo Gemini! Uji koneksi asisten penilaian.' }]
           }
         ],
         generationConfig: {
-          maxOutputTokens: 10
+          maxOutputTokens: 15
         }
       };
 
@@ -41,19 +41,35 @@ const GeminiService = {
       const responseText = response.getContentText();
 
       if (code === 200) {
-        return { success: true, message: `Koneksi berhasil! Model [${selectedModel}] siap digunakan.` };
+        return { 
+          success: true, 
+          message: `Koneksi berhasil! Model [${selectedModel}] aktif dan siap digunakan.` 
+        };
       } else {
-        let errorMsg = `Error HTTP ${code}`;
+        let errorMsg = `HTTP ${code}`;
         try {
           const errObj = JSON.parse(responseText);
           if (errObj.error && errObj.error.message) {
             errorMsg = errObj.error.message;
           }
         } catch (e) {}
-        return { success: false, message: `Gagal terhubung ke Gemini API: ${errorMsg}` };
+
+        if (code === 404) {
+          return {
+            success: false,
+            message: `Model "${selectedModel}" tidak ditemukan atau sudah tidak tersedia. Coba beralih ke model gemini-3.6-flash, gemini-3.5-flash-lite, atau gemini-3.1-flash-lite.`
+          };
+        } else if (code === 429) {
+          return {
+            success: false,
+            message: `Limit kuota Free Tier untuk model "${selectedModel}" tercapai (maks 20 req/hari). Solusi: pilih model gemini-3.5-flash-lite atau gemini-3.1-flash-lite pada dropdown model.`
+          };
+        }
+
+        return { success: false, message: `Gagal terhubung (${code}): ${errorMsg}` };
       }
     } catch (error) {
-      return { success: false, message: 'Kesalahan jaringan atau eksekusi UrlFetchApp: ' + error.message };
+      return { success: false, message: 'Kesalahan jaringan UrlFetchApp: ' + error.message };
     }
   },
 
@@ -67,7 +83,7 @@ const GeminiService = {
    * @return {Object} Hasil penilaian terstruktur
    */
   evaluateSubmission(submissionData, studentInfo, rubricText, apiKey, model) {
-    const selectedModel = model || 'gemini-2.5-flash';
+    const selectedModel = model || 'gemini-3.6-flash';
     if (!apiKey) {
       throw new Error('Gemini API Key belum dikonfigurasi.');
     }

@@ -313,13 +313,19 @@
       </div>
 
       <div class="form-group">
-        <label for="modelName">Pilihan Model Gemini</label>
-        <select id="modelName">
-          <option value="gemini-2.5-flash">gemini-2.5-flash (Direkomendasikan - Cepat & Cerdas)</option>
-          <option value="gemini-2.5-pro">gemini-2.5-pro (Penalaran Komprehensif)</option>
-          <option value="gemini-1.5-flash">gemini-1.5-flash (Hemat Kuota)</option>
-          <option value="gemini-1.5-pro">gemini-1.5-pro (Analisis Panjang)</option>
+        <label for="modelSelect">Pilihan Model Gemini</label>
+        <select id="modelSelect" onchange="onModelSelectChange()">
+          <option value="gemini-3.6-flash">gemini-3.6-flash (Model Utama - Cerdas)</option>
+          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Rekomendasi Bebas Kuota)</option>
+          <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Ringan & Cepat)</option>
+          <option value="gemini-flash-lite-latest">gemini-flash-lite-latest (Versi Terbaru)</option>
+          <option value="gemini-flash-latest">gemini-flash-latest</option>
+          <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+          <option value="custom">Model Kustom Lainnya...</option>
         </select>
+        <div id="customModelGroup" style="display: none; margin-top: 6px;">
+          <input type="text" id="customModelInput" placeholder="Contoh: gemini-3.5-flash">
+        </div>
       </div>
 
       <button class="btn btn-secondary" onclick="testApiConnection()" id="btnTestApi">
@@ -441,6 +447,46 @@
       box.scrollTop = box.scrollHeight;
     }
 
+    function onModelSelectChange() {
+      const select = document.getElementById('modelSelect');
+      const customGroup = document.getElementById('customModelGroup');
+      if (select.value === 'custom') {
+        customGroup.style.display = 'block';
+        document.getElementById('customModelInput').focus();
+      } else {
+        customGroup.style.display = 'none';
+      }
+    }
+
+    function getSelectedModel() {
+      const select = document.getElementById('modelSelect');
+      if (select.value === 'custom') {
+        const customVal = document.getElementById('customModelInput').value.trim();
+        return customVal || 'gemini-3.6-flash';
+      }
+      return select.value;
+    }
+
+    function setSelectedModel(model) {
+      if (!model) model = 'gemini-3.6-flash';
+      const select = document.getElementById('modelSelect');
+      let found = false;
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === model) {
+          select.selectedIndex = i;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        select.value = 'custom';
+        document.getElementById('customModelGroup').style.display = 'block';
+        document.getElementById('customModelInput').value = model;
+      } else {
+        document.getElementById('customModelGroup').style.display = 'none';
+      }
+    }
+
     // Memuat pengaturan dari Google Apps Script
     function loadSettings() {
       google.script.run
@@ -450,7 +496,7 @@
             document.getElementById('apiKey').value = settings.apiKey;
           }
           if (settings.modelName) {
-            document.getElementById('modelName').value = settings.modelName;
+            setSelectedModel(settings.modelName);
           }
           if (settings.driveFolderId) {
             document.getElementById('driveFolderId').value = settings.driveFolderId;
@@ -474,7 +520,7 @@
 
       const data = {
         apiKey: document.getElementById('apiKey').value,
-        modelName: document.getElementById('modelName').value,
+        modelName: getSelectedModel(),
         driveFolderId: document.getElementById('driveFolderId').value,
         rubricText: document.getElementById('rubricText').value
       };
@@ -502,7 +548,7 @@
     function testApiConnection() {
       const btn = document.getElementById('btnTestApi');
       const apiKey = document.getElementById('apiKey').value;
-      const model = document.getElementById('modelName').value;
+      const model = getSelectedModel();
 
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span> Menguji...';

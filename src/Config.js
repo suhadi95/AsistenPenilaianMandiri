@@ -34,7 +34,7 @@ Skala Total: 0 - 100.
 Berikan masukan konstruktif yang spesifik menunjuk bagian mana yang sudah baik dan bagian mana yang perlu diperbaiki.`;
 
 const DEFAULT_SETTINGS = {
-  modelName: 'gemini-2.5-flash',
+  modelName: 'gemini-3.6-flash',
   driveFolderId: '',
   rubricText: DEFAULT_RUBRIC,
   maxExecutionTimeSec: 300 // 5 menit checkpoint (batas GAS 6 menit)
