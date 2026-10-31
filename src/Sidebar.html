@@ -376,18 +376,32 @@
   <!-- TAB 4: RUBRIK & PORSI NILAI -->
   <div id="tab-rubric" class="tab-content">
     <div class="card">
-      <div class="form-group">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <label for="rubricText" style="margin: 0;">Rincian Porsi Poin & Kriteria</label>
-          <select id="rubricPreset" onchange="applyRubricPreset()" style="width: auto; padding: 2px 6px; font-size: 10px;">
-            <option value="">-- Pilih Template --</option>
+      <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
+        <label style="color: #1e293b; margin-bottom: 6px;">Sumber Porsi Poin & Kriteria:</label>
+        
+        <!-- Opsi 1: Ekstrak dari Soal -->
+        <button class="btn btn-primary btn-sm" type="button" onclick="extractRubricFromQuestion()" id="btnExtractRubric" style="width: 100%; margin-bottom: 8px;">
+          🤖 Ekstrak Otomatis dari Dokumen Soal
+        </button>
+
+        <!-- Opsi 2: Template Standar -->
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <span style="font-size: 11px; color: var(--text-muted); white-space: nowrap;">Atau Template:</span>
+          <select id="rubricPreset" onchange="applyRubricPreset()" style="flex: 1; padding: 4px 6px; font-size: 11px;">
+            <option value="">-- Pilih Template Porsi --</option>
             <option value="ujian">Ujian / Tugas Esai Berbutir</option>
             <option value="coding">Tugas Coding & Pemrograman</option>
             <option value="laporan">Laporan Praktikum & Data</option>
             <option value="desain">Presentasi / Desain Visual</option>
           </select>
         </div>
-        <textarea id="rubricText" placeholder="Tuliskan kriteria penilaian dan porsi poin masing-masing..."></textarea>
+
+        <div id="extractAlert" class="alert"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="rubricText">Rincian Porsi Poin & Kriteria (Bisa Diedit Manual):</label>
+        <textarea id="rubricText" placeholder="Porsi poin akan muncul di sini (dari ekstraksi soal, template, atau ketik manual)..."></textarea>
       </div>
     </div>
   </div>
@@ -648,6 +662,44 @@
           showAlert('driveAlert', 'Kesalahan: ' + err.message, 'error');
         })
         .apiValidateDriveFolder(folderId);
+    }
+
+    // Ekstrak otomatis porsi poin & kriteria dari berkas soal
+    function extractRubricFromQuestion() {
+      const btn = document.getElementById('btnExtractRubric');
+      const ref = document.getElementById('taskQuestionRef').value;
+      const model = getSelectedModel();
+
+      if (!ref || !ref.trim()) {
+        showAlert('extractAlert', '⚠️ Tautan berkas soal belum diisi. Buka tab "📄 Soal" untuk mengisinya.', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> AI Sedang Menganalisis Soal...';
+      showAlert('extractAlert', 'Membaca dokumen soal dan mengekstrak rincian porsi poin...', 'info');
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '🤖 Ekstrak Otomatis dari Dokumen Soal';
+          if (res.success) {
+            document.getElementById('rubricText').value = res.rubricText;
+            if (res.pointsFound) {
+              showAlert('extractAlert', '✅ Porsi poin berhasil ditemukan & diekstrak dari dokumen soal! (Total: ' + res.totalPoints + ' poin). Anda dapat mengeditnya jika diperlukan.', 'success');
+            } else {
+              showAlert('extractAlert', 'ℹ️ Dokumen soal tidak mencantumkan poin eksplisit. AI menyarankan pembagian poin seimbang di bawah. Anda bisa mengeditnya manual atau memilih template di atas.', 'warning');
+            }
+          } else {
+            showAlert('extractAlert', '❌ ' + res.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '🤖 Ekstrak Otomatis dari Dokumen Soal';
+          showAlert('extractAlert', 'Kesalahan: ' + err.message, 'error');
+        })
+        .apiExtractRubricFromTask(ref, model);
     }
 
     // Siapkan Template Kolom Sheet

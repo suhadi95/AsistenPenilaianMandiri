@@ -74,6 +74,126 @@ const GeminiService = {
   },
 
   /**
+   * Mengekstrak porsi poin dan kriteria penilaian langsung dari berkas soal tugas
+   * @param {Object} taskQuestionData 
+   * @param {string} apiKey 
+   * @param {string} model 
+   * @return {Object}
+   */
+  extractRubricFromTask(taskQuestionData, apiKey, model) {
+    const selectedModel = model || 'gemini-3.6-flash';
+    if (!apiKey) {
+      throw new Error('Gemini API Key belum dikonfigurasi.');
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+    const parts = [];
+
+    parts.push({
+      text: 'Analisis berkas soal tugas berikut. Periksa secara teliti apakah di dalam dokumen soal terdapat informasi bobot nilai, porsi poin, atau kriteria penilaian (contoh: "Bobot: 30 Poin", "Nilai Maks: 20", "Porsi 25%", dsb).'
+    });
+
+    if (taskQuestionData.isTextOnly) {
+      parts.push({ text: `=== DOKUMEN SOAL TUGAS ===\n${taskQuestionData.textContent}\n=== AKHIR DOKUMEN SOAL ===` });
+    } else if (taskQuestionData.base64Data) {
+      parts.push({
+        inline_data: {
+          mime_type: taskQuestionData.mimeType,
+          data: taskQuestionData.base64Data
+        }
+      });
+    }
+
+    const instruction = `
+TUGAS ANDA:
+1. Periksa apakah pada setiap nomor atau bagian soal di atas sudah tertulis bobot/porsi poin penilaiannya.
+2. JIKA ADA:
+   - Tetapkan pointsFound = true.
+   - Ekstrak seluruh butir kriteria/soal beserta porsi poin maksimal yang tertulis dalam dokumen.
+   - Buat format rubrik Markdown yang rapi dengan judul "## PANDUAN PORSI NILAI (DARI DOKUMEN SOAL)".
+3. JIKA TIDAK ADA bobot/porsi poin tertulis dalam soal:
+   - Tetapkan pointsFound = false.
+   - Buatlah saran pembagian poin yang seimbang untuk setiap butir soal yang ada di dokumen (total akumulasi 100 poin).
+   - Buat format rubrik Markdown dengan judul "## PANDUAN PORSI NILAI (SARAN AI - BELUM ADA BOBOT DI SOAL)".
+`;
+
+    parts.push({ text: instruction });
+
+    const payload = {
+      system_instruction: {
+        parts: [
+          {
+            text: 'Anda adalah Asisten Kurikulum Akademik. Tugas Anda menganalisis berkas soal ujian/tugas, mendeteksi bobot poin yang tertera, dan menghasilkan skema penilaian terstruktur dalam JSON.'
+          }
+        ]
+      },
+      contents: [{ parts: parts }],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            pointsFound: {
+              type: 'BOOLEAN',
+              description: 'true jika bobot/porsi poin tertulis eksplisit di dalam dokumen soal, false jika tidak ada'
+            },
+            totalPoints: {
+              type: 'NUMBER',
+              description: 'Total akumulasi poin semua kriteria'
+            },
+            formattedRubricText: {
+              type: 'STRING',
+              description: 'Teks lengkap rubrik dan porsi poin dalam format Markdown rapi'
+            },
+            explanation: {
+              type: 'STRING',
+              description: 'Keterangan ringkas hasil deteksi'
+            }
+          },
+          required: ['pointsFound', 'formattedRubricText', 'explanation']
+        }
+      }
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(url, options);
+    const statusCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    if (statusCode !== 200) {
+      let errMsg = `HTTP ${statusCode}`;
+      try {
+        const errObj = JSON.parse(responseBody);
+        if (errObj.error && errObj.error.message) errMsg = errObj.error.message;
+      } catch (e) {}
+      throw new Error(`Gagal menganalisis dokumen soal (${statusCode}): ${errMsg}`);
+    }
+
+    try {
+      const resultObj = JSON.parse(responseBody);
+      const rawJson = resultObj.candidates[0].content.parts[0].text;
+      const parsed = JSON.parse(rawJson);
+
+      return {
+        success: true,
+        pointsFound: Boolean(parsed.pointsFound),
+        totalPoints: parsed.totalPoints || 100,
+        rubricText: parsed.formattedRubricText,
+        explanation: parsed.explanation
+      };
+    } catch (e) {
+      throw new Error('Gagal memproses JSON ekstraksi soal: ' + e.message);
+    }
+  },
+
+  /**
    * Mengevaluasi berkas tugas mahasiswa menggunakan Gemini Multimodal
    * @param {Object} submissionData - Data jawaban mahasiswa dari DriveService
    * @param {Object} studentInfo - { nim, nama }

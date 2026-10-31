@@ -126,6 +126,26 @@ function apiValidateTaskFile(ref) {
   return DriveService.validateTaskFile(ref);
 }
 
+function apiExtractRubricFromTask(taskQuestionRef, model) {
+  const settings = getAppSettings();
+  const apiKey = settings.rawApiKey;
+  if (!apiKey) {
+    throw new Error('Gemini API Key belum dimasukkan. Silakan simpan API Key terlebih dahulu.');
+  }
+
+  if (!taskQuestionRef || !taskQuestionRef.trim()) {
+    throw new Error('Tautan atau teks soal tugas belum diisi di tab "📄 Soal".');
+  }
+
+  const taskPayload = DriveService.getTaskQuestionPayload(taskQuestionRef);
+  if (!taskPayload) {
+    throw new Error('Berkas soal tugas tidak dapat diakses dari Google Drive.');
+  }
+
+  const selectedModel = model || settings.modelName;
+  return GeminiService.extractRubricFromTask(taskPayload, apiKey, selectedModel);
+}
+
 function apiRunGrading(onlyUnassessed) {
   return GradingEngine.runBatchGrading(onlyUnassessed);
 }
