@@ -5,6 +5,8 @@ package-lock.json
 .git/**
 .gitignore
 .claspignore
+.clasp.json
+.clasprc.json
 README.md
 tsconfig.json
 jsconfig.json

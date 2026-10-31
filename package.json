@@ -6,7 +6,7 @@
   "scripts": {
     "login": "clasp login",
     "create:sheet": "clasp create --type sheets --title \"Sistem Penilaian Mahasiswa Multimodal\" --rootDir ./src",
-    "push": "clasp push",
+    "push": "clasp push -f",
     "push:watch": "clasp push --watch",
     "pull": "clasp pull",
     "open": "clasp open"
