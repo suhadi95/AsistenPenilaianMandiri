@@ -12,16 +12,18 @@ Aplikasi otomatisasi penilaian tugas mahasiswa berbasis **Google Apps Script (GA
    - IntelliSense kode lengkap dengan `@types/google-apps-script`.
 
 2. **Evaluasi Multimodal Cerdas (Gemini API via UrlFetchApp)**:
+   - Menggunakan model default **`gemini-3.5-flash-lite`** (cepat, inferensi multimodal akurat, dan batas kuota luas).
    - Mendukung berbagai format tugas di Google Drive: **PDF, Google Docs/Word, Gambar (PNG, JPG, WebP), Audio, Video, dan Source Code**.
-   - Konversi berkas otomatis ke format biner multimodal (`inlineData Base64`) dan ekstraksi teks.
+   - Mendukung berkas acuan **Soal Tugas / Kunci Jawaban di Google Drive** beserta fitur **Ekstrak Otomatis Porsi Poin & Kriteria dari Soal**.
    - Menghasilkan respon terstruktur (`responseMimeType: "application/json"`) yang mengevaluasi skor per kriteria, total nilai, kelebihan, serta saran perbaikan.
 
-3. **Manajemen Timeout GAS (Batas 6 Menit)**:
-   - Mekanisme **Checkpoint & Resume Otomatis**: jika durasi eksekusi mendekati batas 6 menit, proses berhenti aman dan dapat dilanjutkan hanya untuk baris yang belum selesai atau gagal.
+3. **Fleksibilitas Penilaian (Semua Mahasiswa atau Mahasiswa Terpilih Saja)**:
+   - **Nilai Baris yang Dipilih**: Cukup sorot/blok baris mahasiswa tertentu di Google Sheets untuk menilai hanya mahasiswa tersebut (sangat praktis untuk susulan, revisi, atau pengujian).
+   - **Nilai Semua Baris (Batch)** dengan mekanisme **Checkpoint & Resume Otomatis** (batas 6 menit GAS).
 
 4. **Antarmuka Google Sheets Interaktif**:
    - Custom Menu `"🎓 Asisten Penilaian"` pada toolbar spreadsheet (`onOpen`).
-   - Sidebar pengaturan interaktif untuk konfigurasi API Key, pemilihan model Gemini (`gemini-2.5-flash`, `gemini-2.5-pro`), Folder ID Drive, dan preset Rubrik.
+   - Sidebar pengaturan interaktif untuk konfigurasi API Key, pemilihan model Gemini, Berkas Soal, Folder Jawaban Drive, dan Porsi Poin.
    - Pencatatan nilai, rincian kriteria, dan catatan ulasan secara *real-time* dengan `SpreadsheetApp.flush()`.
 
 ---
