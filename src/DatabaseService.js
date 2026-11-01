@@ -321,6 +321,7 @@ const DatabaseService = {
     const sheet = this.getOrCreateSheet(DB_SHEETS.TASKS, ['id_tugas', 'id_kelas', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']);
     const taskId = data.id_tugas || generateId('TGS');
     const lastRow = sheet.getLastRow();
+    const cleanFolderId = extractDriveFolderId(data.drive_folder_id) || (data.drive_folder_id || '').trim();
 
     if (data.id_tugas && lastRow >= 2) {
       const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
@@ -331,11 +332,11 @@ const DatabaseService = {
             data.judul_tugas || '',
             data.deskripsi || '',
             data.task_file_ref || '',
-            data.drive_folder_id || '',
+            cleanFolderId,
             data.rubrik_text || '',
             Number(data.bobot_persentase) || 0
           ]]);
-          return { id_tugas: taskId, ...data };
+          return { id_tugas: taskId, ...data, drive_folder_id: cleanFolderId };
         }
       }
     }
@@ -346,13 +347,13 @@ const DatabaseService = {
       data.judul_tugas || 'Tugas Baru',
       data.deskripsi || '',
       data.task_file_ref || '',
-      data.drive_folder_id || '',
+      cleanFolderId,
       data.rubrik_text || '',
       Number(data.bobot_persentase) || 0,
       new Date().toISOString()
     ]);
 
-    return { id_tugas: taskId, ...data };
+    return { id_tugas: taskId, ...data, drive_folder_id: cleanFolderId };
   },
 
   deleteTask(taskId) {

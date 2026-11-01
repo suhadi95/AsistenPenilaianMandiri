@@ -95,3 +95,42 @@ function generateId(prefix = 'ID') {
   const time = Date.now().toString(36).toUpperCase();
   return `${prefix}-${time}-${rand}`;
 }
+
+/**
+ * Ekstrak ID folder Google Drive dari string URL atau ID mentah
+ * @param {string} input - URL folder atau ID folder
+ * @return {string} Folder ID bersih
+ */
+function extractDriveFolderId(input) {
+  if (!input) return '';
+  const trimmed = String(input).trim();
+  
+  // 1. Pola standar URL folder Google Drive: /folders/FOLDER_ID
+  const folderMatch = trimmed.match(/folders\/([a-zA-Z0-9_-]+)/);
+  if (folderMatch && folderMatch[1]) {
+    return folderMatch[1];
+  }
+
+  // 2. Pola URL open?id=FOLDER_ID atau ?id=FOLDER_ID atau &id=FOLDER_ID
+  const idMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch && idMatch[1]) {
+    return idMatch[1];
+  }
+
+  // 3. Pola path URL: ambil segmen terakhir sebelum query params (?) atau fragment (#)
+  const clean = trimmed.split('?')[0].split('#')[0].replace(/\/+$/, '');
+  if (clean.includes('/')) {
+    const parts = clean.split('/');
+    const lastPart = parts[parts.length - 1];
+    if (lastPart && /^[a-zA-Z0-9_-]+$/.test(lastPart) && lastPart.length >= 10) {
+      return lastPart;
+    }
+  }
+
+  // 4. Input langsung ID folder (string alfanumerik)
+  if (/^[a-zA-Z0-9_-]+$/.test(clean)) {
+    return clean;
+  }
+
+  return clean;
+}
