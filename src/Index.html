@@ -185,7 +185,10 @@
         </div>
 
         <div id="dashTasksList" class="space-y-3">
-          <div class="text-center py-8 text-slate-400 text-sm">Memuat data tugas...</div>
+          <div class="text-center py-8 text-slate-400 text-xs flex items-center justify-center gap-2">
+            <span class="spinner inline-block w-4 h-4 border-slate-300 border-t-blue-600"></span>
+            <span>Menghubungkan ke basis data...</span>
+          </div>
         </div>
       </div>
 
@@ -717,11 +720,28 @@
     };
 
     function initApp() {
-      showLoading(true);
       google.script.run
-        .withSuccessHandler(function(data) {
-          appState.classes = data.classes || [];
-          appState.settings = data.settings || {};
+        .withSuccessHandler(function(res) {
+          if (!res || !res.success) {
+            const errMsg = (res && res.error) ? res.error : 'Terjadi kendala saat menghubungkan ke database server.';
+            showGlobalAlert('Gagal memuat data: ' + errMsg, 'error');
+            const dashList = document.getElementById('dashTasksList');
+            if (dashList) {
+              dashList.innerHTML = `
+                <div class="p-6 text-center text-rose-600 text-xs font-semibold bg-rose-50 rounded-xl border border-rose-200">
+                  <p class="mb-1">⚠️ ${errMsg}</p>
+                  <p class="text-[11px] text-rose-500 font-normal mb-3">Pastikan Spreadsheet database telah dibuat dan izin akses aktif.</p>
+                  <button onclick="initApp()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition">
+                    🔄 Coba Muat Ulang
+                  </button>
+                </div>
+              `;
+            }
+            return;
+          }
+
+          appState.classes = res.classes || [];
+          appState.settings = res.settings || {};
           
           if (appState.settings.modelName) {
             document.getElementById('badgeModelName').textContent = appState.settings.modelName;
@@ -733,18 +753,42 @@
 
           renderClassDropdowns();
 
-          // Pilih kelas pertama jika ada
-          if (appState.classes.length > 0) {
-            const savedClassId = appState.settings.activeClassId;
-            const targetClass = appState.classes.find(c => c.id_kelas === savedClassId) || appState.classes[0];
-            switchActiveClass(targetClass.id_kelas);
+          if (res.activeClassId) {
+            appState.activeClassId = res.activeClassId;
+            document.getElementById('headerClassSelect').value = res.activeClassId;
+            const currentClass = appState.classes.find(c => c.id_kelas === res.activeClassId);
+            if (currentClass) {
+              document.getElementById('dashClassTitle').textContent = currentClass.nama_kelas;
+            }
+
+            appState.currentStudents = res.initialStudents || [];
+            appState.currentTasks = res.initialTasks || [];
+
+            renderStudentsTable(appState.currentStudents);
+            renderDashboardStats();
+            renderTasksGrid();
+            renderGradingTaskSelect();
           } else {
-            showLoading(false);
+            // Belum ada kelas sama sekali
+            renderDashboardStats();
+            renderTasksGrid();
+            renderGradingTaskSelect();
           }
         })
         .withFailureHandler(function(err) {
-          showLoading(false);
           showGlobalAlert('Gagal menginisialisasi sistem: ' + err.message, 'error');
+          const dashList = document.getElementById('dashTasksList');
+          if (dashList) {
+            dashList.innerHTML = `
+              <div class="p-6 text-center text-rose-600 text-xs font-semibold bg-rose-50 rounded-xl border border-rose-200">
+                <p class="mb-1">⚠️ Gagal terhubung ke server Google Apps Script: ${err.message}</p>
+                <p class="text-[11px] text-rose-500 font-normal mb-3">Periksa koneksi internet Anda atau muat ulang halaman.</p>
+                <button onclick="initApp()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition">
+                  🔄 Coba Muat Ulang
+                </button>
+              </div>
+            `;
+          }
         })
         .apiGetInitialData();
     }
@@ -785,33 +829,28 @@
     }
 
     function loadClassDetails(classId) {
-      showLoading(true);
-      // Ambil Mahasiswa & Tugas secara paralel
-      google.script.run
-        .withSuccessHandler(function(students) {
-          appState.currentStudents = students || [];
-          renderStudentsTable(appState.currentStudents);
+      const dashList = document.getElementById('dashTasksList');
+      if (dashList) {
+        dashList.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs"><span class="spinner inline-block w-3.5 h-3.5 mr-2 border-slate-400 border-t-blue-600"></span>Memuat data kelas & tugas...</div>';
+      }
 
-          // Lanjut ambil tugas
-          google.script.run
-            .withSuccessHandler(function(tasks) {
-              showLoading(false);
-              appState.currentTasks = tasks || [];
-              renderDashboardStats();
-              renderTasksGrid();
-              renderGradingTaskSelect();
-            })
-            .withFailureHandler(function(err) {
-              showLoading(false);
-              showGlobalAlert('Gagal memuat tugas: ' + err.message, 'error');
-            })
-            .apiGetTasks(classId);
+      google.script.run
+        .withSuccessHandler(function(res) {
+          appState.currentStudents = (res && res.students) ? res.students : [];
+          appState.currentTasks = (res && res.tasks) ? res.tasks : [];
+
+          renderStudentsTable(appState.currentStudents);
+          renderDashboardStats();
+          renderTasksGrid();
+          renderGradingTaskSelect();
         })
         .withFailureHandler(function(err) {
-          showLoading(false);
-          showGlobalAlert('Gagal memuat mahasiswa: ' + err.message, 'error');
+          showGlobalAlert('Gagal memuat data kelas: ' + err.message, 'error');
+          if (dashList) {
+            dashList.innerHTML = `<div class="p-4 text-center text-rose-600 text-xs font-semibold bg-rose-50 rounded-xl">Gagal memuat tugas: ${err.message}</div>`;
+          }
         })
-        .apiGetStudents(classId);
+        .apiGetClassDetails(classId);
     }
 
     function renderClassDropdowns() {
@@ -837,9 +876,9 @@
       document.getElementById('statTotalTasks').textContent = appState.currentTasks.length;
 
       // Hitung rata-rata tugas
-      const scoredTasks = appState.currentTasks.filter(t => t.averageScore > 0);
+      const scoredTasks = appState.currentTasks.filter(t => Number(t.averageScore) > 0);
       if (scoredTasks.length > 0) {
-        const avg = (scoredTasks.reduce((s, t) => s + t.averageScore, 0) / scoredTasks.length).toFixed(1);
+        const avg = (scoredTasks.reduce((s, t) => s + Number(t.averageScore), 0) / scoredTasks.length).toFixed(1);
         document.getElementById('statClassAvg').textContent = avg;
       } else {
         document.getElementById('statClassAvg').textContent = '-';
@@ -847,8 +886,31 @@
 
       // Render daftar tugas dashboard
       const listContainer = document.getElementById('dashTasksList');
+      if (!listContainer) return;
+
+      if (appState.classes.length === 0) {
+        listContainer.innerHTML = `
+          <div class="text-center py-8 text-slate-400 text-xs bg-slate-50/50 rounded-xl border border-dashed border-slate-200 p-4">
+            <p class="font-medium text-slate-600 mb-1">Belum ada kelas yang dibuat</p>
+            <p class="text-[11px] mb-3">Buat kelas baru terlebih dahulu untuk mulai mengelola mahasiswa dan tugas.</p>
+            <button onclick="openModal('classModal')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+              + Buat Kelas Pertama
+            </button>
+          </div>
+        `;
+        return;
+      }
+
       if (appState.currentTasks.length === 0) {
-        listContainer.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Belum ada tugas pada kelas ini. Klik "+ Tambah Tugas" untuk membuat tugas baru.</div>';
+        listContainer.innerHTML = `
+          <div class="text-center py-8 text-slate-400 text-xs bg-slate-50/50 rounded-xl border border-dashed border-slate-200 p-4">
+            <p class="font-medium text-slate-600 mb-1">Belum ada tugas pada kelas ini</p>
+            <p class="text-[11px] mb-3">Klik tombol di bawah untuk membuat tugas baru.</p>
+            <button onclick="openCreateTaskModal()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+              + Tambah Tugas Baru
+            </button>
+          </div>
+        `;
         return;
       }
 
@@ -2029,14 +2091,18 @@
       const banner = document.getElementById('globalAlert');
       const icon = document.getElementById('globalAlertIcon');
       const text = document.getElementById('globalAlertMsg');
+      if (!banner) return;
 
-      banner.className = `mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm block ${
+      banner.classList.remove('hidden');
+      banner.className = `mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm transition-all ${
         type === 'success' ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' :
         type === 'error' ? 'bg-rose-50 text-rose-900 border border-rose-200' :
         'bg-blue-50 text-blue-900 border border-blue-200'
       }`;
-      icon.textContent = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-      text.textContent = msg;
+      if (icon) icon.textContent = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+      if (text) text.textContent = msg;
+
+      banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function hideGlobalAlert() {

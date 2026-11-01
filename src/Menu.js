@@ -106,15 +106,58 @@ Panduan Sistem Manajemen Kelas & Penilaian Akademik:
 // ==========================================
 
 function apiGetInitialData() {
-  DatabaseService.initDatabase();
-  const settings = getAppSettings();
-  const classes = DatabaseService.getClasses();
-  const webAppUrl = ScriptApp.getService().getUrl() || '';
+  try {
+    DatabaseService.initDatabase();
+    const settings = getAppSettings();
+    const classes = DatabaseService.getClasses() || [];
+    
+    let activeClassId = settings.activeClassId || '';
+    if (!activeClassId && classes.length > 0) {
+      activeClassId = classes[0].id_kelas;
+    }
 
+    let initialStudents = [];
+    let initialTasks = [];
+    if (activeClassId) {
+      initialStudents = DatabaseService.getStudentsByClass(activeClassId) || [];
+      initialTasks = DatabaseService.getTasksByClass(activeClassId) || [];
+    }
+
+    let webAppUrl = '';
+    try {
+      webAppUrl = ScriptApp.getService().getUrl() || '';
+    } catch (e) {}
+
+    return {
+      success: true,
+      settings: settings,
+      classes: classes,
+      activeClassId: activeClassId,
+      initialStudents: initialStudents,
+      initialTasks: initialTasks,
+      webAppUrl: webAppUrl
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || String(error),
+      settings: getAppSettings(),
+      classes: [],
+      activeClassId: '',
+      initialStudents: [],
+      initialTasks: [],
+      webAppUrl: ''
+    };
+  }
+}
+
+function apiGetClassDetails(classId) {
+  if (!classId) return { students: [], tasks: [] };
+  const students = DatabaseService.getStudentsByClass(classId) || [];
+  const tasks = DatabaseService.getTasksByClass(classId) || [];
   return {
-    settings: settings,
-    classes: classes,
-    webAppUrl: webAppUrl
+    students: students,
+    tasks: tasks
   };
 }
 

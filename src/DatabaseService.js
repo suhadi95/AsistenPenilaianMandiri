@@ -4,10 +4,30 @@
 
 const DatabaseService = {
   /**
-   * Mengambil Spreadsheet aktif
+   * Mengambil Spreadsheet aktif atau membuka melalui ID terikat jika dijalankan via Web App
    */
   getSpreadsheet() {
-    return SpreadsheetApp.getActiveSpreadsheet();
+    let ss = null;
+    try {
+      ss = SpreadsheetApp.getActiveSpreadsheet();
+    } catch (e) {}
+
+    if (!ss) {
+      const boundId = (typeof SPREADSHEET_ID !== 'undefined' && SPREADSHEET_ID) 
+        ? SPREADSHEET_ID 
+        : '1RvpMKOjCDDYG1xODoX_6EVQTtTFeaH1pt7OQ-mq8jWQ';
+      try {
+        ss = SpreadsheetApp.openById(boundId);
+      } catch (err) {
+        console.error('Gagal membuka spreadsheet via openById: ' + err.message);
+      }
+    }
+
+    if (!ss) {
+      throw new Error('Tidak dapat membuka Google Spreadsheet database. Pastikan izin akses Drive/Spreadsheet sudah diberikan.');
+    }
+
+    return ss;
   },
 
   /**
