@@ -96,22 +96,57 @@ const GradingService = {
         waktu_penilaian: new Date().toLocaleString('id-ID')
       };
     } catch (err) {
-      const errMsg = err.message || 'Kesalahan penilaian tidak diketahui';
+      const rawErrMsg = err.message || 'Kesalahan penilaian tidak diketahui';
+      
+      // Klasifikasi penyebab kegagalan agar jelas bagi dosen
+      let categorizedReason = rawErrMsg;
+      let advice = '';
+
+      const lowerErr = rawErrMsg.toLowerCase();
+      if (lowerErr.includes('tidak ditemukan')) {
+        categorizedReason = `Berkas jawaban mahasiswa tidak ditemukan di Google Drive untuk NIM "${nim}" (${nama}).`;
+        advice = `Pastikan file jawaban mahasiswa di Google Drive memuat NIM "${nim}" atau nama pada nama berkas atau subfolder.`;
+      } else if (rawErrMsg.includes('429') || lowerErr.includes('quota') || lowerErr.includes('kuota') || lowerErr.includes('limit')) {
+        categorizedReason = 'Batas kuota Gemini API tercapai (Rate Limit / Quota Exceeded).';
+        advice = 'Tunggu 1-2 menit lalu coba nilai kembali mahasiswa ini, atau pastikan menggunakan model gemini-3.5-flash-lite.';
+      } else if (lowerErr.includes('api key') || rawErrMsg.includes('403') || rawErrMsg.includes('401')) {
+        categorizedReason = 'Kunci API Gemini tidak valid atau belum memiliki izin akses.';
+        advice = 'Buka tab Pengaturan, periksa kembali Gemini API Key Anda dan klik "Uji Koneksi".';
+      } else if (lowerErr.includes('melebihi') || lowerErr.includes('ukuran') || lowerErr.includes('20 mb')) {
+        categorizedReason = 'Ukuran berkas jawaban mahasiswa melebihi batas aman (20 MB).';
+        advice = 'Minta mahasiswa mengompres berkas dokumen/gambar atau mengubahnya ke format PDF yang lebih ringkas.';
+      } else if (lowerErr.includes('json') || lowerErr.includes('parse')) {
+        categorizedReason = 'Format respons evaluasi AI tidak valid atau terpotong.';
+        advice = 'Ulangi penilaian untuk mahasiswa ini atau periksa kejelasan rubrik soal.';
+      } else if (lowerErr.includes('folder')) {
+        categorizedReason = 'Folder Google Drive tidak dapat diakses atau ID folder belum benar.';
+        advice = 'Buka tab Tugas, klik Edit pada tugas ini dan tekan "Cek Folder" untuk memverifikasi folder jawaban.';
+      }
+
+      const fullFailureNote = `[PENILAIAN GAGAL]:\n${categorizedReason}` + (advice ? `\n\n💡 Rekomendasi Solusi:\n${advice}` : '');
+
       DatabaseService.saveGrade({
         id_tugas: task.id_tugas,
         id_kelas: task.id_kelas,
         nim: nim,
         nama_mahasiswa: nama,
-        status: `Gagal: ${errMsg}`,
+        file_name: '',
+        nilai_total: null,
+        rincian_poin: '',
+        catatan_ai: fullFailureNote,
+        status: `Gagal: ${categorizedReason}`,
         waktu_penilaian: new Date().toLocaleString('id-ID')
       });
       SpreadsheetApp.flush();
+
       return { 
         success: false, 
         nim: nim, 
         nama: nama, 
-        error: errMsg,
-        status: `Gagal: ${errMsg}`,
+        error: categorizedReason,
+        advice: advice,
+        status: `Gagal: ${categorizedReason}`,
+        catatan_ai: fullFailureNote,
         waktu_penilaian: new Date().toLocaleString('id-ID')
       };
     }

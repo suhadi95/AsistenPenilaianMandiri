@@ -422,10 +422,25 @@
           <h2 class="text-lg font-bold text-slate-900">Rekapitulasi Nilai Kelas</h2>
           <p class="text-xs text-slate-500 mt-0.5">Laporan nilai akumulatif seluruh tugas, rata-rata, dan nilai akhir terbobot</p>
         </div>
-        <div class="flex items-center space-x-2">
-          <button onclick="exportReportToSheet()" id="btnExportSheet" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
-            📥 Buat Sheet Rekapitulasi
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" onclick="copyAllReportData()" id="btnCopyAllReport" class="bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-3.5 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5" title="Salin seluruh tabel matriks nilai untuk dipaste ke Excel atau Word">
+            <span>📋</span> <span>Salin Semua Data</span>
           </button>
+          <button type="button" onclick="exportReportToSheet()" id="btnExportSheet" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
+            <span>📥</span> <span>Buat Sheet Rekapitulasi</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Search & Helper Hint -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-sm text-xs">
+        <div class="flex items-center gap-2 flex-1 max-w-sm">
+          <span class="text-slate-400">🔍</span>
+          <input type="text" id="reportSearchInput" oninput="filterReportTable(this.value)" placeholder="Cari mahasiswa di rekapitulasi (NIM atau Nama)..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-blue-500 text-xs text-slate-800">
+        </div>
+        <div class="text-[11px] text-slate-500 flex items-center gap-2">
+          <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono text-[10px]">Tips</span>
+          <span>Klik judul kolom untuk urutkan (sort). Klik ikon 📋 untuk salin nilai kolom ke SIAKAD/Excel.</span>
         </div>
       </div>
 
@@ -664,6 +679,15 @@
       <input type="hidden" id="detailGradeClassId">
       <input type="hidden" id="detailGradeNim">
       <input type="hidden" id="detailGradeNama">
+
+      <!-- Failure Alert Box (Muncul jika penilaian berstatus Gagal) -->
+      <div id="detailFailureAlert" class="hidden p-3.5 bg-rose-50 border border-rose-200 rounded-xl space-y-1.5">
+        <div class="font-bold text-rose-900 text-xs flex items-center gap-1.5">
+          <span>⚠️</span> <span>Penyebab Penilaian Gagal:</span>
+        </div>
+        <p class="text-rose-800 text-xs font-medium" id="detailFailureReason">-</p>
+        <p class="text-[11px] text-rose-700 bg-white/80 p-2 rounded-lg border border-rose-100" id="detailFailureAdvice">💡 Solusi: -</p>
+      </div>
 
       <div class="space-y-3.5 text-xs">
         <div>
@@ -1081,11 +1105,18 @@
         const isFailed = g.status && g.status.toLowerCase().startsWith('gagal');
         const isGrading = g.status && g.status.toLowerCase().includes('sedang');
 
-        let statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500">Belum Dinilai</span>';
+        let pointsContent = g.rincian_poin || '-';
         if (isCompleted) {
           statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">✓ Selesai</span>';
         } else if (isFailed) {
-          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 cursor-pointer" title="${g.status}">❌ Gagal</span>`;
+          const cleanReason = (g.status || 'Gagal').replace(/^Gagal:\s*/i, '');
+          statusBadge = `
+            <button type="button" onclick="openGradeDetailModal('${g.nim}')" class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-100 hover:bg-rose-200 text-rose-800 transition inline-flex items-center gap-1 cursor-pointer shadow-sm text-left" title="Klik untuk rincian penyebab: ${cleanReason}">
+              <span>❌ Gagal</span>
+              <span class="text-[9px] text-rose-600 underline">Rincian</span>
+            </button>
+          `;
+          pointsContent = `<span class="text-rose-600 text-[11px] font-medium" title="${g.status}">⚠️ ${cleanReason}</span>`;
         } else if (isGrading) {
           statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 animate-pulse">⏳ Menilai...</span>';
         }
@@ -1101,7 +1132,7 @@
             <td class="px-4 py-2.5 font-medium text-slate-900">${g.nama_mahasiswa}</td>
             <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[130px]" title="${g.file_name || '-'}">${g.file_name || '-'}</td>
             <td id="score-cell-${g.nim}" class="px-4 py-2.5 text-center font-bold text-sm ${isCompleted ? 'text-blue-700' : 'text-slate-400'}">${g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '-'}</td>
-            <td id="points-cell-${g.nim}" class="px-4 py-2.5 text-slate-600 line-clamp-1 max-w-[200px]" title="${g.rincian_poin || '-'}">${g.rincian_poin || '-'}</td>
+            <td id="points-cell-${g.nim}" class="px-4 py-2.5 text-slate-600 line-clamp-1 max-w-[200px]" title="${g.rincian_poin || g.status || '-'}">${pointsContent}</td>
             <td id="status-cell-${g.nim}" class="px-4 py-2.5 text-center">${statusBadge}</td>
             <td class="px-4 py-2.5 text-center">
               <button onclick="openGradeDetailModal('${g.nim}')" class="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-600 font-medium transition" title="Lihat Ulasan & Koreksi Manual">
@@ -1231,7 +1262,7 @@
           } else {
             gradingQueue.failedCount++;
             updateStudentRowState(nim, 'failed', res);
-            showProgressLog(`❌ NIM: ${nim} (${nama}) gagal: ${res.error || res.status}`);
+            showProgressLog(`❌ NIM: ${nim} (${nama}) gagal: ${res.error || res.status}` + (res.advice ? ` (💡 ${res.advice})` : ''));
           }
 
           gradingQueue.currentIndex++;
@@ -1302,16 +1333,26 @@
           gradeObj.waktu_penilaian = data.waktu_penilaian || new Date().toLocaleString('id-ID');
         }
       } else if (state === 'failed') {
+        const rawErr = data && (data.error || data.status) ? (data.error || data.status) : 'Gagal';
+        const cleanReason = rawErr.replace(/^Gagal:\s*/i, '');
         if (row) {
           row.className = 'bg-rose-50/40 hover:bg-rose-50/70 border-l-4 border-l-rose-500 transition';
         }
+        if (pointsCell) {
+          pointsCell.innerHTML = `<span class="text-rose-600 text-[11px] font-medium" title="${rawErr}">⚠️ ${cleanReason}</span>`;
+        }
         if (statusCell) {
-          const errMsg = data && (data.error || data.status) ? (data.error || data.status) : 'Gagal';
-          statusCell.innerHTML = `<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 cursor-pointer" title="${errMsg}">❌ Gagal</span>`;
+          statusCell.innerHTML = `
+            <button type="button" onclick="openGradeDetailModal('${nim}')" class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-100 hover:bg-rose-200 text-rose-800 transition inline-flex items-center gap-1 cursor-pointer shadow-sm text-left" title="Klik untuk rincian penyebab: ${cleanReason}">
+              <span>❌ Gagal</span>
+              <span class="text-[9px] text-rose-600 underline">Rincian</span>
+            </button>
+          `;
         }
 
         if (gradeObj) {
-          gradeObj.status = (data && data.status) || 'Gagal';
+          gradeObj.status = (data && data.status) || `Gagal: ${cleanReason}`;
+          gradeObj.catatan_ai = (data && data.catatan_ai) || `[PENILAIAN GAGAL]:\n${cleanReason}`;
         }
       }
     }
@@ -1465,7 +1506,13 @@
 
       google.script.run
         .withSuccessHandler(function(report) {
-          renderReportTable(report);
+          appState.reportData = report;
+          appState.reportSortColumn = 'no';
+          appState.reportSortOrder = 'asc';
+          appState.reportSearchQuery = '';
+          const searchInput = document.getElementById('reportSearchInput');
+          if (searchInput) searchInput.value = '';
+          renderReportTable();
         })
         .withFailureHandler(function(err) {
           container.innerHTML = `<div class="p-6 text-center text-rose-600 text-xs font-medium">Gagal memuat rekapitulasi: ${err.message}</div>`;
@@ -1473,53 +1520,163 @@
         .apiGetClassReport(classId);
     }
 
-    function renderReportTable(report) {
+    function filterReportTable(query) {
+      appState.reportSearchQuery = query;
+      renderReportTable();
+    }
+
+    function handleSortReport(colKey) {
+      if (appState.reportSortColumn === colKey) {
+        appState.reportSortOrder = appState.reportSortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        appState.reportSortColumn = colKey;
+        // Default: jika nilai, urutkan dari terbesar ke terkecil (desc); jika nama/nim/no, urutkan A-Z (asc)
+        appState.reportSortOrder = (colKey === 'nama' || colKey === 'nim' || colKey === 'no') ? 'asc' : 'desc';
+      }
+      renderReportTable();
+    }
+
+    function getFilteredAndSortedReportStudents() {
+      if (!appState.reportData || !appState.reportData.students) return [];
+
+      let list = [...appState.reportData.students];
+
+      // 1. Filter pencarian
+      const q = (appState.reportSearchQuery || '').toLowerCase().trim();
+      if (q) {
+        list = list.filter(s => 
+          (s.nim || '').toLowerCase().includes(q) || 
+          (s.nama_mahasiswa || '').toLowerCase().includes(q)
+        );
+      }
+
+      // 2. Pengurutan (Sorting)
+      const col = appState.reportSortColumn || 'no';
+      const dir = appState.reportSortOrder === 'asc' ? 1 : -1;
+
+      if (col === 'no') {
+        if (appState.reportSortOrder === 'desc') {
+          list.reverse();
+        }
+      } else if (col === 'nim') {
+        list.sort((a, b) => a.nim.localeCompare(b.nim, undefined, { numeric: true }) * dir);
+      } else if (col === 'nama') {
+        list.sort((a, b) => (a.nama_mahasiswa || '').localeCompare(b.nama_mahasiswa || '', 'id') * dir);
+      } else if (col === 'average') {
+        list.sort((a, b) => ((Number(a.averageScore) || 0) - (Number(b.averageScore) || 0)) * dir);
+      } else if (col === 'final') {
+        list.sort((a, b) => ((Number(a.finalScore) || 0) - (Number(b.finalScore) || 0)) * dir);
+      } else if (col.startsWith('task_')) {
+        const taskId = col.replace('task_', '');
+        list.sort((a, b) => {
+          const valA = a.taskScores && a.taskScores[taskId] !== null && a.taskScores[taskId] !== undefined ? Number(a.taskScores[taskId]) : -1;
+          const valB = b.taskScores && b.taskScores[taskId] !== null && b.taskScores[taskId] !== undefined ? Number(b.taskScores[taskId]) : -1;
+          return (valA - valB) * dir;
+        });
+      }
+
+      return list;
+    }
+
+    function renderReportTable() {
       const container = document.getElementById('reportTableContainer');
-      if (!report.students || report.students.length === 0) {
+      if (!appState.reportData || !appState.reportData.students || appState.reportData.students.length === 0) {
         container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">Belum ada mahasiswa di kelas ini.</div>';
         return;
       }
 
+      const tasks = appState.reportData.tasks || [];
+      const students = getFilteredAndSortedReportStudents();
+
+      function sortIndicator(key) {
+        if (appState.reportSortColumn === key) {
+          return appState.reportSortOrder === 'asc' 
+            ? '<span class="text-blue-600 font-bold ml-1 text-xs">▲</span>' 
+            : '<span class="text-blue-600 font-bold ml-1 text-xs">▼</span>';
+        }
+        return '<span class="text-slate-300 group-hover:text-slate-400 ml-1 text-[10px]">⇅</span>';
+      }
+
       let html = `
         <table class="w-full text-left text-xs">
-          <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+          <thead class="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200 select-none">
             <tr>
-              <th class="px-4 py-3 w-10 text-center">No</th>
-              <th class="px-4 py-3 w-28">NIM</th>
-              <th class="px-4 py-3 w-48">Nama Mahasiswa</th>
+              <th onclick="handleSortReport('no')" class="px-3.5 py-3 w-12 text-center cursor-pointer hover:bg-slate-100/80 transition group" title="Klik untuk mengurutkan no urut">
+                <span class="inline-flex items-center justify-center">No ${sortIndicator('no')}</span>
+              </th>
+              <th onclick="handleSortReport('nim')" class="px-4 py-3 w-36 cursor-pointer hover:bg-slate-100/80 transition group" title="Klik untuk mengurutkan NIM">
+                <div class="flex items-center justify-between">
+                  <span class="inline-flex items-center">NIM ${sortIndicator('nim')}</span>
+                  <button type="button" onclick="copyReportColumn('nim', 'NIM'); event.stopPropagation();" class="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 rounded transition ml-1" title="Salin seluruh kolom NIM">📋</button>
+                </div>
+              </th>
+              <th onclick="handleSortReport('nama')" class="px-4 py-3 min-w-[180px] cursor-pointer hover:bg-slate-100/80 transition group" title="Klik untuk mengurutkan Nama">
+                <div class="flex items-center justify-between">
+                  <span class="inline-flex items-center">Nama Mahasiswa ${sortIndicator('nama')}</span>
+                  <button type="button" onclick="copyReportColumn('nama', 'Nama Mahasiswa'); event.stopPropagation();" class="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 rounded transition ml-1" title="Salin seluruh kolom Nama">📋</button>
+                </div>
+              </th>
       `;
 
-      report.tasks.forEach(t => {
-        html += `<th class="px-4 py-3 text-center w-28">${t.judul_tugas} <span class="text-[10px] text-blue-600 block">(${t.bobot_persentase > 0 ? t.bobot_persentase + '%' : 'Standar'})</span></th>`;
+      tasks.forEach(t => {
+        const colKey = `task_${t.id_tugas}`;
+        const bobotText = t.bobot_persentase > 0 ? `${t.bobot_persentase}%` : 'Standar';
+        html += `
+          <th onclick="handleSortReport('${colKey}')" class="px-3 py-3 text-center min-w-[120px] cursor-pointer hover:bg-slate-100/80 transition group" title="Klik untuk mengurutkan nilai ${t.judul_tugas}">
+            <div class="flex items-center justify-center gap-1">
+              <span class="truncate max-w-[90px] font-bold text-slate-800">${t.judul_tugas}</span>
+              ${sortIndicator(colKey)}
+              <button type="button" onclick="copyReportColumn('${colKey}', '${t.judul_tugas}'); event.stopPropagation();" class="p-0.5 text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 rounded transition" title="Salin nilai kolom ${t.judul_tugas}">📋</button>
+            </div>
+            <span class="text-[10px] text-blue-600 font-medium block normal-case">(${bobotText})</span>
+          </th>
+        `;
       });
 
       html += `
-              <th class="px-4 py-3 text-center w-28 bg-slate-100/60 font-bold text-slate-700">Rata-rata</th>
-              <th class="px-4 py-3 text-center w-28 bg-blue-50 font-bold text-blue-900">Nilai Akhir</th>
+              <th onclick="handleSortReport('average')" class="px-3.5 py-3 text-center w-28 bg-slate-100/60 font-bold text-slate-800 cursor-pointer hover:bg-slate-200/60 transition group" title="Klik untuk mengurutkan Rata-rata">
+                <div class="flex items-center justify-center gap-1">
+                  <span>Rata-rata</span>
+                  ${sortIndicator('average')}
+                  <button type="button" onclick="copyReportColumn('average', 'Rata-rata'); event.stopPropagation();" class="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 rounded transition ml-0.5" title="Salin seluruh kolom Rata-rata">📋</button>
+                </div>
+              </th>
+              <th onclick="handleSortReport('final')" class="px-3.5 py-3 text-center w-32 bg-blue-50 font-bold text-blue-900 cursor-pointer hover:bg-blue-100/70 transition group" title="Klik untuk mengurutkan Nilai Akhir">
+                <div class="flex items-center justify-center gap-1">
+                  <span>Nilai Akhir</span>
+                  ${sortIndicator('final')}
+                  <button type="button" onclick="copyReportColumn('final', 'Nilai Akhir'); event.stopPropagation();" class="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-200/50 rounded transition ml-0.5" title="Salin seluruh kolom Nilai Akhir">📋</button>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
       `;
 
-      report.students.forEach((s, idx) => {
-        html += `
-          <tr class="hover:bg-slate-50/80 transition">
-            <td class="px-4 py-2.5 text-center text-slate-400 font-medium">${idx + 1}</td>
-            <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${s.nim}</td>
-            <td class="px-4 py-2.5 font-medium text-slate-900">${s.nama_mahasiswa}</td>
-        `;
+      if (students.length === 0) {
+        html += `<tr><td colspan="${5 + tasks.length}" class="text-center py-8 text-slate-400">Tidak ada mahasiswa yang cocok dengan pencarian.</td></tr>`;
+      } else {
+        students.forEach((s, idx) => {
+          html += `
+            <tr class="hover:bg-slate-50/80 transition">
+              <td class="px-3.5 py-2.5 text-center text-slate-400 font-medium">${idx + 1}</td>
+              <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${s.nim}</td>
+              <td class="px-4 py-2.5 font-medium text-slate-900">${s.nama_mahasiswa}</td>
+          `;
 
-        report.tasks.forEach(t => {
-          const score = s.taskScores[t.id_tugas];
-          html += `<td class="px-4 py-2.5 text-center font-semibold text-slate-700">${score !== null && score !== undefined ? score : '-'}</td>`;
+          tasks.forEach(t => {
+            const score = s.taskScores ? s.taskScores[t.id_tugas] : null;
+            const hasScore = score !== null && score !== undefined && score !== '';
+            html += `<td class="px-3 py-2.5 text-center font-semibold ${hasScore ? 'text-slate-800' : 'text-slate-300'}">${hasScore ? score : '-'}</td>`;
+          });
+
+          html += `
+              <td class="px-3.5 py-2.5 text-center font-semibold text-slate-700 bg-slate-50/50">${s.averageScore > 0 ? s.averageScore : '-'}</td>
+              <td class="px-3.5 py-2.5 text-center font-bold text-sm text-blue-700 bg-blue-50/30">${s.finalScore > 0 ? s.finalScore : '-'}</td>
+            </tr>
+          `;
         });
-
-        html += `
-            <td class="px-4 py-2.5 text-center font-semibold text-slate-600 bg-slate-50/50">${s.averageScore > 0 ? s.averageScore : '-'}</td>
-            <td class="px-4 py-2.5 text-center font-bold text-sm text-blue-700 bg-blue-50/30">${s.finalScore > 0 ? s.finalScore : '-'}</td>
-          </tr>
-        `;
-      });
+      }
 
       html += `
           </tbody>
@@ -1527,6 +1684,98 @@
       `;
 
       container.innerHTML = html;
+    }
+
+    function copyReportColumn(colKey, colTitle) {
+      const students = getFilteredAndSortedReportStudents();
+      if (!students || students.length === 0) {
+        return showGlobalAlert('Tidak ada data mahasiswa untuk disalin.', 'warning');
+      }
+
+      const values = students.map(s => {
+        if (colKey === 'nim') return s.nim;
+        if (colKey === 'nama') return s.nama_mahasiswa;
+        if (colKey === 'average') return s.averageScore !== null && s.averageScore !== undefined ? s.averageScore : '';
+        if (colKey === 'final') return s.finalScore !== null && s.finalScore !== undefined ? s.finalScore : '';
+        if (colKey.startsWith('task_')) {
+          const taskId = colKey.replace('task_', '');
+          const val = s.taskScores ? s.taskScores[taskId] : null;
+          return val !== null && val !== undefined ? val : '';
+        }
+        return '';
+      });
+
+      const textToCopy = values.join('\n');
+      copyTextToClipboard(textToCopy, `Kolom "${colTitle}" (${values.length} baris) berhasil disalin ke clipboard! Siap dipaste ke SIAKAD atau Excel.`);
+    }
+
+    function copyAllReportData() {
+      if (!appState.reportData || !appState.reportData.students || appState.reportData.students.length === 0) {
+        return showGlobalAlert('Tidak ada data rekapitulasi untuk disalin.', 'warning');
+      }
+
+      const tasks = appState.reportData.tasks || [];
+      const students = getFilteredAndSortedReportStudents();
+
+      // Baris Header TSV (Tab Separated Values)
+      const headers = ['No', 'NIM', 'Nama Mahasiswa'];
+      tasks.forEach(t => {
+        const bobotStr = t.bobot_persentase > 0 ? ` (${t.bobot_persentase}%)` : '';
+        headers.push(`${t.judul_tugas}${bobotStr}`);
+      });
+      headers.push('Rata-rata', 'Nilai Akhir');
+
+      const rows = [headers.join('\t')];
+
+      // Baris Data Mahasiswa TSV
+      students.forEach((s, idx) => {
+        const row = [
+          idx + 1,
+          s.nim,
+          s.nama_mahasiswa
+        ];
+
+        tasks.forEach(t => {
+          const score = s.taskScores ? s.taskScores[t.id_tugas] : null;
+          row.push(score !== null && score !== undefined ? score : '');
+        });
+
+        row.push(s.averageScore || '', s.finalScore || '');
+        rows.push(row.join('\t'));
+      });
+
+      const fullText = rows.join('\n');
+      copyTextToClipboard(fullText, `Seluruh tabel rekapitulasi (${students.length} mahasiswa) berhasil disalin ke clipboard! Siap dipaste langsung ke Excel atau Google Sheets.`);
+    }
+
+    function copyTextToClipboard(text, successMsg) {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+          showGlobalAlert(successMsg, 'success');
+        }).catch(err => {
+          fallbackCopyText(text, successMsg);
+        });
+      } else {
+        fallbackCopyText(text, successMsg);
+      }
+    }
+
+    function fallbackCopyText(text, successMsg) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showGlobalAlert(successMsg, 'success');
+      } catch (err) {
+        alert('Gagal menyalin teks otomatis ke clipboard.');
+      }
+      document.body.removeChild(textArea);
     }
 
     function exportReportToSheet() {
@@ -1863,9 +2112,34 @@
       document.getElementById('detailGradeClassId').value = g.id_kelas;
       document.getElementById('detailGradeNim').value = g.nim;
       document.getElementById('detailGradeNama').value = g.nama_mahasiswa;
-      document.getElementById('detailGradeTotalScore').value = g.nilai_total !== null ? g.nilai_total : '';
+      document.getElementById('detailGradeTotalScore').value = g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '';
       document.getElementById('detailGradeCriteria').value = g.rincian_poin || '';
       document.getElementById('detailGradeFeedback').value = g.catatan_ai || '';
+
+      // Tampilkan info penyebab kegagalan jika status Gagal
+      const failureAlert = document.getElementById('detailFailureAlert');
+      const isFailed = g.status && g.status.toLowerCase().startsWith('gagal');
+
+      if (isFailed) {
+        failureAlert.classList.remove('hidden');
+        const cleanMsg = g.status.replace(/^Gagal:\s*/i, '');
+        document.getElementById('detailFailureReason').textContent = cleanMsg;
+
+        let advice = 'Periksa keberadaan berkas tugas mahasiswa di Google Drive atau ulangi penilaian.';
+        const lower = cleanMsg.toLowerCase();
+        if (lower.includes('tidak ditemukan')) {
+          advice = `Pastikan berkas jawaban mahasiswa di Google Drive memuat NIM "${g.nim}" atau nama mahasiswa pada nama file/subfolder.`;
+        } else if (lower.includes('kuota') || cleanMsg.includes('429')) {
+          advice = 'Batas kuota API tercapai. Tunggu 1-2 menit lalu klik tombol nilai kembali, atau gunakan model gemini-3.5-flash-lite.';
+        } else if (lower.includes('kunci api') || lower.includes('api key')) {
+          advice = 'Periksa kembali API Key Anda pada tab Pengaturan dan pastikan API Key aktif.';
+        } else if (lower.includes('besar') || lower.includes('ukuran') || lower.includes('20 mb')) {
+          advice = 'Ukuran berkas melebihi 20MB. Minta mahasiswa mengompres berkas atau mengunggah versi PDF ringkas.';
+        }
+        document.getElementById('detailFailureAdvice').textContent = '💡 Solusi: ' + advice;
+      } else {
+        failureAlert.classList.add('hidden');
+      }
 
       openModal('gradeDetailModal');
     }
