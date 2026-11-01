@@ -2,8 +2,6 @@
  * @fileoverview Konfigurasi Global & Manajemen Properti Sistem Portal Penilaian Akademik
  */
 
-const SPREADSHEET_ID = '1RvpMKOjCDDYG1xODoX_6EVQTtTFeaH1pt7OQ-mq8jWQ';
-
 const DB_SHEETS = {
   CLASSES: '_DB_KELAS',
   STUDENTS: '_DB_MAHASISWA',
@@ -23,27 +21,21 @@ const DEFAULT_SETTINGS = {
 };
 
 /**
- * Mengambil pengaturan aplikasi (API Key, Model, dsb) secara aman
+ * Mengambil pengaturan aplikasi (API Key, Model, dsb)
  * @return {Object}
  */
 function getAppSettings() {
   const userProps = PropertiesService.getUserProperties();
-  let scriptProps = null;
-  try { scriptProps = PropertiesService.getScriptProperties(); } catch (e) {}
-  let docProps = null;
-  try { docProps = PropertiesService.getDocumentProperties(); } catch (e) {}
+  const docProps = PropertiesService.getDocumentProperties();
 
   const apiKey = userProps.getProperty(CONFIG_KEYS.GEMINI_API_KEY) || 
-                 (scriptProps ? scriptProps.getProperty(CONFIG_KEYS.GEMINI_API_KEY) : '') ||
-                 (docProps ? docProps.getProperty(CONFIG_KEYS.GEMINI_API_KEY) : '') || '';
+                 docProps.getProperty(CONFIG_KEYS.GEMINI_API_KEY) || '';
 
-  const modelName = (scriptProps ? scriptProps.getProperty(CONFIG_KEYS.MODEL_NAME) : '') ||
-                    (docProps ? docProps.getProperty(CONFIG_KEYS.MODEL_NAME) : '') ||
+  const modelName = docProps.getProperty(CONFIG_KEYS.MODEL_NAME) || 
                     userProps.getProperty(CONFIG_KEYS.MODEL_NAME) || 
                     DEFAULT_SETTINGS.modelName;
 
-  const activeClassId = (scriptProps ? scriptProps.getProperty(CONFIG_KEYS.ACTIVE_CLASS_ID) : '') ||
-                        (docProps ? docProps.getProperty(CONFIG_KEYS.ACTIVE_CLASS_ID) : '') || '';
+  const activeClassId = docProps.getProperty(CONFIG_KEYS.ACTIVE_CLASS_ID) || '';
 
   return {
     apiKey: apiKey ? maskApiKey(apiKey) : '',
@@ -63,28 +55,18 @@ function getAppSettings() {
 function saveAppSettings(data) {
   try {
     const userProps = PropertiesService.getUserProperties();
-    let scriptProps = null;
-    try { scriptProps = PropertiesService.getScriptProperties(); } catch (e) {}
-    let docProps = null;
-    try { docProps = PropertiesService.getDocumentProperties(); } catch (e) {}
+    const docProps = PropertiesService.getDocumentProperties();
 
     if (data.apiKey && !data.apiKey.includes('****')) {
-      const cleanKey = data.apiKey.trim();
-      userProps.setProperty(CONFIG_KEYS.GEMINI_API_KEY, cleanKey);
-      if (scriptProps) scriptProps.setProperty(CONFIG_KEYS.GEMINI_API_KEY, cleanKey);
+      userProps.setProperty(CONFIG_KEYS.GEMINI_API_KEY, data.apiKey.trim());
     }
 
     if (data.modelName) {
-      const cleanModel = data.modelName.trim();
-      userProps.setProperty(CONFIG_KEYS.MODEL_NAME, cleanModel);
-      if (scriptProps) scriptProps.setProperty(CONFIG_KEYS.MODEL_NAME, cleanModel);
-      if (docProps) docProps.setProperty(CONFIG_KEYS.MODEL_NAME, cleanModel);
+      docProps.setProperty(CONFIG_KEYS.MODEL_NAME, data.modelName.trim());
     }
 
     if (data.activeClassId !== undefined) {
-      userProps.setProperty(CONFIG_KEYS.ACTIVE_CLASS_ID, data.activeClassId);
-      if (scriptProps) scriptProps.setProperty(CONFIG_KEYS.ACTIVE_CLASS_ID, data.activeClassId);
-      if (docProps) docProps.setProperty(CONFIG_KEYS.ACTIVE_CLASS_ID, data.activeClassId);
+      docProps.setProperty(CONFIG_KEYS.ACTIVE_CLASS_ID, data.activeClassId);
     }
 
     return { success: true, message: 'Pengaturan berhasil disimpan!' };

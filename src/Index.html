@@ -185,10 +185,7 @@
         </div>
 
         <div id="dashTasksList" class="space-y-3">
-          <div class="text-center py-8 text-slate-400 text-xs flex items-center justify-center gap-2">
-            <span class="spinner inline-block w-4 h-4 border-slate-300 border-t-blue-600"></span>
-            <span>Menghubungkan ke basis data...</span>
-          </div>
+          <div class="text-center py-8 text-slate-400 text-sm">Memuat data tugas...</div>
         </div>
       </div>
 
@@ -308,14 +305,12 @@
           <!-- Action Buttons -->
           <div class="flex flex-wrap items-center gap-2">
             <button onclick="gradeSelectedStudents()" id="btnGradeSelected" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50" disabled>
-              <span id="btnGradeSelectedSpinner" class="hidden spinner inline-block w-3 h-3 mr-1"></span>
-              <span id="btnGradeSelectedText">🎯 Nilai yang Dipilih (<span id="selectedCountBadge">0</span>)</span>
+              🎯 Nilai yang Dipilih (<span id="selectedCountBadge">0</span>)
             </button>
-            <button onclick="gradeAllStudents()" id="btnGradeAll" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50">
-              <span id="btnGradeAllSpinner" class="hidden spinner inline-block w-3 h-3 mr-1"></span>
-              <span id="btnGradeAllText">▶️ Nilai Semua (Batch)</span>
+            <button onclick="gradeAllStudents()" id="btnGradeAll" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
+              ▶️ Nilai Semua (Batch)
             </button>
-            <button onclick="resetFailedGrades()" id="btnResetFailed" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-3 py-2.5 rounded-xl transition" title="Reset baris gagal">
+            <button onclick="resetFailedGrades()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-3 py-2.5 rounded-xl transition" title="Reset baris gagal">
               🔄 Reset Gagal
             </button>
           </div>
@@ -337,34 +332,53 @@
           </div>
         </div>
 
-        <!-- Live Interactive Progress Card -->
-        <div id="gradingProgressCard" class="hidden bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 rounded-xl space-y-3">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <div class="flex items-center space-x-2">
-                <span class="spinner inline-block w-3.5 h-3.5 text-blue-600 border-blue-600 border-t-transparent"></span>
-                <h4 id="gradingProgressTitle" class="font-bold text-slate-800 text-xs">Sedang Menilai Mahasiswa...</h4>
+        <!-- Live Grading Progress Panel -->
+        <div id="gradingProgressPanel" class="hidden bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl shadow-lg border border-blue-800/40 space-y-3.5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+              <span class="spinner inline-block w-4 h-4 border-2 border-blue-400 border-t-white"></span>
+              <div>
+                <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                  <span id="progressPanelTitle">Sedang Mengevaluasi Jawaban Mahasiswa...</span>
+                </h4>
+                <p class="text-xs text-blue-200/90 mt-0.5" id="progressPanelSubtitle">Mempersiapkan antrean penilaian...</p>
               </div>
-              <p id="gradingProgressSubtitle" class="text-[11px] text-slate-600 mt-0.5">Memulai antrean...</p>
             </div>
-            <div class="flex items-center space-x-2">
-              <span id="gradingProgressCounts" class="text-xs font-semibold text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-blue-100 shadow-sm">
-                0 / 0 (0%)
-              </span>
-              <button type="button" onclick="stopGradingQueue()" id="btnStopGrading" class="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-xs font-bold transition shadow-sm">
-                ⏹️ Hentikan
+            <div class="flex items-center space-x-2.5">
+              <span id="progressPanelCounter" class="bg-blue-800/80 border border-blue-700/60 px-3 py-1 rounded-xl text-xs font-mono font-bold text-blue-200">0 / 0 (0%)</span>
+              <button type="button" onclick="abortGradingQueue()" id="btnAbortGrading" class="px-3 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white font-semibold rounded-xl text-xs transition flex items-center gap-1 shadow-sm">
+                <span>⏹️</span> <span>Hentikan</span>
               </button>
             </div>
           </div>
-          
-          <!-- Visual Progress Bar -->
-          <div class="w-full bg-slate-200/80 h-2.5 rounded-full overflow-hidden">
-            <div id="gradingProgressBarFill" class="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+
+          <!-- Animated Progress Bar -->
+          <div class="w-full bg-slate-800/90 h-3 rounded-full overflow-hidden p-0.5 border border-blue-700/40">
+            <div id="progressBarFill" class="bg-gradient-to-r from-blue-400 via-sky-300 to-emerald-400 h-full rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
           </div>
+
+          <!-- Live Log Accordion/Scrollable Box -->
+          <div id="gradingProgressBox" class="bg-slate-950/90 text-sky-300 p-3 rounded-xl font-mono text-[11px] max-h-32 overflow-y-auto border border-blue-900/60 space-y-1"></div>
         </div>
 
-        <!-- Live Status / Log Bar -->
-        <div id="gradingProgressBox" class="hidden bg-slate-900 text-sky-400 p-3 rounded-xl font-mono text-[11px] max-h-32 overflow-y-auto space-y-1"></div>
+        <!-- Completion Alert Banner -->
+        <div id="gradingCompletionBanner" class="hidden p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div class="flex items-center space-x-3.5">
+            <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl shrink-0">🎉</div>
+            <div>
+              <h4 class="font-bold text-emerald-950 text-sm" id="completionTitle">Penilaian Selesai!</h4>
+              <p class="text-xs text-emerald-800 mt-0.5" id="completionDesc">Seluruh mahasiswa dalam antrean telah berhasil dievaluasi dan dicatat ke sistem.</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 shrink-0">
+            <button type="button" onclick="switchTab('reports')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+              <span>📊</span> <span>Buka Rekapitulasi</span>
+            </button>
+            <button type="button" onclick="document.getElementById('gradingCompletionBanner').classList.add('hidden')" class="px-2.5 py-2 text-slate-400 hover:text-slate-600 text-xs rounded-xl hover:bg-emerald-100 transition">
+              ✕ Tutup
+            </button>
+          </div>
+        </div>
 
       </div>
 
@@ -675,32 +689,6 @@
     </div>
   </div>
 
-  <!-- Modal Selesai Penilaian (Pop-up Sukses) -->
-  <div id="gradingCompletionModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
-      <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-2xl mx-auto shadow-inner">
-        🎉
-      </div>
-      <div>
-        <h3 class="font-bold text-slate-900 text-lg">Penilaian Selesai!</h3>
-        <p id="completionModalMsg" class="text-xs text-slate-500 mt-1">Seluruh mahasiswa dalam antrean telah selesai dinilai oleh AI.</p>
-      </div>
-      <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs grid grid-cols-2 gap-2 text-center">
-        <div>
-          <span class="text-slate-400">Berhasil:</span>
-          <p id="completionSuccessCount" class="font-bold text-emerald-600 text-base mt-0.5">0</p>
-        </div>
-        <div>
-          <span class="text-slate-400">Gagal:</span>
-          <p id="completionFailedCount" class="font-bold text-rose-600 text-base mt-0.5">0</p>
-        </div>
-      </div>
-      <button type="button" onclick="closeModal('gradingCompletionModal')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-xs shadow-md transition">
-        Lihat Hasil Penilaian
-      </button>
-    </div>
-  </div>
-
   <!-- JAVASCRIPT LOGIC -->
   <script>
     // State Aplikasi
@@ -720,28 +708,11 @@
     };
 
     function initApp() {
+      showLoading(true);
       google.script.run
-        .withSuccessHandler(function(res) {
-          if (!res || !res.success) {
-            const errMsg = (res && res.error) ? res.error : 'Terjadi kendala saat menghubungkan ke database server.';
-            showGlobalAlert('Gagal memuat data: ' + errMsg, 'error');
-            const dashList = document.getElementById('dashTasksList');
-            if (dashList) {
-              dashList.innerHTML = `
-                <div class="p-6 text-center text-rose-600 text-xs font-semibold bg-rose-50 rounded-xl border border-rose-200">
-                  <p class="mb-1">⚠️ ${errMsg}</p>
-                  <p class="text-[11px] text-rose-500 font-normal mb-3">Pastikan Spreadsheet database telah dibuat dan izin akses aktif.</p>
-                  <button onclick="initApp()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition">
-                    🔄 Coba Muat Ulang
-                  </button>
-                </div>
-              `;
-            }
-            return;
-          }
-
-          appState.classes = res.classes || [];
-          appState.settings = res.settings || {};
+        .withSuccessHandler(function(data) {
+          appState.classes = data.classes || [];
+          appState.settings = data.settings || {};
           
           if (appState.settings.modelName) {
             document.getElementById('badgeModelName').textContent = appState.settings.modelName;
@@ -753,42 +724,18 @@
 
           renderClassDropdowns();
 
-          if (res.activeClassId) {
-            appState.activeClassId = res.activeClassId;
-            document.getElementById('headerClassSelect').value = res.activeClassId;
-            const currentClass = appState.classes.find(c => c.id_kelas === res.activeClassId);
-            if (currentClass) {
-              document.getElementById('dashClassTitle').textContent = currentClass.nama_kelas;
-            }
-
-            appState.currentStudents = res.initialStudents || [];
-            appState.currentTasks = res.initialTasks || [];
-
-            renderStudentsTable(appState.currentStudents);
-            renderDashboardStats();
-            renderTasksGrid();
-            renderGradingTaskSelect();
+          // Pilih kelas pertama jika ada
+          if (appState.classes.length > 0) {
+            const savedClassId = appState.settings.activeClassId;
+            const targetClass = appState.classes.find(c => c.id_kelas === savedClassId) || appState.classes[0];
+            switchActiveClass(targetClass.id_kelas);
           } else {
-            // Belum ada kelas sama sekali
-            renderDashboardStats();
-            renderTasksGrid();
-            renderGradingTaskSelect();
+            showLoading(false);
           }
         })
         .withFailureHandler(function(err) {
+          showLoading(false);
           showGlobalAlert('Gagal menginisialisasi sistem: ' + err.message, 'error');
-          const dashList = document.getElementById('dashTasksList');
-          if (dashList) {
-            dashList.innerHTML = `
-              <div class="p-6 text-center text-rose-600 text-xs font-semibold bg-rose-50 rounded-xl border border-rose-200">
-                <p class="mb-1">⚠️ Gagal terhubung ke server Google Apps Script: ${err.message}</p>
-                <p class="text-[11px] text-rose-500 font-normal mb-3">Periksa koneksi internet Anda atau muat ulang halaman.</p>
-                <button onclick="initApp()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition">
-                  🔄 Coba Muat Ulang
-                </button>
-              </div>
-            `;
-          }
         })
         .apiGetInitialData();
     }
@@ -829,28 +776,33 @@
     }
 
     function loadClassDetails(classId) {
-      const dashList = document.getElementById('dashTasksList');
-      if (dashList) {
-        dashList.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs"><span class="spinner inline-block w-3.5 h-3.5 mr-2 border-slate-400 border-t-blue-600"></span>Memuat data kelas & tugas...</div>';
-      }
-
+      showLoading(true);
+      // Ambil Mahasiswa & Tugas secara paralel
       google.script.run
-        .withSuccessHandler(function(res) {
-          appState.currentStudents = (res && res.students) ? res.students : [];
-          appState.currentTasks = (res && res.tasks) ? res.tasks : [];
-
+        .withSuccessHandler(function(students) {
+          appState.currentStudents = students || [];
           renderStudentsTable(appState.currentStudents);
-          renderDashboardStats();
-          renderTasksGrid();
-          renderGradingTaskSelect();
+
+          // Lanjut ambil tugas
+          google.script.run
+            .withSuccessHandler(function(tasks) {
+              showLoading(false);
+              appState.currentTasks = tasks || [];
+              renderDashboardStats();
+              renderTasksGrid();
+              renderGradingTaskSelect();
+            })
+            .withFailureHandler(function(err) {
+              showLoading(false);
+              showGlobalAlert('Gagal memuat tugas: ' + err.message, 'error');
+            })
+            .apiGetTasks(classId);
         })
         .withFailureHandler(function(err) {
-          showGlobalAlert('Gagal memuat data kelas: ' + err.message, 'error');
-          if (dashList) {
-            dashList.innerHTML = `<div class="p-4 text-center text-rose-600 text-xs font-semibold bg-rose-50 rounded-xl">Gagal memuat tugas: ${err.message}</div>`;
-          }
+          showLoading(false);
+          showGlobalAlert('Gagal memuat mahasiswa: ' + err.message, 'error');
         })
-        .apiGetClassDetails(classId);
+        .apiGetStudents(classId);
     }
 
     function renderClassDropdowns() {
@@ -876,9 +828,9 @@
       document.getElementById('statTotalTasks').textContent = appState.currentTasks.length;
 
       // Hitung rata-rata tugas
-      const scoredTasks = appState.currentTasks.filter(t => Number(t.averageScore) > 0);
+      const scoredTasks = appState.currentTasks.filter(t => t.averageScore > 0);
       if (scoredTasks.length > 0) {
-        const avg = (scoredTasks.reduce((s, t) => s + Number(t.averageScore), 0) / scoredTasks.length).toFixed(1);
+        const avg = (scoredTasks.reduce((s, t) => s + t.averageScore, 0) / scoredTasks.length).toFixed(1);
         document.getElementById('statClassAvg').textContent = avg;
       } else {
         document.getElementById('statClassAvg').textContent = '-';
@@ -886,31 +838,8 @@
 
       // Render daftar tugas dashboard
       const listContainer = document.getElementById('dashTasksList');
-      if (!listContainer) return;
-
-      if (appState.classes.length === 0) {
-        listContainer.innerHTML = `
-          <div class="text-center py-8 text-slate-400 text-xs bg-slate-50/50 rounded-xl border border-dashed border-slate-200 p-4">
-            <p class="font-medium text-slate-600 mb-1">Belum ada kelas yang dibuat</p>
-            <p class="text-[11px] mb-3">Buat kelas baru terlebih dahulu untuk mulai mengelola mahasiswa dan tugas.</p>
-            <button onclick="openModal('classModal')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition">
-              + Buat Kelas Pertama
-            </button>
-          </div>
-        `;
-        return;
-      }
-
       if (appState.currentTasks.length === 0) {
-        listContainer.innerHTML = `
-          <div class="text-center py-8 text-slate-400 text-xs bg-slate-50/50 rounded-xl border border-dashed border-slate-200 p-4">
-            <p class="font-medium text-slate-600 mb-1">Belum ada tugas pada kelas ini</p>
-            <p class="text-[11px] mb-3">Klik tombol di bawah untuk membuat tugas baru.</p>
-            <button onclick="openCreateTaskModal()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition">
-              + Tambah Tugas Baru
-            </button>
-          </div>
-        `;
+        listContainer.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Belum ada tugas pada kelas ini. Klik "+ Tambah Tugas" untuk membuat tugas baru.</div>';
         return;
       }
 
@@ -1097,6 +1026,11 @@
     }
 
     function loadGradingTable(taskId) {
+      if (typeof gradingQueue !== 'undefined' && gradingQueue.isRunning) {
+        alert('Penilaian sedang berlangsung. Harap hentikan atau tunggu antrean selesai sebelum mengganti tugas.');
+        return;
+      }
+
       if (!taskId) {
         document.getElementById('gradingTaskInfo').classList.add('hidden');
         document.getElementById('gradingTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-slate-400">Pilih tugas terlebih dahulu</td></tr>';
@@ -1106,6 +1040,12 @@
       appState.selectedGradingTaskId = taskId;
       appState.selectedStudentNims.clear();
       updateSelectedCountBadge();
+
+      // Sembunyikan panel progres dan banner selesai saat ganti tugas
+      const progressPanel = document.getElementById('gradingProgressPanel');
+      if (progressPanel) progressPanel.classList.add('hidden');
+      const completionBanner = document.getElementById('gradingCompletionBanner');
+      if (completionBanner) completionBanner.classList.add('hidden');
 
       const task = appState.currentTasks.find(t => t.id_tugas === taskId);
       if (task) {
@@ -1143,26 +1083,26 @@
 
         let statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500">Belum Dinilai</span>';
         if (isCompleted) {
-          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">Selesai</span>';
+          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">✓ Selesai</span>';
         } else if (isFailed) {
-          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 cursor-pointer" title="${g.status}">Gagal</span>`;
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 cursor-pointer" title="${g.status}">❌ Gagal</span>`;
         } else if (isGrading) {
-          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 animate-pulse">Menilai...</span>';
+          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 animate-pulse">⏳ Menilai...</span>';
         }
 
         const isChecked = appState.selectedStudentNims.has(g.nim);
 
         return `
-          <tr id="grade-row-${g.nim}" class="hover:bg-slate-50/80 transition ${isChecked ? 'bg-blue-50/40' : ''}">
+          <tr id="row-student-${g.nim}" class="hover:bg-slate-50/80 transition ${isChecked ? 'bg-blue-50/40' : ''}">
             <td class="px-4 py-2.5 text-center">
               <input type="checkbox" onchange="toggleStudentSelection('${g.nim}', this.checked)" ${isChecked ? 'checked' : ''} class="rounded text-blue-600 focus:ring-0 cursor-pointer">
             </td>
             <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${g.nim}</td>
             <td class="px-4 py-2.5 font-medium text-slate-900">${g.nama_mahasiswa}</td>
-            <td id="grade-file-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[130px]" title="${g.file_name || '-'}">${g.file_name || '-'}</td>
-            <td id="grade-score-${g.nim}" class="px-4 py-2.5 text-center font-bold text-sm ${isCompleted ? 'text-blue-700' : 'text-slate-400'}">${g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '-'}</td>
-            <td class="px-4 py-2.5 text-slate-600 line-clamp-1 max-w-[200px]" title="${g.rincian_poin || '-'}">${g.rincian_poin || '-'}</td>
-            <td id="grade-status-${g.nim}" class="px-4 py-2.5 text-center">${statusBadge}</td>
+            <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[130px]" title="${g.file_name || '-'}">${g.file_name || '-'}</td>
+            <td id="score-cell-${g.nim}" class="px-4 py-2.5 text-center font-bold text-sm ${isCompleted ? 'text-blue-700' : 'text-slate-400'}">${g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '-'}</td>
+            <td id="points-cell-${g.nim}" class="px-4 py-2.5 text-slate-600 line-clamp-1 max-w-[200px]" title="${g.rincian_poin || '-'}">${g.rincian_poin || '-'}</td>
+            <td id="status-cell-${g.nim}" class="px-4 py-2.5 text-center">${statusBadge}</td>
             <td class="px-4 py-2.5 text-center">
               <button onclick="openGradeDetailModal('${g.nim}')" class="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-600 font-medium transition" title="Lihat Ulasan & Koreksi Manual">
                 👁️ Detail
@@ -1192,377 +1132,308 @@
       updateSelectedCountBadge();
     }
 
-    // ==========================================
-    // ANTRIAN PENILAIAN REAL-TIME & INTERAKTIF
-    // ==========================================
-
-    let gradingQueueState = {
-      isRunning: false,
-      shouldStop: false,
-      queue: [],
-      currentIndex: 0,
-      total: 0,
-      successCount: 0,
-      failedCount: 0,
-      taskId: null
-    };
-
     function updateSelectedCountBadge() {
       const count = appState.selectedStudentNims.size;
-      const badge = document.getElementById('selectedCountBadge');
-      if (badge) badge.textContent = count;
-      const btn = document.getElementById('btnGradeSelected');
-      if (btn && !gradingQueueState.isRunning) {
-        btn.disabled = count === 0;
-      }
+      document.getElementById('selectedCountBadge').textContent = count;
+      document.getElementById('btnGradeSelected').disabled = count === 0 || (typeof gradingQueue !== 'undefined' && gradingQueue.isRunning);
     }
 
-    function setGradingButtonsState(isRunning) {
-      const btnSel = document.getElementById('btnGradeSelected');
-      const btnAll = document.getElementById('btnGradeAll');
-      const btnReset = document.getElementById('btnResetFailed');
-      const selSpinner = document.getElementById('btnGradeSelectedSpinner');
-      const allSpinner = document.getElementById('btnGradeAllSpinner');
+    // ==========================================
+    // CLIENT-DRIVEN REAL-TIME GRADING QUEUE
+    // ==========================================
 
-      if (isRunning) {
-        if (btnSel) btnSel.disabled = true;
-        if (btnAll) btnAll.disabled = true;
-        if (btnReset) btnReset.disabled = true;
-      } else {
-        if (btnSel) btnSel.disabled = appState.selectedStudentNims.size === 0;
-        if (btnAll) btnAll.disabled = false;
-        if (btnReset) btnReset.disabled = false;
-        if (selSpinner) selSpinner.classList.add('hidden');
-        if (allSpinner) allSpinner.classList.add('hidden');
+    const gradingQueue = {
+      isRunning: false,
+      isAborted: false,
+      items: [],
+      totalCount: 0,
+      currentIndex: 0,
+      successCount: 0,
+      failedCount: 0,
+      taskId: null,
+      originalDocTitle: document.title
+    };
+
+    function startGradingQueue(queueItems, queueTitle = 'Penilaian Mahasiswa') {
+      if (gradingQueue.isRunning) {
+        return alert('Penilaian sedang berlangsung. Harap tunggu atau klik "Hentikan" terlebih dahulu.');
       }
+      if (!queueItems || queueItems.length === 0) {
+        return alert('Tidak ada mahasiswa dalam antrean penilaian.');
+      }
+
+      gradingQueue.isRunning = true;
+      gradingQueue.isAborted = false;
+      gradingQueue.items = queueItems;
+      gradingQueue.totalCount = queueItems.length;
+      gradingQueue.currentIndex = 0;
+      gradingQueue.successCount = 0;
+      gradingQueue.failedCount = 0;
+      gradingQueue.taskId = appState.selectedGradingTaskId;
+      gradingQueue.originalDocTitle = document.title;
+
+      // Sembunyikan banner selesai jika sebelumnya ada
+      const banner = document.getElementById('gradingCompletionBanner');
+      if (banner) banner.classList.add('hidden');
+
+      // Tampilkan Progress Panel
+      const panel = document.getElementById('gradingProgressPanel');
+      if (panel) panel.classList.remove('hidden');
+      document.getElementById('progressPanelTitle').textContent = queueTitle;
+      document.getElementById('progressPanelSubtitle').textContent = `Mempersiapkan antrean ${queueItems.length} mahasiswa...`;
+      document.getElementById('gradingProgressBox').innerHTML = '';
+
+      // Nonaktifkan tombol aksi saat running
+      document.getElementById('btnGradeSelected').disabled = true;
+      document.getElementById('btnGradeAll').disabled = true;
+
+      updateGradingProgressUI();
+      showProgressLog(`▶️ Memulai antrean penilaian: ${queueItems.length} mahasiswa akan dinilai secara otomatis.`);
+
+      processNextQueueItem();
     }
 
-    function showGradingProgressCard(show) {
-      const card = document.getElementById('gradingProgressCard');
-      if (card) {
-        if (show) card.classList.remove('hidden');
-        else card.classList.add('hidden');
+    function processNextQueueItem() {
+      if (!gradingQueue.isRunning) return;
+
+      if (gradingQueue.isAborted) {
+        finishGradingQueue(true);
+        return;
       }
+
+      if (gradingQueue.currentIndex >= gradingQueue.totalCount) {
+        finishGradingQueue(false);
+        return;
+      }
+
+      const item = gradingQueue.items[gradingQueue.currentIndex];
+      const nim = item.nim;
+      const nama = item.nama_mahasiswa || item.nama || nim;
+      const currentNumber = gradingQueue.currentIndex + 1;
+
+      // Perbarui label panel & judul tab browser
+      document.getElementById('progressPanelSubtitle').textContent = `Sedang mengevaluasi (${currentNumber}/${gradingQueue.totalCount}): ${nim} - ${nama}`;
+      document.title = `(${currentNumber}/${gradingQueue.totalCount}) Menilai ${nama}... - Asisten Penilaian`;
+      showProgressLog(`[${currentNumber}/${gradingQueue.totalCount}] Memeriksa berkas & mengevaluasi jawaban NIM: ${nim} (${nama})...`);
+
+      // Update baris visual menjadi kuning
+      updateStudentRowState(nim, 'grading');
+
+      // Panggil backend per 1 mahasiswa
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!gradingQueue.isRunning) return;
+
+          if (res.success) {
+            gradingQueue.successCount++;
+            updateStudentRowState(nim, 'success', res);
+            showProgressLog(`✅ NIM: ${nim} (${nama}) berhasil dinilai. Skor: ${res.score} (${res.fileName || 'Berkas Drive'})`);
+          } else {
+            gradingQueue.failedCount++;
+            updateStudentRowState(nim, 'failed', res);
+            showProgressLog(`❌ NIM: ${nim} (${nama}) gagal: ${res.error || res.status}`);
+          }
+
+          gradingQueue.currentIndex++;
+          updateGradingProgressUI();
+
+          // Jeda halus 400ms sebelum lanjut ke mahasiswa berikutnya
+          setTimeout(processNextQueueItem, 400);
+        })
+        .withFailureHandler(function(err) {
+          if (!gradingQueue.isRunning) return;
+
+          gradingQueue.failedCount++;
+          updateStudentRowState(nim, 'failed', { error: err.message, status: 'Gagal: ' + err.message });
+          showProgressLog(`❌ NIM: ${nim} (${nama}) error koneksi: ${err.message}`);
+
+          gradingQueue.currentIndex++;
+          updateGradingProgressUI();
+
+          setTimeout(processNextQueueItem, 400);
+        })
+        .apiGradeSingleStudent(gradingQueue.taskId, nim);
     }
 
-    function updateGradingProgressUI(current, total, statusText, isError = false) {
-      showGradingProgressCard(true);
-      const title = document.getElementById('gradingProgressTitle');
-      const sub = document.getElementById('gradingProgressSubtitle');
-      const counts = document.getElementById('gradingProgressCounts');
-      const fill = document.getElementById('gradingProgressBarFill');
+    function updateStudentRowState(nim, state, data) {
+      const row = document.getElementById(`row-student-${nim}`);
+      const fileCell = document.getElementById(`file-cell-${nim}`);
+      const scoreCell = document.getElementById(`score-cell-${nim}`);
+      const pointsCell = document.getElementById(`points-cell-${nim}`);
+      const statusCell = document.getElementById(`status-cell-${nim}`);
 
-      const pct = total > 0 ? Math.round((current / total) * 100) : 0;
-      if (title) title.textContent = current >= total ? 'Evaluasi Selesai' : 'Sedang Menilai Mahasiswa...';
-      if (sub) sub.textContent = statusText;
-      if (counts) counts.textContent = `${current} / ${total} (${pct}%)`;
-      if (fill) {
-        fill.style.width = `${pct}%`;
-        if (isError) {
-          fill.className = 'bg-rose-500 h-full rounded-full transition-all duration-300';
-        } else if (current >= total) {
-          fill.className = 'bg-emerald-500 h-full rounded-full transition-all duration-300';
-        } else {
-          fill.className = 'bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-300';
+      // Sinkronisasi data in-memory di appState.currentGrades
+      const gradeObj = appState.currentGrades.find(g => g.nim === nim);
+
+      if (state === 'grading') {
+        if (row) {
+          row.className = 'bg-amber-50/80 border-l-4 border-l-amber-500 transition';
+          row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-      }
-    }
-
-    function updateTableRowGradingStatus(nim, status, score, fileName, errorMsg) {
-      const row = document.getElementById(`grade-row-${nim}`);
-      const statusCell = document.getElementById(`grade-status-${nim}`);
-      const scoreCell = document.getElementById(`grade-score-${nim}`);
-      const fileCell = document.getElementById(`grade-file-${nim}`);
-
-      // Sinkronisasi objek di memori appState.currentGrades
-      const gradeObj = appState.currentGrades.find(g => String(g.nim).trim() === String(nim).trim());
-
-      if (status === 'grading') {
         if (statusCell) {
-          statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 animate-pulse">⏳ Menilai...</span>';
+          statusCell.innerHTML = '<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 flex items-center justify-center gap-1 animate-pulse"><span class="spinner inline-block w-2.5 h-2.5 border-amber-800 border-t-transparent"></span> Menilai...</span>';
+        }
+      } else if (state === 'success' && data) {
+        if (row) {
+          row.className = 'bg-emerald-50/40 hover:bg-emerald-50/70 border-l-4 border-l-emerald-500 transition';
+        }
+        if (fileCell && data.fileName) {
+          fileCell.textContent = data.fileName;
+          fileCell.title = data.fileName;
         }
         if (scoreCell) {
-          scoreCell.innerHTML = '<span class="text-amber-500 font-bold animate-pulse text-xs">...</span>';
+          scoreCell.className = 'px-4 py-2.5 text-center font-bold text-sm text-blue-700';
+          scoreCell.textContent = data.score !== undefined ? data.score : '-';
         }
-        if (row) {
-          row.className = 'hover:bg-slate-50/80 transition bg-amber-50/50';
+        if (pointsCell && data.rincian_poin) {
+          pointsCell.textContent = data.rincian_poin;
+          pointsCell.title = data.rincian_poin;
         }
-        if (gradeObj) gradeObj.status = '⏳ Sedang Menilai...';
-      } else if (status === 'completed') {
         if (statusCell) {
-          statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">Selesai</span>';
+          statusCell.innerHTML = '<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">✓ Selesai</span>';
         }
-        if (scoreCell) {
-          scoreCell.innerHTML = `<span class="text-blue-700 font-bold text-sm">${score !== null && score !== undefined ? score : '-'}</span>`;
-        }
-        if (fileCell && fileName) {
-          fileCell.textContent = fileName;
-          fileCell.title = fileName;
-        }
-        if (row) {
-          row.className = 'hover:bg-slate-50/80 transition bg-emerald-50/40';
-        }
+
         if (gradeObj) {
           gradeObj.status = 'Selesai';
-          gradeObj.nilai_total = score;
-          if (fileName) gradeObj.file_name = fileName;
+          gradeObj.nilai_total = data.score;
+          gradeObj.file_name = data.fileName || gradeObj.file_name;
+          gradeObj.rincian_poin = data.rincian_poin || gradeObj.rincian_poin;
+          gradeObj.catatan_ai = data.catatan_ai || gradeObj.catatan_ai;
+          gradeObj.waktu_penilaian = data.waktu_penilaian || new Date().toLocaleString('id-ID');
         }
-      } else if (status === 'failed') {
-        const errText = errorMsg || 'Gagal dinilai';
-        if (statusCell) {
-          statusCell.innerHTML = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 cursor-pointer" title="${errText}">Gagal</span>`;
-        }
-        if (scoreCell) {
-          scoreCell.innerHTML = '<span class="text-slate-400 font-medium">-</span>';
-        }
+      } else if (state === 'failed') {
         if (row) {
-          row.className = 'hover:bg-slate-50/80 transition bg-rose-50/40';
+          row.className = 'bg-rose-50/40 hover:bg-rose-50/70 border-l-4 border-l-rose-500 transition';
         }
+        if (statusCell) {
+          const errMsg = data && (data.error || data.status) ? (data.error || data.status) : 'Gagal';
+          statusCell.innerHTML = `<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 cursor-pointer" title="${errMsg}">❌ Gagal</span>`;
+        }
+
         if (gradeObj) {
-          gradeObj.status = 'Gagal: ' + errText;
+          gradeObj.status = (data && data.status) || 'Gagal';
         }
+      }
+    }
+
+    function updateGradingProgressUI() {
+      const current = gradingQueue.currentIndex;
+      const total = gradingQueue.totalCount;
+      const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+
+      const counter = document.getElementById('progressPanelCounter');
+      if (counter) counter.textContent = `${current} / ${total} (${pct}%)`;
+
+      const bar = document.getElementById('progressBarFill');
+      if (bar) bar.style.width = `${pct}%`;
+    }
+
+    function abortGradingQueue() {
+      if (!gradingQueue.isRunning) return;
+      if (confirm('Apakah Anda yakin ingin menghentikan antrean penilaian? Mahasiswa yang sudah dinilai tetap tersimpan.')) {
+        gradingQueue.isAborted = true;
+        document.getElementById('progressPanelSubtitle').textContent = 'Menghentikan proses... Menyelesaikan mahasiswa aktif...';
+        showProgressLog('⚠️ Permintaan pembatalan diterima. Antrean dihentikan setelah mahasiswa aktif selesai.');
+      }
+    }
+
+    function finishGradingQueue(wasAborted) {
+      gradingQueue.isRunning = false;
+      document.title = wasAborted ? '⚠️ Penilaian Dihentikan' : '✅ Penilaian Selesai!';
+
+      // Pulihkan tombol aksi
+      updateSelectedCountBadge();
+      document.getElementById('btnGradeAll').disabled = false;
+
+      // Sembunyikan panel progres setelah beberapa detik
+      setTimeout(() => {
+        const panel = document.getElementById('gradingProgressPanel');
+        if (panel) panel.classList.add('hidden');
+        document.title = gradingQueue.originalDocTitle || 'Asisten Penilaian Akademik';
+      }, 3500);
+
+      const totalDone = gradingQueue.successCount + gradingQueue.failedCount;
+      showProgressLog(`🏁 ${wasAborted ? 'Penilaian Dihentikan.' : 'Penilaian Selesai!'} Berhasil: ${gradingQueue.successCount}, Gagal: ${gradingQueue.failedCount} dari total ${gradingQueue.totalCount} mahasiswa.`);
+
+      // Tampilkan banner notifikasi selesai
+      const banner = document.getElementById('gradingCompletionBanner');
+      if (banner) {
+        banner.classList.remove('hidden');
+        document.getElementById('completionTitle').textContent = wasAborted ? 'Penilaian Dihentikan' : '🎉 Penilaian Telah Selesai!';
+        document.getElementById('completionDesc').textContent = `${gradingQueue.successCount} berhasil dinilai, ${gradingQueue.failedCount} gagal dari total ${totalDone} mahasiswa yang diproses. Data telah tersinkronisasi otomatis tanpa perlu refresh manual.`;
+      }
+
+      // Mainkan suara notifikasi lembut
+      if (!wasAborted && gradingQueue.successCount > 0) {
+        playSuccessChime();
+      }
+
+      // Perbarui statistik dashboard di latar belakang secara hening
+      if (appState.activeClassId) {
+        loadClassDetails(appState.activeClassId);
       }
     }
 
     function playSuccessChime() {
       try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.5);
+        const now = ctx.currentTime;
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.setValueAtTime(783.99, now + 0.15); // G5
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.6);
       } catch (e) {
-        // Abaikan jika browser membatasi audio
+        // Abaikan jika browser membatasi audio sebelum interaksi pengguna
       }
     }
 
-    function openCompletionModal(success, failed, total) {
-      const sElem = document.getElementById('completionSuccessCount');
-      const fElem = document.getElementById('completionFailedCount');
-      if (sElem) sElem.textContent = success;
-      if (fElem) fElem.textContent = failed;
-      const sub = document.getElementById('completionModalMsg');
-      if (sub) {
-        sub.textContent = failed === 0 
-          ? `Luar biasa! Seluruh ${success} mahasiswa telah sukses dinilai otomatis oleh AI.`
-          : `Penilaian selesai dengan ${success} berhasil dan ${failed} mahasiswa gagal/berkas belum cocok.`;
-      }
-      openModal('gradingCompletionModal');
-    }
-
-    function stopGradingQueue() {
-      if (gradingQueueState.isRunning) {
-        gradingQueueState.shouldStop = true;
-        const btn = document.getElementById('btnStopGrading');
-        if (btn) {
-          btn.disabled = true;
-          btn.textContent = 'Menghentikan...';
-        }
-        showProgressLog('⚠️ Permintaan penghentian diterima. Menunggu evaluasi mahasiswa saat ini selesai...');
-      }
-    }
-
-    function startGradingQueue(taskId, studentsList) {
-      if (!studentsList || studentsList.length === 0) {
-        showGlobalAlert('Tidak ada mahasiswa yang perlu dinilai.', 'info');
-        return;
-      }
-
-      gradingQueueState = {
-        isRunning: true,
-        shouldStop: false,
-        queue: studentsList,
-        currentIndex: 0,
-        total: studentsList.length,
-        successCount: 0,
-        failedCount: 0,
-        taskId: taskId
-      };
-
-      setGradingButtonsState(true);
-      showProgressLog(`🚀 Memulai proses penilaian otomatis untuk ${gradingQueueState.total} mahasiswa...`);
-      updateGradingProgressUI(0, gradingQueueState.total, 'Menyiapkan berkas dan koneksi AI...');
-
-      // Jalankan antrean pertama
-      processNextInGradingQueue();
-    }
-
-    function processNextInGradingQueue() {
-      if (!gradingQueueState.isRunning) return;
-
-      if (gradingQueueState.shouldStop) {
-        finishGradingQueue(true);
-        return;
-      }
-
-      if (gradingQueueState.currentIndex >= gradingQueueState.total) {
-        finishGradingQueue(false);
-        return;
-      }
-
-      const currentStudent = gradingQueueState.queue[gradingQueueState.currentIndex];
-      const index = gradingQueueState.currentIndex + 1;
-      const total = gradingQueueState.total;
-      const nim = String(currentStudent.nim).trim();
-      const nama = currentStudent.nama_mahasiswa || currentStudent.nama || 'Mahasiswa';
-
-      updateGradingProgressUI(
-        index - 1, 
-        total, 
-        `Menilai [${index}/${total}]: ${nim} - ${nama}...`
-      );
-      showProgressLog(`[${index}/${total}] ⏳ Mengambil jawaban & mengevaluasi via Gemini: NIM ${nim} (${nama})...`);
-      updateTableRowGradingStatus(nim, 'grading');
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res && res.success) {
-            gradingQueueState.successCount++;
-            showProgressLog(`[${index}/${total}] ✅ Selesai! Skor: ${res.score} (Berkas: ${res.fileName || 'Google Drive'})`);
-            updateTableRowGradingStatus(nim, 'completed', res.score, res.fileName);
-          } else {
-            gradingQueueState.failedCount++;
-            const err = (res && res.error) ? res.error : 'Gagal dinilai';
-            showProgressLog(`[${index}/${total}] ❌ Gagal: ${err}`);
-            updateTableRowGradingStatus(nim, 'failed', null, null, err);
-          }
-
-          gradingQueueState.currentIndex++;
-          updateGradingProgressUI(
-            gradingQueueState.currentIndex, 
-            total, 
-            `Selesai [${gradingQueueState.currentIndex}/${total}]`
-          );
-
-          // Jeda singkat 300ms agar halus
-          setTimeout(processNextInGradingQueue, 300);
-        })
-        .withFailureHandler(function(err) {
-          gradingQueueState.failedCount++;
-          showProgressLog(`[${index}/${total}] ❌ Kesalahan Server: ${err.message}`);
-          updateTableRowGradingStatus(nim, 'failed', null, null, err.message);
-
-          gradingQueueState.currentIndex++;
-          updateGradingProgressUI(
-            gradingQueueState.currentIndex, 
-            total, 
-            `Error pada [${gradingQueueState.currentIndex}/${total}]`
-          );
-          setTimeout(processNextInGradingQueue, 300);
-        })
-        .apiGradeSingleStudent(gradingQueueState.taskId, nim);
-    }
-
-    function finishGradingQueue(wasStopped) {
-      gradingQueueState.isRunning = false;
-      setGradingButtonsState(false);
-
-      const btnStop = document.getElementById('btnStopGrading');
-      if (btnStop) {
-        btnStop.disabled = false;
-        btnStop.textContent = '⏹️ Hentikan';
-      }
-
-      const success = gradingQueueState.successCount;
-      const failed = gradingQueueState.failedCount;
-      const total = gradingQueueState.total;
-
-      if (wasStopped) {
-        const msg = `⏹️ Penilaian dihentikan: ${success} berhasil, ${failed} gagal dari ${total} mahasiswa terpilih.`;
-        showProgressLog(msg);
-        showGlobalAlert(msg, 'info');
-      } else {
-        const msg = `🎉 Penilaian Selesai! Berhasil: ${success}, Gagal: ${failed} (Total: ${total}).`;
-        showProgressLog(msg);
-        showGlobalAlert(msg, failed === 0 ? 'success' : 'error');
-        playSuccessChime();
-        openCompletionModal(success, failed, total);
-      }
-
-      // Bersihkan checklist pilihan
-      appState.selectedStudentNims.clear();
-      updateSelectedCountBadge();
-
-      // Sinkronisasi data latar belakang tanpa mereset tampilan secara kasar
-      loadGradingTableQuietly(gradingQueueState.taskId);
-      loadClassDetails(appState.activeClassId);
-    }
-
-    function loadGradingTableQuietly(taskId) {
-      if (!taskId) return;
-      google.script.run
-        .withSuccessHandler(function(grades) {
-          appState.currentGrades = grades || [];
-          renderGradingTableRows(appState.currentGrades);
-        })
-        .apiGetGradesByTask(taskId);
-    }
-
-    // Eksekusi Penilaian
+    // Eksekusi Penilaian dari UI
     function gradeSelectedStudents() {
       const taskId = appState.selectedGradingTaskId;
       const nims = Array.from(appState.selectedStudentNims);
-      if (!taskId) return alert('Pilih tugas terlebih dahulu!');
-      if (nims.length === 0) return alert('Pilih minimal satu mahasiswa yang ingin dinilai!');
+      if (!taskId) return alert('Pilih tugas terlebih dahulu.');
+      if (nims.length === 0) return alert('Pilih minimal satu mahasiswa yang ingin dinilai.');
 
-      // Ambil objek mahasiswa yang dipilih
-      const studentsToGrade = [];
-      nims.forEach(nim => {
-        const g = appState.currentGrades.find(item => String(item.nim).trim() === String(nim).trim());
-        if (g) {
-          studentsToGrade.push({ nim: g.nim, nama_mahasiswa: g.nama_mahasiswa });
-        } else {
-          studentsToGrade.push({ nim: nim, nama_mahasiswa: nim });
-        }
-      });
-
-      const selSpinner = document.getElementById('btnGradeSelectedSpinner');
-      if (selSpinner) selSpinner.classList.remove('hidden');
-
-      startGradingQueue(taskId, studentsToGrade);
+      const items = appState.currentGrades.filter(g => nims.includes(g.nim));
+      startGradingQueue(items, `Menilai ${items.length} Mahasiswa Terpilih`);
     }
 
     function gradeAllStudents() {
       const taskId = appState.selectedGradingTaskId;
-      if (!taskId) return alert('Pilih tugas terlebih dahulu!');
+      if (!taskId) return alert('Pilih tugas terlebih dahulu.');
 
-      if (!appState.currentGrades || appState.currentGrades.length === 0) {
-        return alert('Belum ada data mahasiswa pada tugas ini.');
-      }
-
-      // Filter yang belum dinilai atau gagal
+      // Filter mahasiswa yang belum berstatus 'Selesai'
       const unassessed = appState.currentGrades.filter(g => {
-        const s = (g.status || '').toLowerCase();
-        return s !== 'selesai';
+        const status = (g.status || '').toLowerCase();
+        return status !== 'selesai';
       });
 
-      let studentsToGrade = [];
-      if (unassessed.length > 0) {
-        studentsToGrade = unassessed.map(g => ({ nim: g.nim, nama_mahasiswa: g.nama_mahasiswa }));
-      } else {
-        const confirmAll = confirm('Semua mahasiswa sudah selesai dinilai pada tugas ini. Apakah Anda ingin menilai ulang seluruh mahasiswa?');
-        if (!confirmAll) return;
-        studentsToGrade = appState.currentGrades.map(g => ({ nim: g.nim, nama_mahasiswa: g.nama_mahasiswa }));
+      if (unassessed.length === 0) {
+        if (confirm('Seluruh mahasiswa di kelas ini sudah selesai dinilai (Status: Selesai). Apakah Anda ingin menilai ulang seluruh kelas?')) {
+          startGradingQueue(appState.currentGrades, 'Menilai Ulang Seluruh Kelas');
+        }
+        return;
       }
 
-      const allSpinner = document.getElementById('btnGradeAllSpinner');
-      if (allSpinner) allSpinner.classList.remove('hidden');
-
-      startGradingQueue(taskId, studentsToGrade);
+      startGradingQueue(unassessed, `Menilai ${unassessed.length} Mahasiswa (Batch)`);
     }
 
     function resetFailedGrades() {
       const taskId = appState.selectedGradingTaskId;
       if (!taskId) return;
+
+      if (typeof gradingQueue !== 'undefined' && gradingQueue.isRunning) {
+        return alert('Harap tunggu antrean penilaian selesai sebelum melakukan reset.');
+      }
 
       google.script.run
         .withSuccessHandler(function(res) {
@@ -1577,11 +1448,8 @@
 
     function showProgressLog(msg) {
       const box = document.getElementById('gradingProgressBox');
+      if (!box) return;
       box.classList.remove('hidden');
-      const time = new Date().toLocaleTimeString();
-      box.innerHTML += `<div>[${time}] ${msg}</div>`;
-      box.scrollTop = box.scrollHeight;
-    }
       const time = new Date().toLocaleTimeString();
       box.innerHTML += `<div>[${time}] ${msg}</div>`;
       box.scrollTop = box.scrollHeight;
@@ -2091,18 +1959,14 @@
       const banner = document.getElementById('globalAlert');
       const icon = document.getElementById('globalAlertIcon');
       const text = document.getElementById('globalAlertMsg');
-      if (!banner) return;
 
-      banner.classList.remove('hidden');
-      banner.className = `mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm transition-all ${
+      banner.className = `mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm block ${
         type === 'success' ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' :
         type === 'error' ? 'bg-rose-50 text-rose-900 border border-rose-200' :
         'bg-blue-50 text-blue-900 border border-blue-200'
       }`;
-      if (icon) icon.textContent = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-      if (text) text.textContent = msg;
-
-      banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      icon.textContent = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+      text.textContent = msg;
     }
 
     function hideGlobalAlert() {

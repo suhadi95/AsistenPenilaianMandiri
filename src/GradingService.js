@@ -89,7 +89,11 @@ const GradingService = {
         nim: nim,
         nama: nama,
         score: data.totalScore,
-        fileName: submissionResult.fileName
+        fileName: submissionResult.fileName || '',
+        rincian_poin: formattedCriteria,
+        catatan_ai: fullFeedback,
+        status: 'Selesai',
+        waktu_penilaian: new Date().toLocaleString('id-ID')
       };
     } catch (err) {
       const errMsg = err.message || 'Kesalahan penilaian tidak diketahui';
@@ -102,41 +106,15 @@ const GradingService = {
         waktu_penilaian: new Date().toLocaleString('id-ID')
       });
       SpreadsheetApp.flush();
-      return { success: false, nim: nim, nama: nama, error: errMsg };
+      return { 
+        success: false, 
+        nim: nim, 
+        nama: nama, 
+        error: errMsg,
+        status: `Gagal: ${errMsg}`,
+        waktu_penilaian: new Date().toLocaleString('id-ID')
+      };
     }
-  },
-
-  /**
-   * Menilai satu mahasiswa spesifik berdasarkan taskId dan NIM
-   * @param {string} taskId 
-   * @param {string} nim 
-   * @return {Object}
-   */
-  gradeSingleStudent(taskId, nim) {
-    const task = DatabaseService.getTaskById(taskId);
-    if (!task) throw new Error('Tugas tidak ditemukan.');
-
-    const settings = getAppSettings();
-    if (!settings.rawApiKey) {
-      throw new Error('Gemini API Key belum dimasukkan di menu Pengaturan.');
-    }
-    if (!task.drive_folder_id) {
-      throw new Error('Folder Google Drive jawaban mahasiswa belum diisi pada tugas ini.');
-    }
-
-    const students = DatabaseService.getStudentsByClass(task.id_kelas);
-    const cleanNim = String(nim).trim();
-    const student = students.find(s => String(s.nim).trim() === cleanNim);
-    if (!student) {
-      throw new Error(`Mahasiswa dengan NIM "${cleanNim}" tidak ditemukan di kelas ini.`);
-    }
-
-    let taskQuestionData = null;
-    if (task.task_file_ref) {
-      taskQuestionData = DriveService.getTaskQuestionPayload(task.task_file_ref);
-    }
-
-    return this.gradeStudent(task, student, settings, taskQuestionData);
   },
 
   /**
