@@ -170,6 +170,10 @@ function apiGetGradesByTask(taskId) {
   return DatabaseService.getGradesByTask(taskId);
 }
 
+function apiGradeSingleStudent(taskId, nim) {
+  return GradingService.gradeSingleStudent(taskId, nim);
+}
+
 function apiGradeSelectedStudents(taskId, studentNims) {
   return GradingService.gradeSelectedStudents(taskId, studentNims);
 }

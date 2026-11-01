@@ -107,6 +107,39 @@ const GradingService = {
   },
 
   /**
+   * Menilai satu mahasiswa spesifik berdasarkan taskId dan NIM
+   * @param {string} taskId 
+   * @param {string} nim 
+   * @return {Object}
+   */
+  gradeSingleStudent(taskId, nim) {
+    const task = DatabaseService.getTaskById(taskId);
+    if (!task) throw new Error('Tugas tidak ditemukan.');
+
+    const settings = getAppSettings();
+    if (!settings.rawApiKey) {
+      throw new Error('Gemini API Key belum dimasukkan di menu Pengaturan.');
+    }
+    if (!task.drive_folder_id) {
+      throw new Error('Folder Google Drive jawaban mahasiswa belum diisi pada tugas ini.');
+    }
+
+    const students = DatabaseService.getStudentsByClass(task.id_kelas);
+    const cleanNim = String(nim).trim();
+    const student = students.find(s => String(s.nim).trim() === cleanNim);
+    if (!student) {
+      throw new Error(`Mahasiswa dengan NIM "${cleanNim}" tidak ditemukan di kelas ini.`);
+    }
+
+    let taskQuestionData = null;
+    if (task.task_file_ref) {
+      taskQuestionData = DriveService.getTaskQuestionPayload(task.task_file_ref);
+    }
+
+    return this.gradeStudent(task, student, settings, taskQuestionData);
+  },
+
+  /**
    * Menilai hanya mahasiswa yang dipilih (selected students)
    * @param {string} taskId 
    * @param {Array<string>} studentNims - Daftar NIM yang dipilih
