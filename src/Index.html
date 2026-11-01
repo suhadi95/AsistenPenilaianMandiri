@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎓 Asisten Penilaian Mahasiswa - Portal Akademik</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .spinner {
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- TOP NAVBAR -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-3">
+          <div class="bg-blue-600 text-white p-2 rounded-xl text-xl shadow-lg shadow-blue-500/30">🎓</div>
+          <div>
+            <h1 class="font-bold text-base tracking-tight leading-none text-white">Asisten Penilaian</h1>
+            <p class="text-xs text-slate-400 mt-1">Portal Akademik Multimodal</p>
+          </div>
+        </div>
+
+        <!-- Selector Kelas Aktif -->
+        <div class="flex items-center space-x-2 bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-xl">
+          <span class="text-xs text-slate-400 font-medium hidden sm:inline">Kelas:</span>
+          <select id="headerClassSelect" onchange="switchActiveClass(this.value)" class="bg-transparent text-sm font-semibold text-white focus:outline-none cursor-pointer">
+            <option value="" class="bg-slate-800 text-slate-300">-- Pilih Kelas --</option>
+          </select>
+        </div>
+
+        <!-- Right Quick Info & Actions -->
+        <div class="flex items-center space-x-3">
+          <div id="aiModelBadge" class="hidden md:flex items-center space-x-1.5 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs px-2.5 py-1 rounded-full font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="badgeModelName">gemini-3.5-flash-lite</span>
+          </div>
+
+          <button onclick="switchTab('tab-settings')" class="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Pengaturan API">
+            ⚙️
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="bg-white border-b border-slate-200 sticky top-16 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex space-x-1 sm:space-x-3 overflow-x-auto py-2.5 text-sm font-medium">
+        <button onclick="switchTab('tab-dashboard')" id="nav-tab-dashboard" class="tab-btn px-3.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap active text-blue-600 bg-blue-50 font-semibold">
+          🏠 Dashboard
+        </button>
+        <button onclick="switchTab('tab-classes')" id="nav-tab-classes" class="tab-btn px-3.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap">
+          👥 Kelola Kelas & Mahasiswa
+        </button>
+        <button onclick="switchTab('tab-tasks')" id="nav-tab-tasks" class="tab-btn px-3.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap">
+          📝 Kelola Tugas
+        </button>
+        <button onclick="switchTab('tab-grading')" id="nav-tab-grading" class="tab-btn px-3.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap">
+          🎓 Koreksi & Penilaian
+        </button>
+        <button onclick="switchTab('tab-reports')" id="nav-tab-reports" class="tab-btn px-3.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap">
+          📊 Rekapitulasi Nilai
+        </button>
+        <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="tab-btn px-3.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap">
+          ⚙️ Pengaturan
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- GLOBAL NOTIFICATION BANNER -->
+    <div id="globalAlert" class="hidden mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm">
+      <div class="flex items-center space-x-2">
+        <span id="globalAlertIcon" class="text-lg">ℹ️</span>
+        <span id="globalAlertMsg" class="font-medium"></span>
+      </div>
+      <button onclick="hideGlobalAlert()" class="text-slate-400 hover:text-slate-600 ml-4">✕</button>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- TAB 1: DASHBOARD                                         -->
+    <!-- ======================================================== -->
+    <section id="tab-dashboard" class="tab-content active space-y-6">
+      
+      <!-- Welcome Banner -->
+      <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white p-6 sm:p-8 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="inline-block bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-3 py-1 rounded-full font-medium mb-2">Portal Penilaian Mandiri</span>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight" id="dashClassTitle">Selamat Datang di Portal Penilaian</h2>
+          <p class="text-slate-400 text-sm mt-1 max-w-xl">
+            Kelola data kelas, mahasiswa, tugas multimodal di Google Drive, serta lakukan penilaian otomatis berbasis rubrik dengan Gemini AI.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2.5">
+          <button onclick="switchTab('tab-classes')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-lg text-sm transition">
+            👥 Kelola Kelas
+          </button>
+          <button onclick="switchTab('tab-grading')" class="bg-white/10 hover:bg-white/20 text-white font-medium px-4 py-2.5 rounded-xl border border-white/20 text-sm transition">
+            🎓 Mulai Penilaian
+          </button>
+        </div>
+      </div>
+
+      <!-- Stat Cards Grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl">👥</div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-400">Total Kelas</p>
+            <h3 class="text-2xl font-bold text-slate-900" id="statTotalClasses">0</h3>
+          </div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">🎓</div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-400">Mahasiswa</p>
+            <h3 class="text-2xl font-bold text-slate-900" id="statTotalStudents">0</h3>
+          </div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl">📝</div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-400">Total Tugas</p>
+            <h3 class="text-2xl font-bold text-slate-900" id="statTotalTasks">0</h3>
+          </div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">📈</div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-400">Rata-rata Kelas</p>
+            <h3 class="text-2xl font-bold text-slate-900" id="statClassAvg">-</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Tasks Overview in Active Class -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="font-bold text-base text-slate-900">Daftar Tugas Kelas Aktif</h3>
+            <p class="text-xs text-slate-500">Status kelengkapan penilaian tugas untuk kelas yang sedang dipilih</p>
+          </div>
+          <button onclick="openCreateTaskModal()" class="text-blue-600 hover:text-blue-700 font-medium text-xs flex items-center gap-1">
+            + Tambah Tugas
+          </button>
+        </div>
+
+        <div id="dashTasksList" class="space-y-3">
+          <div class="text-center py-8 text-slate-400 text-sm">Memuat data tugas...</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 2: KELOLA KELAS & MAHASISWA                          -->
+    <!-- ======================================================== -->
+    <section id="tab-classes" class="tab-content space-y-6">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- KOLOM KIRI: DAFTAR KELAS (4 cols) -->
+        <div class="lg:col-span-4 space-y-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-slate-900 text-base">Daftar Kelas</h3>
+              <button onclick="openClassModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                + Kelas Baru
+              </button>
+            </div>
+
+            <div id="classesListContainer" class="space-y-2.5 max-h-[600px] overflow-y-auto pr-1">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- KOLOM KANAN: DAFTAR MAHASISWA KELAS (8 cols) -->
+        <div class="lg:col-span-8 space-y-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+              <div>
+                <h3 class="font-bold text-slate-900 text-base" id="studentListTitle">Daftar Mahasiswa</h3>
+                <p class="text-xs text-slate-500" id="studentListSubtitle">Pilih kelas di sebelah kiri untuk melihat daftar mahasiswa</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button onclick="openImportStudentsModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5">
+                  📋 Impor Massal
+                </button>
+                <button onclick="openAddStudentModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5">
+                  + Mahasiswa
+                </button>
+              </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="mt-4 mb-3">
+              <input type="text" id="studentSearchInput" oninput="filterStudents(this.value)" placeholder="Cari berdasarkan NIM atau Nama..." class="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+            </div>
+
+            <!-- Table Mahasiswa -->
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                  <tr>
+                    <th class="px-4 py-3 w-12 text-center">No</th>
+                    <th class="px-4 py-3 w-32">NIM</th>
+                    <th class="px-4 py-3">Nama Lengkap</th>
+                    <th class="px-4 py-3 w-20 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="studentsTableBody" class="divide-y divide-slate-100">
+                  <tr>
+                    <td colspan="4" class="text-center py-8 text-slate-400">Pilih kelas terlebih dahulu</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 3: KELOLA TUGAS                                      -->
+    <!-- ======================================================== -->
+    <section id="tab-tasks" class="tab-content space-y-6">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Manajemen Tugas & Penugasan</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Kelola tugas, tautan soal di Drive, folder jawaban, serta bobot persentase nilai akhir</p>
+        </div>
+        <button onclick="openCreateTaskModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md transition self-start sm:self-auto flex items-center gap-1.5">
+          + Buat Tugas Baru
+        </button>
+      </div>
+
+      <!-- Grid Cards Tugas -->
+      <div id="tasksGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Rendered via JS -->
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 4: KOREKSI & PENILAIAN TUGAS                         -->
+    <!-- ======================================================== -->
+    <section id="tab-grading" class="tab-content space-y-6">
+      
+      <!-- Task Selector & Info Bar -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div class="flex-1">
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Pilih Tugas yang Ingin Dinilai:</label>
+            <select id="gradingTaskSelect" onchange="loadGradingTable(this.value)" class="w-full md:w-96 text-sm font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-blue-500">
+              <option value="">-- Pilih Tugas --</option>
+            </select>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="gradeSelectedStudents()" id="btnGradeSelected" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50" disabled>
+              🎯 Nilai yang Dipilih (<span id="selectedCountBadge">0</span>)
+            </button>
+            <button onclick="gradeAllStudents()" id="btnGradeAll" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
+              ▶️ Nilai Semua (Batch)
+            </button>
+            <button onclick="resetFailedGrades()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-3 py-2.5 rounded-xl transition" title="Reset baris gagal">
+              🔄 Reset Gagal
+            </button>
+          </div>
+        </div>
+
+        <!-- Task Metadata Cards -->
+        <div id="gradingTaskInfo" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <span class="text-slate-400 font-medium">Bobot Nilai Akhir:</span>
+            <p class="font-bold text-slate-800 text-sm mt-0.5" id="taskInfoWeight">0%</p>
+          </div>
+          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <span class="text-slate-400 font-medium">Berkas Soal Acuan:</span>
+            <p class="font-semibold text-blue-600 truncate mt-0.5" id="taskInfoQuestion">Ada</p>
+          </div>
+          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <span class="text-slate-400 font-medium">Folder Jawaban Mahasiswa:</span>
+            <p class="font-semibold text-slate-800 truncate mt-0.5" id="taskInfoFolder">Terhubung</p>
+          </div>
+        </div>
+
+        <!-- Live Status / Log Bar -->
+        <div id="gradingProgressBox" class="hidden bg-slate-900 text-sky-400 p-3 rounded-xl font-mono text-xs max-h-24 overflow-y-auto"></div>
+
+      </div>
+
+      <!-- Grading Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3 w-10 text-center">
+                  <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" class="rounded text-blue-600 focus:ring-0">
+                </th>
+                <th class="px-4 py-3 w-28">NIM</th>
+                <th class="px-4 py-3 w-48">Nama Mahasiswa</th>
+                <th class="px-4 py-3 w-32">Berkas Jawaban</th>
+                <th class="px-4 py-3 w-20 text-center">Nilai</th>
+                <th class="px-4 py-3">Rincian Poin Soal</th>
+                <th class="px-4 py-3 w-28 text-center">Status</th>
+                <th class="px-4 py-3 w-20 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="gradingTableBody" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="8" class="text-center py-12 text-slate-400">Pilih tugas terlebih dahulu untuk menampilkan daftar mahasiswa</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 5: REKAPITULASI & LAPORAN NILAI                      -->
+    <!-- ======================================================== -->
+    <section id="tab-reports" class="tab-content space-y-6">
+      
+      <!-- Header Actions -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Rekapitulasi Nilai Kelas</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Laporan nilai akumulatif seluruh tugas, rata-rata, dan nilai akhir terbobot</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="exportReportToSheet()" id="btnExportSheet" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
+            📥 Buat Sheet Rekapitulasi
+          </button>
+        </div>
+      </div>
+
+      <!-- Report Matrix Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto" id="reportTableContainer">
+          <div class="text-center py-12 text-slate-400 text-sm">Memuat rekapitulasi nilai...</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 6: PENGATURAN                                        -->
+    <!-- ======================================================== -->
+    <section id="tab-settings" class="tab-content space-y-6 max-w-2xl mx-auto">
+      
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Pengaturan Konfigurasi AI & Sistem</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Konfigurasi Gemini API Key dan model multimodal yang digunakan</p>
+        </div>
+
+        <div class="space-y-4">
+          <!-- API Key Input -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Gemini API Key</label>
+            <div class="flex gap-2">
+              <input type="password" id="inputApiKey" placeholder="AIzaSy... / AQ.Ab8..." class="flex-1 text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+              <button type="button" onclick="toggleApiKeyInputVisibility()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-medium">👁️</button>
+            </div>
+            <p class="text-xs text-slate-400 mt-1.5">
+              API key disimpan secara aman di UserProperties Anda. Dapatkan di <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 underline">Google AI Studio</a>.
+            </p>
+          </div>
+
+          <!-- Model Selector -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Pilihan Model Gemini</label>
+            <select id="selectModelName" class="w-full text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium">
+              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Rekomendasi Utama - Cepat & Bebas Kuota)</option>
+              <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Ringan & Cepat)</option>
+              <option value="gemini-3.6-flash">gemini-3.6-flash (Multimodal 3.6)</option>
+              <option value="gemini-flash-latest">gemini-flash-latest</option>
+              <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+            </select>
+          </div>
+
+          <!-- Test Connection Button -->
+          <div>
+            <button onclick="testApiConnection()" id="btnTestApi" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
+              🔍 Uji Koneksi API Key
+            </button>
+            <div id="testApiAlert" class="hidden mt-2 p-3 rounded-xl text-xs"></div>
+          </div>
+
+          <!-- Save Settings -->
+          <div class="pt-4 border-t border-slate-100">
+            <button onclick="saveAppSettings()" id="btnSaveSettings" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+              💾 Simpan Pengaturan
+            </button>
+            <div id="saveSettingsAlert" class="hidden mt-2 p-3 rounded-xl text-xs"></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODAL DIALOGS                                            -->
+  <!-- ======================================================== -->
+
+  <!-- 1. MODAL TAMBAH/EDIT KELAS -->
+  <div id="classModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-slate-900 text-base" id="classModalTitle">Tambah Kelas Baru</h3>
+        <button onclick="closeModal('classModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <input type="hidden" id="modalClassId">
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nama Kelas</label>
+          <input type="text" id="modalClassName" placeholder="Contoh: Kelas A - Pemrograman Web" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Mata Kuliah</label>
+          <input type="text" id="modalCourseName" placeholder="Contoh: Pemrograman Web" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Semester / Tahun Akademik</label>
+          <input type="text" id="modalSemester" placeholder="Contoh: Ganjil 2026/2027" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('classModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
+        <button onclick="submitSaveClass()" id="btnSubmitClass" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-xs">Simpan Kelas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MODAL TAMBAH MAHASISWA TUNGGAL -->
+  <div id="studentModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-slate-900 text-base">Tambah Mahasiswa</h3>
+        <button onclick="closeModal('studentModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">NIM Mahasiswa</label>
+          <input type="text" id="modalStudentNim" placeholder="Contoh: 2024001" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nama Mahasiswa</label>
+          <input type="text" id="modalStudentName" placeholder="Contoh: Budi Santoso" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('studentModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
+        <button onclick="submitSaveStudent()" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-xs">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MODAL IMPOR MAHASISWA MASSAL -->
+  <div id="importModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div>
+          <h3 class="font-bold text-slate-900 text-base">Impor Mahasiswa Massal</h3>
+          <p class="text-xs text-slate-400">Salin & tempel daftar NIM dan Nama dari Excel / Word / SIAKAD</p>
+        </div>
+        <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <div>
+        <textarea id="importTextarea" rows="8" placeholder="Contoh format per baris:
+2024001	Budi Santoso
+2024002	Siti Rahmawati
+2024003	Ahmad Hidayat" class="w-full font-mono text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"></textarea>
+        <p class="text-[11px] text-slate-400 mt-1.5">
+          *Pemisah antara NIM dan Nama dapat menggunakan tombol Tab, Koma (,), Titik koma (;), atau Spasi.
+        </p>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('importModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
+        <button onclick="submitImportStudents()" id="btnSubmitImport" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-xs">Impor Sekarang</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MODAL TAMBAH/EDIT TUGAS -->
+  <div id="taskModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-slate-900 text-base" id="taskModalTitle">Buat Tugas Baru</h3>
+        <button onclick="closeModal('taskModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <input type="hidden" id="modalTaskId">
+      <div class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Judul Tugas</label>
+          <input type="text" id="modalTaskTitle" placeholder="Contoh: Tugas 1 - Perancangan Database" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Bobot Persentase Nilai Akhir (%)</label>
+            <input type="number" id="modalTaskWeight" placeholder="Contoh: 30" min="0" max="100" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Deskripsi Singkat</label>
+            <input type="text" id="modalTaskDesc" placeholder="Opsional: Keterangan tugas" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Tautan / ID Berkas Soal Tugas di Google Drive</label>
+          <div class="flex gap-2">
+            <input type="text" id="modalTaskQuestionRef" placeholder="Tempel URL atau ID berkas soal di Drive (PDF, Docs, Gambar)" class="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+            <button type="button" onclick="verifyTaskQuestion()" id="btnVerifyTask" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-semibold">Cek Soal</button>
+          </div>
+          <div id="verifyTaskAlert" class="hidden mt-1.5 p-2 rounded-lg text-[11px]"></div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Tautan / ID Folder Jawaban Mahasiswa di Google Drive</label>
+          <div class="flex gap-2">
+            <input type="text" id="modalTaskFolderId" placeholder="Tempel URL atau ID Folder Google Drive" class="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+            <button type="button" onclick="verifyDriveFolder()" id="btnVerifyFolder" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-semibold">Cek Folder</button>
+          </div>
+          <div id="verifyFolderAlert" class="hidden mt-1.5 p-2 rounded-lg text-[11px]"></div>
+        </div>
+
+        <!-- Rubrik & Porsi Nilai Box -->
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="font-bold text-slate-800">Rincian Porsi Poin & Rubrik</label>
+            <button type="button" onclick="autoExtractRubricInModal()" id="btnAutoExtract" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+              🤖 Ekstrak dari Soal
+            </button>
+          </div>
+          <div id="autoExtractAlert" class="hidden p-2 rounded-lg text-[11px]"></div>
+          <textarea id="modalTaskRubric" rows="5" placeholder="Tuliskan butir kriteria dan porsi poin nilai..." class="w-full font-mono text-[11px] p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeModal('taskModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
+        <button onclick="submitSaveTask()" id="btnSubmitTask" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-xs">Simpan Tugas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MODAL DETAIL / KOREKSI MANUAL NILAI -->
+  <div id="gradeDetailModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div>
+          <h3 class="font-bold text-slate-900 text-base" id="detailModalStudentName">Detail Penilaian Mahasiswa</h3>
+          <p class="text-xs text-slate-400" id="detailModalStudentNim">NIM: -</p>
+        </div>
+        <button onclick="closeModal('gradeDetailModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <input type="hidden" id="detailGradeTaskId">
+      <input type="hidden" id="detailGradeClassId">
+      <input type="hidden" id="detailGradeNim">
+      <input type="hidden" id="detailGradeNama">
+
+      <div class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nilai Total Akhir (0 - 100)</label>
+          <input type="number" id="detailGradeTotalScore" min="0" max="100" class="w-32 text-base font-bold p-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 text-center">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Rincian Skor Per Butir Soal</label>
+          <textarea id="detailGradeCriteria" rows="4" class="w-full font-mono text-[11px] p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Catatan, Justifikasi & Saran AI</label>
+          <textarea id="detailGradeFeedback" rows="5" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeModal('gradeDetailModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Tutup</button>
+        <button onclick="submitSaveManualGrade()" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-xs">Simpan Perubahan Nilai</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // State Aplikasi
+    let appState = {
+      classes: [],
+      activeClassId: '',
+      currentStudents: [],
+      currentTasks: [],
+      currentGrades: [],
+      selectedGradingTaskId: '',
+      selectedStudentNims: new Set(),
+      settings: {}
+    };
+
+    window.onload = function() {
+      initApp();
+    };
+
+    function initApp() {
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function(data) {
+          appState.classes = data.classes || [];
+          appState.settings = data.settings || {};
+          
+          if (appState.settings.modelName) {
+            document.getElementById('badgeModelName').textContent = appState.settings.modelName;
+            document.getElementById('selectModelName').value = appState.settings.modelName;
+          }
+          if (appState.settings.apiKey) {
+            document.getElementById('inputApiKey').value = appState.settings.apiKey;
+          }
+
+          renderClassDropdowns();
+
+          // Pilih kelas pertama jika ada
+          if (appState.classes.length > 0) {
+            const savedClassId = appState.settings.activeClassId;
+            const targetClass = appState.classes.find(c => c.id_kelas === savedClassId) || appState.classes[0];
+            switchActiveClass(targetClass.id_kelas);
+          } else {
+            showLoading(false);
+          }
+        })
+        .withFailureHandler(function(err) {
+          showLoading(false);
+          showGlobalAlert('Gagal menginisialisasi sistem: ' + err.message, 'error');
+        })
+        .apiGetInitialData();
+    }
+
+    // Navigasi Tab
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'text-blue-600', 'bg-blue-50', 'font-semibold');
+        btn.classList.add('text-slate-600');
+      });
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      const activeBtn = document.getElementById('nav-' + tabId);
+      if (activeBtn) {
+        activeBtn.classList.add('active', 'text-blue-600', 'bg-blue-50', 'font-semibold');
+        activeBtn.classList.remove('text-slate-600');
+      }
+      document.getElementById(tabId).classList.add('active');
+
+      // Refresh data sesuai tab
+      if (tabId === 'tab-reports' && appState.activeClassId) {
+        loadClassReport(appState.activeClassId);
+      }
+    }
+
+    // Ganti Kelas Aktif
+    function switchActiveClass(classId) {
+      if (!classId) return;
+      appState.activeClassId = classId;
+      document.getElementById('headerClassSelect').value = classId;
+
+      const currentClass = appState.classes.find(c => c.id_kelas === classId);
+      if (currentClass) {
+        document.getElementById('dashClassTitle').textContent = currentClass.nama_kelas;
+      }
+
+      loadClassDetails(classId);
+    }
+
+    function loadClassDetails(classId) {
+      showLoading(true);
+      // Ambil Mahasiswa & Tugas secara paralel
+      google.script.run
+        .withSuccessHandler(function(students) {
+          appState.currentStudents = students || [];
+          renderStudentsTable(appState.currentStudents);
+
+          // Lanjut ambil tugas
+          google.script.run
+            .withSuccessHandler(function(tasks) {
+              showLoading(false);
+              appState.currentTasks = tasks || [];
+              renderDashboardStats();
+              renderTasksGrid();
+              renderGradingTaskSelect();
+            })
+            .withFailureHandler(function(err) {
+              showLoading(false);
+              showGlobalAlert('Gagal memuat tugas: ' + err.message, 'error');
+            })
+            .apiGetTasks(classId);
+        })
+        .withFailureHandler(function(err) {
+          showLoading(false);
+          showGlobalAlert('Gagal memuat mahasiswa: ' + err.message, 'error');
+        })
+        .apiGetStudents(classId);
+    }
+
+    function renderClassDropdowns() {
+      const select = document.getElementById('headerClassSelect');
+      select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+      appState.classes.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id_kelas;
+        opt.textContent = `${c.nama_kelas} (${c.studentCount} Mhs)`;
+        opt.className = 'bg-slate-800 text-slate-200';
+        select.appendChild(opt);
+      });
+      renderClassesList();
+    }
+
+    // ==========================================
+    // RENDER: DASHBOARD
+    // ==========================================
+
+    function renderDashboardStats() {
+      document.getElementById('statTotalClasses').textContent = appState.classes.length;
+      document.getElementById('statTotalStudents').textContent = appState.currentStudents.length;
+      document.getElementById('statTotalTasks').textContent = appState.currentTasks.length;
+
+      // Hitung rata-rata tugas
+      const scoredTasks = appState.currentTasks.filter(t => t.averageScore > 0);
+      if (scoredTasks.length > 0) {
+        const avg = (scoredTasks.reduce((s, t) => s + t.averageScore, 0) / scoredTasks.length).toFixed(1);
+        document.getElementById('statClassAvg').textContent = avg;
+      } else {
+        document.getElementById('statClassAvg').textContent = '-';
+      }
+
+      // Render daftar tugas dashboard
+      const listContainer = document.getElementById('dashTasksList');
+      if (appState.currentTasks.length === 0) {
+        listContainer.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Belum ada tugas pada kelas ini. Klik "+ Tambah Tugas" untuk membuat tugas baru.</div>';
+        return;
+      }
+
+      listContainer.innerHTML = appState.currentTasks.map(t => {
+        const pct = t.totalStudents > 0 ? Math.round((t.gradedCount / t.totalStudents) * 100) : 0;
+        return `
+          <div class="p-3.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-sm">📝</div>
+              <div>
+                <h4 class="font-bold text-slate-800 text-xs">${t.judul_tugas}</h4>
+                <p class="text-[11px] text-slate-400">Bobot: ${t.bobot_persentase > 0 ? t.bobot_persentase + '%' : 'Rata-rata'} • Rata-rata: ${t.averageScore > 0 ? t.averageScore : '-'}</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-4">
+              <div class="w-36">
+                <div class="flex justify-between text-[11px] mb-1">
+                  <span class="text-slate-400 font-medium">Dinilai</span>
+                  <span class="font-bold text-slate-700">${t.gradedCount}/${t.totalStudents} (${pct}%)</span>
+                </div>
+                <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                  <div class="bg-blue-600 h-full rounded-full transition-all" style="width: ${pct}%"></div>
+                </div>
+              </div>
+              <button onclick="goToGradingTask('${t.id_tugas}')" class="px-3 py-1.5 bg-white border border-slate-200 hover:border-blue-400 text-blue-600 rounded-lg text-xs font-semibold transition">
+                Nilai
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==========================================
+    // RENDER: KELOLA KELAS & MAHASISWA
+    // ==========================================
+
+    function renderClassesList() {
+      const container = document.getElementById('classesListContainer');
+      if (appState.classes.length === 0) {
+        container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Belum ada kelas. Klik "+ Kelas Baru".</div>';
+        return;
+      }
+
+      container.innerHTML = appState.classes.map(c => {
+        const isActive = c.id_kelas === appState.activeClassId;
+        return `
+          <div onclick="switchActiveClass('${c.id_kelas}')" class="p-3.5 rounded-xl border cursor-pointer transition ${isActive ? 'bg-blue-50/80 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-xs ${isActive ? 'text-blue-900' : 'text-slate-800'}">${c.nama_kelas}</h4>
+              <div class="flex space-x-1">
+                <button onclick="event.stopPropagation(); editClass('${c.id_kelas}')" class="p-1 text-slate-400 hover:text-blue-600 text-xs">✏️</button>
+                <button onclick="event.stopPropagation(); confirmDeleteClass('${c.id_kelas}', '${c.nama_kelas}')" class="p-1 text-slate-400 hover:text-red-600 text-xs">🗑️</button>
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-0.5">${c.mata_kuliah} • ${c.semester}</p>
+            <div class="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
+              <span class="bg-slate-100 px-2 py-0.5 rounded-md font-medium text-slate-600">${c.studentCount} Mahasiswa</span>
+              <span class="bg-slate-100 px-2 py-0.5 rounded-md font-medium text-slate-600">${c.taskCount} Tugas</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderStudentsTable(students) {
+      const tbody = document.getElementById('studentsTableBody');
+      const currentClass = appState.classes.find(c => c.id_kelas === appState.activeClassId);
+      
+      if (currentClass) {
+        document.getElementById('studentListTitle').textContent = `Mahasiswa: ${currentClass.nama_kelas}`;
+        document.getElementById('studentListSubtitle').textContent = `Total: ${students.length} Mahasiswa terdaftar`;
+      }
+
+      if (!students || students.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-slate-400">Belum ada mahasiswa di kelas ini. Klik "+ Mahasiswa" atau "📋 Impor Massal".</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = students.map((s, idx) => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="px-4 py-2.5 text-center text-slate-400 font-medium">${idx + 1}</td>
+          <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${s.nim}</td>
+          <td class="px-4 py-2.5 font-medium text-slate-900">${s.nama_mahasiswa}</td>
+          <td class="px-4 py-2.5 text-center">
+            <button onclick="confirmDeleteStudent('${s.id_mahasiswa}', '${s.nama_mahasiswa}')" class="text-slate-400 hover:text-red-600 transition" title="Hapus Mahasiswa">
+              🗑️
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterStudents(keyword) {
+      const q = (keyword || '').toLowerCase();
+      const filtered = appState.currentStudents.filter(s => 
+        s.nim.toLowerCase().includes(q) || s.nama_mahasiswa.toLowerCase().includes(q)
+      );
+      renderStudentsTable(filtered);
+    }
+
+    // ==========================================
+    // RENDER: KELOLA TUGAS
+    // ==========================================
+
+    function renderTasksGrid() {
+      const container = document.getElementById('tasksGridContainer');
+      if (!appState.currentTasks || appState.currentTasks.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-slate-200">Belum ada tugas pada kelas ini. Klik "+ Buat Tugas Baru".</div>';
+        return;
+      }
+
+      container.innerHTML = appState.currentTasks.map(t => {
+        const pct = t.totalStudents > 0 ? Math.round((t.gradedCount / t.totalStudents) * 100) : 0;
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase">
+                  Bobot: ${t.bobot_persentase > 0 ? t.bobot_persentase + '%' : 'Standar'}
+                </span>
+                <div class="flex space-x-1">
+                  <button onclick="editTask('${t.id_tugas}')" class="text-slate-400 hover:text-blue-600 p-1 text-xs" title="Edit Tugas">✏️</button>
+                  <button onclick="confirmDeleteTask('${t.id_tugas}', '${t.judul_tugas}')" class="text-slate-400 hover:text-red-600 p-1 text-xs" title="Hapus Tugas">🗑️</button>
+                </div>
+              </div>
+              <h3 class="font-bold text-slate-900 text-sm mt-2">${t.judul_tugas}</h3>
+              <p class="text-xs text-slate-400 line-clamp-2 mt-1">${t.deskripsi || 'Tidak ada deskripsi.'}</p>
+            </div>
+
+            <div class="space-y-3 pt-3 border-t border-slate-100 text-xs">
+              <div>
+                <div class="flex justify-between text-[11px] mb-1">
+                  <span class="text-slate-400">Progres Penilaian</span>
+                  <span class="font-bold text-slate-700">${t.gradedCount}/${t.totalStudents} (${pct}%)</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div class="bg-emerald-500 h-full rounded-full transition-all" style="width: ${pct}%"></div>
+                </div>
+              </div>
+
+              <button onclick="goToGradingTask('${t.id_tugas}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-xl text-xs shadow-sm transition">
+                🎓 Koreksi & Nilai Tugas Ini
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==========================================
+    // RENDER: KOREKSI & PENILAIAN TUGAS
+    // ==========================================
+
+    function renderGradingTaskSelect() {
+      const select = document.getElementById('gradingTaskSelect');
+      select.innerHTML = '<option value="">-- Pilih Tugas --</option>';
+      appState.currentTasks.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id_tugas;
+        opt.textContent = `${t.judul_tugas} (Bobot: ${t.bobot_persentase}%)`;
+        select.appendChild(opt);
+      });
+
+      if (appState.selectedGradingTaskId) {
+        select.value = appState.selectedGradingTaskId;
+        loadGradingTable(appState.selectedGradingTaskId);
+      }
+    }
+
+    function goToGradingTask(taskId) {
+      appState.selectedGradingTaskId = taskId;
+      switchTab('tab-grading');
+      const select = document.getElementById('gradingTaskSelect');
+      if (select) {
+        select.value = taskId;
+        loadGradingTable(taskId);
+      }
+    }
+
+    function loadGradingTable(taskId) {
+      if (!taskId) {
+        document.getElementById('gradingTaskInfo').classList.add('hidden');
+        document.getElementById('gradingTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-slate-400">Pilih tugas terlebih dahulu</td></tr>';
+        return;
+      }
+
+      appState.selectedGradingTaskId = taskId;
+      appState.selectedStudentNims.clear();
+      updateSelectedCountBadge();
+
+      const task = appState.currentTasks.find(t => t.id_tugas === taskId);
+      if (task) {
+        document.getElementById('gradingTaskInfo').classList.remove('hidden');
+        document.getElementById('taskInfoWeight').textContent = (task.bobot_persentase > 0 ? task.bobot_persentase + '%' : 'Rata-rata');
+        document.getElementById('taskInfoQuestion').textContent = task.task_file_ref ? 'Tercatat di Drive' : 'Belum diisi';
+        document.getElementById('taskInfoFolder').textContent = task.drive_folder_id ? 'Tercatat di Drive' : 'Belum diisi';
+      }
+
+      const tbody = document.getElementById('gradingTableBody');
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400"><span class="spinner inline-block w-4 h-4 mr-2 border-slate-400 border-t-blue-600"></span>Memuat daftar penilaian mahasiswa...</td></tr>';
+
+      google.script.run
+        .withSuccessHandler(function(grades) {
+          appState.currentGrades = grades || [];
+          renderGradingTableRows(appState.currentGrades);
+        })
+        .withFailureHandler(function(err) {
+          showGlobalAlert('Gagal memuat penilaian tugas: ' + err.message, 'error');
+        })
+        .apiGetGradesByTask(taskId);
+    }
+
+    function renderGradingTableRows(grades) {
+      const tbody = document.getElementById('gradingTableBody');
+      if (!grades || grades.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400">Belum ada mahasiswa di kelas ini.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = grades.map(g => {
+        const isCompleted = g.status && g.status.toLowerCase() === 'selesai';
+        const isFailed = g.status && g.status.toLowerCase().startsWith('gagal');
+        const isGrading = g.status && g.status.toLowerCase().includes('sedang');
+
+        let statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500">Belum Dinilai</span>';
+        if (isCompleted) {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">Selesai</span>';
+        } else if (isFailed) {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 cursor-pointer" title="${g.status}">Gagal</span>`;
+        } else if (isGrading) {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 animate-pulse">Menilai...</span>';
+        }
+
+        const isChecked = appState.selectedStudentNims.has(g.nim);
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition ${isChecked ? 'bg-blue-50/40' : ''}">
+            <td class="px-4 py-2.5 text-center">
+              <input type="checkbox" onchange="toggleStudentSelection('${g.nim}', this.checked)" ${isChecked ? 'checked' : ''} class="rounded text-blue-600 focus:ring-0 cursor-pointer">
+            </td>
+            <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${g.nim}</td>
+            <td class="px-4 py-2.5 font-medium text-slate-900">${g.nama_mahasiswa}</td>
+            <td class="px-4 py-2.5 text-slate-500 truncate max-w-[130px]" title="${g.file_name || '-'}">${g.file_name || '-'}</td>
+            <td class="px-4 py-2.5 text-center font-bold text-sm ${isCompleted ? 'text-blue-700' : 'text-slate-400'}">${g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '-'}</td>
+            <td class="px-4 py-2.5 text-slate-600 line-clamp-1 max-w-[200px]" title="${g.rincian_poin || '-'}">${g.rincian_poin || '-'}</td>
+            <td class="px-4 py-2.5 text-center">${statusBadge}</td>
+            <td class="px-4 py-2.5 text-center">
+              <button onclick="openGradeDetailModal('${g.nim}')" class="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-600 font-medium transition" title="Lihat Ulasan & Koreksi Manual">
+                👁️ Detail
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function toggleStudentSelection(nim, checked) {
+      if (checked) {
+        appState.selectedStudentNims.add(nim);
+      } else {
+        appState.selectedStudentNims.delete(nim);
+      }
+      updateSelectedCountBadge();
+    }
+
+    function toggleSelectAll(checked) {
+      if (checked) {
+        appState.currentGrades.forEach(g => appState.selectedStudentNims.add(g.nim));
+      } else {
+        appState.selectedStudentNims.clear();
+      }
+      renderGradingTableRows(appState.currentGrades);
+      updateSelectedCountBadge();
+    }
+
+    function updateSelectedCountBadge() {
+      const count = appState.selectedStudentNims.size;
+      document.getElementById('selectedCountBadge').textContent = count;
+      document.getElementById('btnGradeSelected').disabled = count === 0;
+    }
+
+    // Eksekusi Penilaian
+    function gradeSelectedStudents() {
+      const taskId = appState.selectedGradingTaskId;
+      const nims = Array.from(appState.selectedStudentNims);
+      if (!taskId || nims.length === 0) return;
+
+      const btn = document.getElementById('btnGradeSelected');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner inline-block w-3 h-3 mr-1.5"></span> Menilai...';
+      showProgressLog(`Memulai penilaian untuk ${nims.length} mahasiswa terpilih...`);
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          updateSelectedCountBadge();
+          showProgressLog(res.message);
+          showGlobalAlert(res.message, res.success ? 'success' : 'error');
+          loadGradingTable(taskId);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          updateSelectedCountBadge();
+          showProgressLog('ERROR: ' + err.message);
+          showGlobalAlert('Kesalahan penilaian: ' + err.message, 'error');
+        })
+        .apiGradeSelectedStudents(taskId, nims);
+    }
+
+    function gradeAllStudents() {
+      const taskId = appState.selectedGradingTaskId;
+      if (!taskId) return;
+
+      const btn = document.getElementById('btnGradeAll');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner inline-block w-3 h-3 mr-1.5"></span> Menilai Batch...';
+      showProgressLog('Memulai evaluasi batch seluruh mahasiswa...');
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '▶️ Nilai Semua (Batch)';
+          showProgressLog(res.message);
+          showGlobalAlert(res.message, res.success ? 'success' : 'error');
+          loadGradingTable(taskId);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '▶️ Nilai Semua (Batch)';
+          showProgressLog('ERROR: ' + err.message);
+          showGlobalAlert('Kesalahan penilaian: ' + err.message, 'error');
+        })
+        .apiGradeAllStudents(taskId, true);
+    }
+
+    function resetFailedGrades() {
+      const taskId = appState.selectedGradingTaskId;
+      if (!taskId) return;
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          showGlobalAlert(res.message, 'success');
+          loadGradingTable(taskId);
+        })
+        .withFailureHandler(function(err) {
+          showGlobalAlert('Gagal reset: ' + err.message, 'error');
+        })
+        .apiResetFailedGrades(taskId);
+    }
+
+    function showProgressLog(msg) {
+      const box = document.getElementById('gradingProgressBox');
+      box.classList.remove('hidden');
+      const time = new Date().toLocaleTimeString();
+      box.innerHTML += `<div>[${time}] ${msg}</div>`;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // ==========================================
+    // RENDER: REKAPITULASI & LAPORAN NILAI
+    // ==========================================
+
+    function loadClassReport(classId) {
+      const container = document.getElementById('reportTableContainer');
+      container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm"><span class="spinner inline-block w-4 h-4 mr-2 border-slate-400 border-t-blue-600"></span>Menghitung rekapitulasi nilai tugas...</div>';
+
+      google.script.run
+        .withSuccessHandler(function(report) {
+          renderReportTable(report);
+        })
+        .withFailureHandler(function(err) {
+          container.innerHTML = `<div class="p-6 text-center text-rose-600 text-xs font-medium">Gagal memuat rekapitulasi: ${err.message}</div>`;
+        })
+        .apiGetClassReport(classId);
+    }
+
+    function renderReportTable(report) {
+      const container = document.getElementById('reportTableContainer');
+      if (!report.students || report.students.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">Belum ada mahasiswa di kelas ini.</div>';
+        return;
+      }
+
+      let html = `
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3 w-10 text-center">No</th>
+              <th class="px-4 py-3 w-28">NIM</th>
+              <th class="px-4 py-3 w-48">Nama Mahasiswa</th>
+      `;
+
+      report.tasks.forEach(t => {
+        html += `<th class="px-4 py-3 text-center w-28">${t.judul_tugas} <span class="text-[10px] text-blue-600 block">(${t.bobot_persentase > 0 ? t.bobot_persentase + '%' : 'Standar'})</span></th>`;
+      });
+
+      html += `
+              <th class="px-4 py-3 text-center w-28 bg-slate-100/60 font-bold text-slate-700">Rata-rata</th>
+              <th class="px-4 py-3 text-center w-28 bg-blue-50 font-bold text-blue-900">Nilai Akhir</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+      `;
+
+      report.students.forEach((s, idx) => {
+        html += `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="px-4 py-2.5 text-center text-slate-400 font-medium">${idx + 1}</td>
+            <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${s.nim}</td>
+            <td class="px-4 py-2.5 font-medium text-slate-900">${s.nama_mahasiswa}</td>
+        `;
+
+        report.tasks.forEach(t => {
+          const score = s.taskScores[t.id_tugas];
+          html += `<td class="px-4 py-2.5 text-center font-semibold text-slate-700">${score !== null && score !== undefined ? score : '-'}</td>`;
+        });
+
+        html += `
+            <td class="px-4 py-2.5 text-center font-semibold text-slate-600 bg-slate-50/50">${s.averageScore > 0 ? s.averageScore : '-'}</td>
+            <td class="px-4 py-2.5 text-center font-bold text-sm text-blue-700 bg-blue-50/30">${s.finalScore > 0 ? s.finalScore : '-'}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+          </tbody>
+        </table>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function exportReportToSheet() {
+      if (!appState.activeClassId) return;
+      const btn = document.getElementById('btnExportSheet');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner inline-block w-3 h-3 mr-1.5"></span> Menulis Sheet...';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '📥 Buat Sheet Rekapitulasi';
+          showGlobalAlert(res.message, 'success');
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '📥 Buat Sheet Rekapitulasi';
+          showGlobalAlert('Gagal membuat sheet: ' + err.message, 'error');
+        })
+        .apiExportReportToSheet(appState.activeClassId);
+    }
+
+    // ==========================================
+    // MODALS HANDLING & ACTIONS
+    // ==========================================
+
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    // Kelas Modal
+    function openClassModal(classData) {
+      document.getElementById('classModalTitle').textContent = classData ? 'Edit Kelas' : 'Tambah Kelas Baru';
+      document.getElementById('modalClassId').value = classData ? classData.id_kelas : '';
+      document.getElementById('modalClassName').value = classData ? classData.nama_kelas : '';
+      document.getElementById('modalCourseName').value = classData ? classData.mata_kuliah : '';
+      document.getElementById('modalSemester').value = classData ? classData.semester : '';
+      openModal('classModal');
+    }
+
+    function editClass(classId) {
+      const target = appState.classes.find(c => c.id_kelas === classId);
+      if (target) openClassModal(target);
+    }
+
+    function submitSaveClass() {
+      const data = {
+        id_kelas: document.getElementById('modalClassId').value,
+        nama_kelas: document.getElementById('modalClassName').value.trim(),
+        mata_kuliah: document.getElementById('modalCourseName').value.trim(),
+        semester: document.getElementById('modalSemester').value.trim()
+      };
+      if (!data.nama_kelas) return alert('Nama kelas wajib diisi!');
+
+      const btn = document.getElementById('btnSubmitClass');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+
+      google.script.run
+        .withSuccessHandler(function(saved) {
+          btn.disabled = false;
+          btn.textContent = 'Simpan Kelas';
+          closeModal('classModal');
+          showGlobalAlert('Kelas berhasil disimpan!', 'success');
+          initApp();
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = 'Simpan Kelas';
+          alert('Gagal menyimpan kelas: ' + err.message);
+        })
+        .apiSaveClass(data);
+    }
+
+    function confirmDeleteClass(classId, className) {
+      if (confirm(`Yakin ingin menghapus kelas "${className}" beserta seluruh data mahasiswa dan tugas di dalamnya?`)) {
+        google.script.run
+          .withSuccessHandler(function() {
+            showGlobalAlert(`Kelas "${className}" berhasil dihapus.`, 'success');
+            initApp();
+          })
+          .apiDeleteClass(classId);
+      }
+    }
+
+    // Mahasiswa Modal
+    function openAddStudentModal() {
+      if (!appState.activeClassId) return alert('Pilih kelas terlebih dahulu!');
+      document.getElementById('modalStudentNim').value = '';
+      document.getElementById('modalStudentName').value = '';
+      openModal('studentModal');
+    }
+
+    function submitSaveStudent() {
+      const nim = document.getElementById('modalStudentNim').value.trim();
+      const nama = document.getElementById('modalStudentName').value.trim();
+      if (!nim || !nama) return alert('NIM dan Nama Mahasiswa wajib diisi!');
+
+      google.script.run
+        .withSuccessHandler(function() {
+          closeModal('studentModal');
+          showGlobalAlert(`Mahasiswa ${nama} berhasil ditambahkan!`, 'success');
+          loadClassDetails(appState.activeClassId);
+        })
+        .apiSaveStudent(appState.activeClassId, { nim, nama_mahasiswa: nama });
+    }
+
+    function openImportStudentsModal() {
+      if (!appState.activeClassId) return alert('Pilih kelas terlebih dahulu!');
+      document.getElementById('importTextarea').value = '';
+      openModal('importModal');
+    }
+
+    function submitImportStudents() {
+      const rawText = document.getElementById('importTextarea').value;
+      if (!rawText.trim()) return alert('Tempelkan daftar mahasiswa terlebih dahulu!');
+
+      const btn = document.getElementById('btnSubmitImport');
+      btn.disabled = true;
+      btn.textContent = 'Mengimpor...';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.textContent = 'Impor Sekarang';
+          closeModal('importModal');
+          showGlobalAlert(res.message, 'success');
+          loadClassDetails(appState.activeClassId);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = 'Impor Sekarang';
+          alert('Gagal mengimpor: ' + err.message);
+        })
+        .apiSaveStudentsBulk(appState.activeClassId, rawText);
+    }
+
+    function confirmDeleteStudent(studentId, studentName) {
+      if (confirm(`Hapus mahasiswa "${studentName}" dari kelas ini?`)) {
+        google.script.run
+          .withSuccessHandler(function() {
+            showGlobalAlert(`Mahasiswa "${studentName}" berhasil dihapus.`, 'success');
+            loadClassDetails(appState.activeClassId);
+          })
+          .apiDeleteStudent(studentId);
+      }
+    }
+
+    // Tugas Modal
+    function openCreateTaskModal() {
+      if (!appState.activeClassId) return alert('Pilih kelas terlebih dahulu!');
+      document.getElementById('taskModalTitle').textContent = 'Buat Tugas Baru';
+      document.getElementById('modalTaskId').value = '';
+      document.getElementById('modalTaskTitle').value = '';
+      document.getElementById('modalTaskDesc').value = '';
+      document.getElementById('modalTaskWeight').value = '25';
+      document.getElementById('modalTaskQuestionRef').value = '';
+      document.getElementById('modalTaskFolderId').value = '';
+      document.getElementById('modalTaskRubric').value = `## PANDUAN PORSI NILAI TUGAS (TOTAL: 100 POIN)
+
+1. Soal 1 (Porsi: 35 Poin)
+   - Ketepatan konsep, logika pemikiran, dan keakuratan jawaban.
+
+2. Soal 2 (Porsi: 40 Poin)
+   - Langkah penyelesaian lengkap, penalaran mendalam, dan hasil tepat.
+
+3. Kerapian Format & Sistematika (Porsi: 25 Poin)
+   - Sistematika penulisan rapi, jelas, dan mudah dipahami.`;
+      
+      document.getElementById('verifyTaskAlert').className = 'hidden';
+      document.getElementById('verifyFolderAlert').className = 'hidden';
+      document.getElementById('autoExtractAlert').className = 'hidden';
+      openModal('taskModal');
+    }
+
+    function editTask(taskId) {
+      const t = appState.currentTasks.find(item => item.id_tugas === taskId);
+      if (!t) return;
+
+      document.getElementById('taskModalTitle').textContent = 'Edit Tugas';
+      document.getElementById('modalTaskId').value = t.id_tugas;
+      document.getElementById('modalTaskTitle').value = t.judul_tugas;
+      document.getElementById('modalTaskDesc').value = t.deskripsi;
+      document.getElementById('modalTaskWeight').value = t.bobot_persentase || '0';
+      document.getElementById('modalTaskQuestionRef').value = t.task_file_ref || '';
+      document.getElementById('modalTaskFolderId').value = t.drive_folder_id || '';
+      document.getElementById('modalTaskRubric').value = t.rubrik_text || '';
+      
+      document.getElementById('verifyTaskAlert').className = 'hidden';
+      document.getElementById('verifyFolderAlert').className = 'hidden';
+      document.getElementById('autoExtractAlert').className = 'hidden';
+      openModal('taskModal');
+    }
+
+    function submitSaveTask() {
+      const title = document.getElementById('modalTaskTitle').value.trim();
+      if (!title) return alert('Judul tugas wajib diisi!');
+
+      const data = {
+        id_tugas: document.getElementById('modalTaskId').value,
+        id_kelas: appState.activeClassId,
+        judul_tugas: title,
+        deskripsi: document.getElementById('modalTaskDesc').value.trim(),
+        bobot_persentase: Number(document.getElementById('modalTaskWeight').value) || 0,
+        task_file_ref: document.getElementById('modalTaskQuestionRef').value.trim(),
+        drive_folder_id: document.getElementById('modalTaskFolderId').value.trim(),
+        rubrik_text: document.getElementById('modalTaskRubric').value.trim()
+      };
+
+      const btn = document.getElementById('btnSubmitTask');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+
+      google.script.run
+        .withSuccessHandler(function() {
+          btn.disabled = false;
+          btn.textContent = 'Simpan Tugas';
+          closeModal('taskModal');
+          showGlobalAlert('Tugas berhasil disimpan!', 'success');
+          loadClassDetails(appState.activeClassId);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = 'Simpan Tugas';
+          alert('Gagal menyimpan tugas: ' + err.message);
+        })
+        .apiSaveTask(data);
+    }
+
+    function confirmDeleteTask(taskId, taskTitle) {
+      if (confirm(`Yakin ingin menghapus tugas "${taskTitle}" beserta seluruh nilai mahasiswa di dalamnya?`)) {
+        google.script.run
+          .withSuccessHandler(function() {
+            showGlobalAlert(`Tugas "${taskTitle}" berhasil dihapus.`, 'success');
+            loadClassDetails(appState.activeClassId);
+          })
+          .apiDeleteTask(taskId);
+      }
+    }
+
+    function verifyTaskQuestion() {
+      const ref = document.getElementById('modalTaskQuestionRef').value;
+      const alertBox = document.getElementById('verifyTaskAlert');
+      alertBox.className = 'p-2 rounded-lg text-[11px] bg-slate-100 text-slate-700';
+      alertBox.textContent = 'Memeriksa berkas soal di Drive...';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          alertBox.className = res.success 
+            ? 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800' 
+            : 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800';
+          alertBox.textContent = res.message;
+        })
+        .apiValidateTaskFile(ref);
+    }
+
+    function verifyDriveFolder() {
+      const folderId = document.getElementById('modalTaskFolderId').value;
+      const alertBox = document.getElementById('verifyFolderAlert');
+      alertBox.className = 'p-2 rounded-lg text-[11px] bg-slate-100 text-slate-700';
+      alertBox.textContent = 'Memeriksa folder jawaban di Drive...';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          alertBox.className = res.success 
+            ? 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800' 
+            : 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800';
+          alertBox.textContent = res.message;
+        })
+        .apiValidateDriveFolder(folderId);
+    }
+
+    function autoExtractRubricInModal() {
+      const ref = document.getElementById('modalTaskQuestionRef').value;
+      const alertBox = document.getElementById('autoExtractAlert');
+      const btn = document.getElementById('btnAutoExtract');
+
+      if (!ref) return alert('Isi berkas soal di Drive terlebih dahulu!');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner inline-block w-2.5 h-2.5 mr-1"></span> AI Menganalisis...';
+      alertBox.className = 'p-2 rounded-lg text-[11px] bg-blue-50 text-blue-700';
+      alertBox.textContent = 'Membaca dokumen soal dan mengekstrak porsi poin...';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '🤖 Ekstrak dari Soal';
+          if (res.success) {
+            document.getElementById('modalTaskRubric').value = res.rubricText;
+            alertBox.className = res.pointsFound 
+              ? 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800' 
+              : 'p-2 rounded-lg text-[11px] bg-amber-50 text-amber-800';
+            alertBox.textContent = res.pointsFound 
+              ? `✅ Poin berhasil diekstrak dari soal (Total: ${res.totalPoints} poin)!` 
+              : `ℹ️ Tidak ada bobot eksplisit di soal. AI menyarankan pembagian poin seimbang.`;
+          } else {
+            alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800';
+            alertBox.textContent = res.message;
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '🤖 Ekstrak dari Soal';
+          alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800';
+          alertBox.textContent = 'Kesalahan: ' + err.message;
+        })
+        .apiExtractRubricFromTask(ref, appState.settings.modelName);
+    }
+
+    // Detail Modal Nilai
+    function openGradeDetailModal(nim) {
+      const g = appState.currentGrades.find(item => item.nim === nim);
+      if (!g) return;
+
+      document.getElementById('detailModalStudentName').textContent = g.nama_mahasiswa;
+      document.getElementById('detailModalStudentNim').textContent = `NIM: ${g.nim} • Berkas: ${g.file_name || 'Tidak ada'}`;
+      document.getElementById('detailGradeTaskId').value = g.id_tugas;
+      document.getElementById('detailGradeClassId').value = g.id_kelas;
+      document.getElementById('detailGradeNim').value = g.nim;
+      document.getElementById('detailGradeNama').value = g.nama_mahasiswa;
+      document.getElementById('detailGradeTotalScore').value = g.nilai_total !== null ? g.nilai_total : '';
+      document.getElementById('detailGradeCriteria').value = g.rincian_poin || '';
+      document.getElementById('detailGradeFeedback').value = g.catatan_ai || '';
+
+      openModal('gradeDetailModal');
+    }
+
+    function submitSaveManualGrade() {
+      const scoreVal = document.getElementById('detailGradeTotalScore').value;
+      const data = {
+        id_tugas: document.getElementById('detailGradeTaskId').value,
+        id_kelas: document.getElementById('detailGradeClassId').value,
+        nim: document.getElementById('detailGradeNim').value,
+        nama_mahasiswa: document.getElementById('detailGradeNama').value,
+        nilai_total: scoreVal !== '' ? Number(scoreVal) : null,
+        rincian_poin: document.getElementById('detailGradeCriteria').value,
+        catatan_ai: document.getElementById('detailGradeFeedback').value,
+        status: 'Selesai',
+        waktu_penilaian: new Date().toLocaleString('id-ID')
+      };
+
+      google.script.run
+        .withSuccessHandler(function() {
+          closeModal('gradeDetailModal');
+          showGlobalAlert(`Nilai mahasiswa ${data.nama_mahasiswa} berhasil disimpan manual!`, 'success');
+          loadGradingTable(data.id_tugas);
+        })
+        .apiSaveGradeManual(data);
+    }
+
+    // Pengaturan
+    function toggleApiKeyInputVisibility() {
+      const input = document.getElementById('inputApiKey');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function testApiConnection() {
+      const apiKey = document.getElementById('inputApiKey').value;
+      const model = document.getElementById('selectModelName').value;
+      const alertBox = document.getElementById('testApiAlert');
+      const btn = document.getElementById('btnTestApi');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner inline-block w-3 h-3 mr-1.5"></span> Menghubungkan...';
+      alertBox.className = 'p-3 rounded-xl text-xs bg-slate-100 text-slate-700 block';
+      alertBox.textContent = 'Menguji koneksi ke Gemini API...';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '🔍 Uji Koneksi API Key';
+          alertBox.className = res.success 
+            ? 'p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 block' 
+            : 'p-3 rounded-xl text-xs bg-rose-50 text-rose-800 block';
+          alertBox.textContent = res.message;
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '🔍 Uji Koneksi API Key';
+          alertBox.className = 'p-3 rounded-xl text-xs bg-rose-50 text-rose-800 block';
+          alertBox.textContent = 'Kesalahan: ' + err.message;
+        })
+        .apiTestConnection(apiKey, model);
+    }
+
+    function saveAppSettings() {
+      const data = {
+        apiKey: document.getElementById('inputApiKey').value,
+        modelName: document.getElementById('selectModelName').value,
+        activeClassId: appState.activeClassId
+      };
+      const alertBox = document.getElementById('saveSettingsAlert');
+      const btn = document.getElementById('btnSaveSettings');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner inline-block w-3 h-3 mr-2"></span> Menyimpan...';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '💾 Simpan Pengaturan';
+          alertBox.className = res.success 
+            ? 'p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 block' 
+            : 'p-3 rounded-xl text-xs bg-rose-50 text-rose-800 block';
+          alertBox.textContent = res.message;
+          document.getElementById('badgeModelName').textContent = data.modelName;
+          setTimeout(() => alertBox.classList.add('hidden'), 4000);
+        })
+        .apiSaveSettings(data);
+    }
+
+    // Alert & Utility Helpers
+    function showGlobalAlert(msg, type = 'info') {
+      const banner = document.getElementById('globalAlert');
+      const icon = document.getElementById('globalAlertIcon');
+      const text = document.getElementById('globalAlertMsg');
+
+      banner.className = `mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm block ${
+        type === 'success' ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' :
+        type === 'error' ? 'bg-rose-50 text-rose-900 border border-rose-200' :
+        'bg-blue-50 text-blue-900 border border-blue-200'
+      }`;
+      icon.textContent = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+      text.textContent = msg;
+    }
+
+    function hideGlobalAlert() {
+      document.getElementById('globalAlert').classList.add('hidden');
+    }
+
+    function showLoading(show) {
+      // Optional loading indicator overlay if needed
+    }
+  </script>
+
+</body>
+</html>

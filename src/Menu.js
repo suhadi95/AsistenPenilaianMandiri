@@ -1,28 +1,80 @@
 /**
- * @fileoverview Menu Kustom, Dialog, dan Titik Masuk (Entry Point) Google Apps Script
+ * @fileoverview Titik Masuk (Entry Point), Web App Handler (doGet), Menu Toolbar, dan API RPC
  */
 
 /**
- * Pemicu otomatis saat spreadsheet dibuka
+ * Titik masuk utama Standalone Web Application
+ */
+function doGet(e) {
+  DatabaseService.initDatabase();
+  return HtmlService.createTemplateFromFile('Index')
+    .evaluate()
+    .setTitle('🎓 Asisten Penilaian Mahasiswa - Portal Akademik')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Pemicu saat spreadsheet dibuka
  */
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('🎓 Asisten Penilaian')
-    .addItem('⚙️ Pengaturan & Rubrik', 'openSidebar')
+    .addItem('🌐 Buka Portal Web Penilaian', 'openWebAppPrompt')
     .addSeparator()
-    .addItem('🎯 Nilai Mahasiswa yang Dipilih', 'menuRunSelectedGrading')
-    .addItem('▶️ Nilai Semua / Lanjutkan Penilaian', 'menuRunGrading')
+    .addItem('📊 Generate / Update Sheet Rekapitulasi', 'menuExportActiveReport')
+    .addItem('📋 Inisialisasi Database Kelas', 'menuInitDatabase')
     .addSeparator()
-    .addItem('📋 Siapkan Template Sheet', 'menuSetupTemplate')
-    .addItem('🔄 Reset Status Gagal / Tertunda', 'menuResetFailed')
-    .addSeparator()
-    .addItem('ℹ️ Panduan Penggunaan', 'openHelpDialog')
+    .addItem('⚙️ Pengaturan & API Key', 'openSidebar')
+    .addItem('ℹ️ Panduan Sistem', 'openHelpDialog')
     .addToUi();
 }
 
 /**
- * Membuka Sidebar Pengaturan Modern
+ * Menampilkan tautan langsung untuk membuka Web App di tab browser baru
  */
+function openWebAppPrompt() {
+  const url = ScriptApp.getService().getUrl();
+  const ui = SpreadsheetApp.getUi();
+  
+  if (url) {
+    const html = `
+      <div style="font-family: -apple-system, sans-serif; padding: 16px; text-align: center;">
+        <h3 style="margin-bottom: 12px; color: #1e293b;">🌐 Portal Web Penilaian Mandiri</h3>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 18px;">
+          Gunakan portal web standalone untuk mengelola kelas, mahasiswa, tugas, koreksi multimodal, dan rekapitulasi nilai.
+        </p>
+        <a href="${url}" target="_blank" style="display: inline-block; background: #2563eb; color: #ffffff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">
+          🚀 Buka Portal Web di Tab Baru
+        </a>
+      </div>
+    `;
+    const output = HtmlService.createHtmlOutput(html).setWidth(400).setHeight(180);
+    ui.showModalDialog(output, 'Akses Portal Web');
+  } else {
+    ui.alert(
+      'Deploy Web App Diperlukan',
+      'Aplikasi belum di-deploy sebagai Web App. Silakan lakukan Deploy > New Deployment > Web App di editor Apps Script.',
+      ui.ButtonSet.OK
+    );
+  }
+}
+
+function menuExportActiveReport() {
+  const classes = DatabaseService.getClasses();
+  if (classes.length === 0) {
+    SpreadsheetApp.getUi().alert('Perhatian', 'Belum ada kelas yang terdaftar. Buka Portal Web untuk membuat kelas.', SpreadsheetApp.getUi().ButtonSet.OK);
+    return;
+  }
+  const result = DatabaseService.exportReportToSheet(classes[0].id_kelas);
+  SpreadsheetApp.getUi().alert('Berhasil', result.message, SpreadsheetApp.getUi().ButtonSet.OK);
+}
+
+function menuInitDatabase() {
+  const result = DatabaseService.initDatabase();
+  SpreadsheetApp.getActiveSpreadsheet().toast(result.message, 'Database Siap', 4);
+}
+
 function openSidebar() {
   const htmlOutput = HtmlService.createHtmlOutputFromFile('Sidebar')
     .setTitle('🎓 Pengaturan Asisten Penilaian')
@@ -30,108 +82,147 @@ function openSidebar() {
   SpreadsheetApp.getUi().showSidebar(htmlOutput);
 }
 
-/**
- * Handler Menu: Siapkan Template
- */
-function menuSetupTemplate() {
-  const result = GradingEngine.setupSheetTemplate();
-  SpreadsheetApp.getActiveSpreadsheet().toast(result.message, 'Berhasil', 4);
-}
-
-/**
- * Handler Menu: Jalankan Penilaian untuk Baris yang Dipilih Saja
- */
-function menuRunSelectedGrading() {
-  const ui = SpreadsheetApp.getUi();
-  const settings = getAppSettings();
-
-  if (!settings.hasApiKey) {
-    ui.alert('Perhatian', 'Gemini API Key belum dimasukkan. Buka menu "⚙️ Pengaturan & Rubrik" terlebih dahulu.', ui.ButtonSet.OK);
-    openSidebar();
-    return;
-  }
-
-  if (!settings.driveFolderId) {
-    ui.alert('Perhatian', 'Folder Google Drive belum diatur. Buka menu "⚙️ Pengaturan & Rubrik" untuk memasukkan ID folder.', ui.ButtonSet.OK);
-    openSidebar();
-    return;
-  }
-
-  SpreadsheetApp.getActiveSpreadsheet().toast('Menilai mahasiswa pada baris yang dipilih...', 'Asisten Penilaian', 4);
-
-  try {
-    const result = GradingEngine.runSelectedRowsGrading();
-    ui.alert('Hasil Penilaian Mahasiswa Terpilih', result.message, ui.ButtonSet.OK);
-  } catch (error) {
-    ui.alert('Terjadi Kesalahan', error.message, ui.ButtonSet.OK);
-  }
-}
-
-/**
- * Handler Menu: Jalankan / Lanjutkan Penilaian Semua Baris
- */
-function menuRunGrading() {
-  const ui = SpreadsheetApp.getUi();
-  const settings = getAppSettings();
-
-  if (!settings.hasApiKey) {
-    ui.alert('Perhatian', 'Gemini API Key belum dimasukkan. Buka menu "⚙️ Pengaturan & Rubrik" terlebih dahulu.', ui.ButtonSet.OK);
-    openSidebar();
-    return;
-  }
-
-  if (!settings.driveFolderId) {
-    ui.alert('Perhatian', 'Folder Google Drive belum diatur. Buka menu "⚙️ Pengaturan & Rubrik" untuk memasukkan ID folder.', ui.ButtonSet.OK);
-    openSidebar();
-    return;
-  }
-
-  SpreadsheetApp.getActiveSpreadsheet().toast('Memulai proses penilaian otomatis...', 'Asisten Penilaian', 5);
-
-  try {
-    const result = GradingEngine.runBatchGrading(true);
-    ui.alert('Proses Selesai', result.message, ui.ButtonSet.OK);
-  } catch (error) {
-    ui.alert('Terjadi Kesalahan', error.message, ui.ButtonSet.OK);
-  }
-}
-
-/**
- * Handler Menu: Reset Baris Gagal
- */
-function menuResetFailed() {
-  const result = GradingEngine.resetFailedRows();
-  SpreadsheetApp.getUi().alert('Reset Selesai', result.message, SpreadsheetApp.getUi().ButtonSet.OK);
-}
-
-/**
- * Handler Menu: Dialog Bantuan
- */
 function openHelpDialog() {
   const message = `
-Panduan Cepat Asisten Penilaian Mahasiswa Multimodal:
+Panduan Sistem Manajemen Kelas & Penilaian Akademik:
 
-1. Pengaturan Awal:
-   • Masukkan Gemini API Key di menu "⚙️ Pengaturan & Rubrik".
-   • Pilih model Gemini (rekomendasi: gemini-2.5-flash).
-   • Masukkan Link atau ID Folder Google Drive tempat jawaban mahasiswa disimpan.
-   • Sesuaikan rubrik dan bobot penilaian sesuai silabus Anda.
+1. Portal Web Mandiri (Standalone):
+   • Kelola seluruh kelas, daftar mahasiswa, penugasan, dan penilaian melalui antarmuka web.
+   • Buka menu "🌐 Buka Portal Web Penilaian" untuk mengakses dashboard penuh.
 
-2. Struktur Berkas Tugas di Google Drive:
-   • Berkas tugas mahasiswa (PDF, Gambar, Docs, Teks) sebaiknya memuat NIM pada nama berkasnya (misal: "Tugas1_2024001.pdf").
-   • Asisten otomatis mencocokkan baris sheet dengan berkas berdasarkan NIM atau Nama.
+2. Struktur Penyimpanan:
+   • Seluruh data tersimpan rapi di sheet database: _DB_KELAS, _DB_MAHASISWA, _DB_TUGAS, dan _DB_NILAI.
+   • Nilai akhir dapat diekspor langsung ke tab sheet rekapitulasi kapan saja.
 
-3. Limitasi Waktu 6 Menit GAS:
-   • Google Apps Script membatasi eksekusi maksimal 6 menit per sesi.
-   • Sistem dilengkapi checkpoint cerdas. Jika waktu hampir habis, sistem akan berhenti aman dan mencatat progres.
-   • Anda cukup klik "▶️ Mulai / Lanjutkan Penilaian" kembali untuk melanjutkan baris yang tersisa.
+3. Penilaian Multimodal:
+   • Sistem membandingkan berkas jawaban mahasiswa di Drive terhadap berkas soal dan rubrik porsi poin.
+   • Mendukung penilaian semua mahasiswa (batch) maupun mahasiswa terpilih.
 `;
-  SpreadsheetApp.getUi().alert('ℹ️ Panduan & Info', message, SpreadsheetApp.getUi().ButtonSet.OK);
+  SpreadsheetApp.getUi().alert('ℹ️ Panduan Sistem', message, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
 // ==========================================
-// API Jembatan untuk HTML Service (google.script.run)
+// API RPC JEMBATAN UNTUK WEB APP (google.script.run)
 // ==========================================
+
+function apiGetInitialData() {
+  DatabaseService.initDatabase();
+  const settings = getAppSettings();
+  const classes = DatabaseService.getClasses();
+  const webAppUrl = ScriptApp.getService().getUrl() || '';
+
+  return {
+    settings: settings,
+    classes: classes,
+    webAppUrl: webAppUrl
+  };
+}
+
+// Kelas
+function apiGetClasses() {
+  return DatabaseService.getClasses();
+}
+
+function apiSaveClass(data) {
+  return DatabaseService.saveClass(data);
+}
+
+function apiDeleteClass(classId) {
+  return DatabaseService.deleteClass(classId);
+}
+
+// Mahasiswa
+function apiGetStudents(classId) {
+  return DatabaseService.getStudentsByClass(classId);
+}
+
+function apiSaveStudentsBulk(classId, rawText) {
+  return DatabaseService.saveStudentsBulk(classId, rawText);
+}
+
+function apiSaveStudent(classId, data) {
+  return DatabaseService.saveStudent(classId, data);
+}
+
+function apiDeleteStudent(studentId) {
+  return DatabaseService.deleteStudent(studentId);
+}
+
+// Tugas
+function apiGetTasks(classId) {
+  return DatabaseService.getTasksByClass(classId);
+}
+
+function apiGetTaskById(taskId) {
+  return DatabaseService.getTaskById(taskId);
+}
+
+function apiSaveTask(data) {
+  return DatabaseService.saveTask(data);
+}
+
+function apiDeleteTask(taskId) {
+  return DatabaseService.deleteTask(taskId);
+}
+
+// Penilaian & Koreksi
+function apiGetGradesByTask(taskId) {
+  return DatabaseService.getGradesByTask(taskId);
+}
+
+function apiGradeSelectedStudents(taskId, studentNims) {
+  return GradingService.gradeSelectedStudents(taskId, studentNims);
+}
+
+function apiGradeAllStudents(taskId, onlyUnassessed) {
+  return GradingService.gradeAllStudents(taskId, onlyUnassessed);
+}
+
+function apiResetFailedGrades(taskId) {
+  return GradingService.resetFailedGrades(taskId);
+}
+
+function apiSaveGradeManual(gradeData) {
+  return DatabaseService.saveGrade(gradeData);
+}
+
+// Laporan Rekapitulasi
+function apiGetClassReport(classId) {
+  return DatabaseService.getClassReport(classId);
+}
+
+function apiExportReportToSheet(classId) {
+  return DatabaseService.exportReportToSheet(classId);
+}
+
+// Utilitas & Integrasi
+function apiValidateDriveFolder(folderId) {
+  return DriveService.validateFolder(folderId);
+}
+
+function apiValidateTaskFile(ref) {
+  return DriveService.validateTaskFile(ref);
+}
+
+function apiExtractRubricFromTask(taskQuestionRef, model) {
+  const settings = getAppSettings();
+  const apiKey = settings.rawApiKey;
+  if (!apiKey) {
+    throw new Error('Gemini API Key belum dimasukkan di menu Pengaturan.');
+  }
+
+  if (!taskQuestionRef || !taskQuestionRef.trim()) {
+    throw new Error('Tautan berkas soal tugas belum diisi.');
+  }
+
+  const taskPayload = DriveService.getTaskQuestionPayload(taskQuestionRef);
+  if (!taskPayload) {
+    throw new Error('Berkas soal tugas tidak dapat diakses dari Google Drive.');
+  }
+
+  const selectedModel = model || settings.modelName;
+  return GeminiService.extractRubricFromTask(taskPayload, apiKey, selectedModel);
+}
 
 function apiGetSettings() {
   return getAppSettings();
@@ -147,48 +238,4 @@ function apiTestConnection(apiKey, model) {
     keyToUse = getAppSettings().rawApiKey;
   }
   return GeminiService.testConnection(keyToUse, model);
-}
-
-function apiValidateDriveFolder(folderId) {
-  return DriveService.validateFolder(folderId);
-}
-
-function apiValidateTaskFile(ref) {
-  return DriveService.validateTaskFile(ref);
-}
-
-function apiExtractRubricFromTask(taskQuestionRef, model) {
-  const settings = getAppSettings();
-  const apiKey = settings.rawApiKey;
-  if (!apiKey) {
-    throw new Error('Gemini API Key belum dimasukkan. Silakan simpan API Key terlebih dahulu.');
-  }
-
-  if (!taskQuestionRef || !taskQuestionRef.trim()) {
-    throw new Error('Tautan atau teks soal tugas belum diisi di tab "📄 Soal".');
-  }
-
-  const taskPayload = DriveService.getTaskQuestionPayload(taskQuestionRef);
-  if (!taskPayload) {
-    throw new Error('Berkas soal tugas tidak dapat diakses dari Google Drive.');
-  }
-
-  const selectedModel = model || settings.modelName;
-  return GeminiService.extractRubricFromTask(taskPayload, apiKey, selectedModel);
-}
-
-function apiRunGrading(onlyUnassessed) {
-  return GradingEngine.runBatchGrading(onlyUnassessed);
-}
-
-function apiRunSelectedGrading() {
-  return GradingEngine.runSelectedRowsGrading();
-}
-
-function apiResetFailed() {
-  return GradingEngine.resetFailedRows();
-}
-
-function apiSetupTemplate() {
-  return GradingEngine.setupSheetTemplate();
 }
