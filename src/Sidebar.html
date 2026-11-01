@@ -409,23 +409,45 @@
   <!-- TAB 5: AKSI PENILAIAN -->
   <div id="tab-run" class="tab-content">
     <div class="card">
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button class="btn btn-secondary" onclick="setupTemplate()">
-          📋 Siapkan Kolom Template Sheet
-        </button>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        
+        <!-- OPSI 1: NILAI MAHASISWA YANG DIPILIH -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px; border-radius: 6px;">
+          <div style="font-size: 11px; font-weight: 700; color: #1e40af; margin-bottom: 3px;">
+            🎯 Nilai Mahasiswa yang Dipilih:
+          </div>
+          <p style="font-size: 10px; color: #3b82f6; margin-bottom: 8px; line-height: 1.3;">
+            Sorot / blok satu atau beberapa baris mahasiswa di Google Sheets, lalu klik tombol ini.
+          </p>
+          <button class="btn btn-primary" onclick="startGradingSelected()" id="btnGradeSelected">
+            🎯 Nilai Baris yang Sedang Dipilih di Sheet
+          </button>
+        </div>
 
-        <label class="checkbox-label">
-          <input type="checkbox" id="onlyUnassessed" checked>
-          <span>Hanya nilai baris yang belum dinilai atau gagal (Resume otomatis)</span>
-        </label>
+        <!-- OPSI 2: NILAI SEMUA BARIS (BATCH) -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px;">
+          <div style="font-size: 11px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+            ▶️ Nilai Seluruh Sheet (Batch):
+          </div>
+          <label class="checkbox-label" style="margin-bottom: 8px;">
+            <input type="checkbox" id="onlyUnassessed" checked>
+            <span>Hanya nilai baris yang belum dinilai atau gagal</span>
+          </label>
+          <button class="btn btn-success" onclick="startGrading()" id="btnStartGrading">
+            ▶️ Mulai / Lanjutkan Semua Baris
+          </button>
+        </div>
 
-        <button class="btn btn-success" onclick="startGrading()" id="btnStartGrading">
-          ▶️ Mulai / Lanjutkan Penilaian Otomatis
-        </button>
+        <!-- ALAT BANTU -->
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-secondary btn-sm" onclick="setupTemplate()" style="flex: 1;">
+            📋 Template Kolom
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="resetFailed()" style="flex: 1;">
+            🔄 Reset Baris Gagal
+          </button>
+        </div>
 
-        <button class="btn btn-secondary btn-sm" onclick="resetFailed()" style="width: 100%;">
-          🔄 Reset Baris Status Gagal
-        </button>
       </div>
 
       <div id="gradingAlert" class="alert"></div>
@@ -724,6 +746,34 @@
           showAlert('gradingAlert', 'Kesalahan: ' + err.message, 'error');
         })
         .apiResetFailed();
+    }
+
+    // Menilai hanya mahasiswa pada baris yang dipilih / disorot
+    function startGradingSelected() {
+      const btn = document.getElementById('btnGradeSelected');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Menilai Baris Terpilih...';
+      showAlert('gradingAlert', 'Sedang menilai baris mahasiswa yang Anda sorot di Google Sheets...', 'info');
+      appendLog('Menilai mahasiswa pada baris aktif/terpilih...');
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = '🎯 Nilai Baris yang Sedang Dipilih di Sheet';
+          appendLog(res.message);
+          if (res.success) {
+            showAlert('gradingAlert', '✅ ' + res.message, 'success');
+          } else {
+            showAlert('gradingAlert', '⚠️ ' + res.message, 'warning');
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '🎯 Nilai Baris yang Sedang Dipilih di Sheet';
+          appendLog('ERROR: ' + err.message);
+          showAlert('gradingAlert', 'Kesalahan Penilaian: ' + err.message, 'error');
+        })
+        .apiRunSelectedGrading();
     }
 
     // Mulai proses penilaian batch

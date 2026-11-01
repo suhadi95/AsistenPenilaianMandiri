@@ -10,8 +10,10 @@ function onOpen() {
     .createMenu('🎓 Asisten Penilaian')
     .addItem('⚙️ Pengaturan & Rubrik', 'openSidebar')
     .addSeparator()
+    .addItem('🎯 Nilai Mahasiswa yang Dipilih', 'menuRunSelectedGrading')
+    .addItem('▶️ Nilai Semua / Lanjutkan Penilaian', 'menuRunGrading')
+    .addSeparator()
     .addItem('📋 Siapkan Template Sheet', 'menuSetupTemplate')
-    .addItem('▶️ Mulai / Lanjutkan Penilaian', 'menuRunGrading')
     .addItem('🔄 Reset Status Gagal / Tertunda', 'menuResetFailed')
     .addSeparator()
     .addItem('ℹ️ Panduan Penggunaan', 'openHelpDialog')
@@ -37,7 +39,36 @@ function menuSetupTemplate() {
 }
 
 /**
- * Handler Menu: Jalankan / Lanjutkan Penilaian
+ * Handler Menu: Jalankan Penilaian untuk Baris yang Dipilih Saja
+ */
+function menuRunSelectedGrading() {
+  const ui = SpreadsheetApp.getUi();
+  const settings = getAppSettings();
+
+  if (!settings.hasApiKey) {
+    ui.alert('Perhatian', 'Gemini API Key belum dimasukkan. Buka menu "⚙️ Pengaturan & Rubrik" terlebih dahulu.', ui.ButtonSet.OK);
+    openSidebar();
+    return;
+  }
+
+  if (!settings.driveFolderId) {
+    ui.alert('Perhatian', 'Folder Google Drive belum diatur. Buka menu "⚙️ Pengaturan & Rubrik" untuk memasukkan ID folder.', ui.ButtonSet.OK);
+    openSidebar();
+    return;
+  }
+
+  SpreadsheetApp.getActiveSpreadsheet().toast('Menilai mahasiswa pada baris yang dipilih...', 'Asisten Penilaian', 4);
+
+  try {
+    const result = GradingEngine.runSelectedRowsGrading();
+    ui.alert('Hasil Penilaian Mahasiswa Terpilih', result.message, ui.ButtonSet.OK);
+  } catch (error) {
+    ui.alert('Terjadi Kesalahan', error.message, ui.ButtonSet.OK);
+  }
+}
+
+/**
+ * Handler Menu: Jalankan / Lanjutkan Penilaian Semua Baris
  */
 function menuRunGrading() {
   const ui = SpreadsheetApp.getUi();
@@ -148,6 +179,10 @@ function apiExtractRubricFromTask(taskQuestionRef, model) {
 
 function apiRunGrading(onlyUnassessed) {
   return GradingEngine.runBatchGrading(onlyUnassessed);
+}
+
+function apiRunSelectedGrading() {
+  return GradingEngine.runSelectedRowsGrading();
 }
 
 function apiResetFailed() {

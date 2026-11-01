@@ -1,5 +1,5 @@
 /**
- * @fileoverview Mesin Penilaian Otomatis Mahasiswa (Batch Processor, Checkpoint, dan Spreadsheet I/O)
+ * @fileoverview Mesin Penilaian Otomatis Mahasiswa (Batch Processor, Seleksi Baris, Checkpoint, dan Spreadsheet I/O)
  */
 
 const SHEET_HEADERS = [
@@ -99,6 +99,177 @@ const GradingEngine = {
   },
 
   /**
+   * Menilai satu baris mahasiswa spesifik
+   * @param {Sheet} sheet 
+   * @param {number} rowIndex - Baris indeks 1-based
+   * @param {Object} cols - Pemetaan kolom
+   * @param {Object} settings - Pengaturan aktif
+   * @param {Object|null} taskQuestionData - Dokumen acuan soal
+   * @return {Object}
+   */
+  gradeSingleRow(sheet, rowIndex, cols, settings, taskQuestionData) {
+    const rowValues = sheet.getRange(rowIndex, 1, 1, Math.max(sheet.getLastColumn(), SHEET_HEADERS.length)).getValues()[0];
+    const nim = String(rowValues[cols.nimCol - 1] || '').trim();
+    const nama = String(rowValues[cols.namaCol - 1] || '').trim();
+    const customFile = String(rowValues[cols.fileCol - 1] || '').trim();
+
+    if (!nim && !nama) {
+      return { skipped: true, message: 'Baris kosong' };
+    }
+
+    // Update status menjadi sedang diproses
+    sheet.getRange(rowIndex, cols.statusCol).setValue('⏳ Sedang Menilai...');
+    sheet.getRange(rowIndex, cols.statusCol).setBackground('#fef3c7').setFontColor('#92400e');
+    SpreadsheetApp.flush();
+
+    try {
+      // 1. Ambil berkas jawaban mahasiswa dari Google Drive
+      const submissionResult = DriveService.getStudentSubmission(
+        settings.driveFolderId,
+        nim,
+        nama,
+        customFile
+      );
+
+      if (!submissionResult.success) {
+        throw new Error(submissionResult.message);
+      }
+
+      // Catat nama berkas jika kolom berkas masih kosong
+      if (!customFile && submissionResult.fileName) {
+        sheet.getRange(rowIndex, cols.fileCol).setValue(submissionResult.fileName);
+      }
+
+      // 2. Evaluasi menggunakan Gemini API (membandingkan jawaban vs soal + rubrik porsi nilai)
+      const evalResult = GeminiService.evaluateSubmission(
+        submissionResult,
+        { nim, nama },
+        settings.rubricText,
+        settings.rawApiKey,
+        settings.modelName,
+        taskQuestionData
+      );
+
+      const data = evalResult.data;
+
+      // 3. Format rincian poin per butir soal / kriteria
+      let formattedCriteria = '';
+      if (data.criteriaScores && Array.isArray(data.criteriaScores)) {
+        formattedCriteria = data.criteriaScores
+          .map(c => `• ${c.criterion}: ${c.score}/${c.maxScore} poin (${c.feedback})`)
+          .join('\n');
+      }
+
+      // 4. Format catatan dan alasan penilaian lengkap
+      let fullFeedback = data.summaryFeedback || '';
+      if (data.strengths && data.strengths.length > 0) {
+        fullFeedback += '\n\n[Kelebihan Jawaban]:\n' + data.strengths.map(s => `✓ ${s}`).join('\n');
+      }
+      if (data.improvements && data.improvements.length > 0) {
+        fullFeedback += '\n\n[Catatan & Rekomendasi]:\n' + data.improvements.map(im => `⚠ ${im}`).join('\n');
+      }
+
+      // 5. Tuliskan nilai dan ulasan langsung ke Google Sheets secara real-time
+      sheet.getRange(rowIndex, cols.scoreCol).setValue(data.totalScore);
+      sheet.getRange(rowIndex, cols.criteriaCol).setValue(formattedCriteria);
+      sheet.getRange(rowIndex, cols.feedbackCol).setValue(fullFeedback);
+      sheet.getRange(rowIndex, cols.statusCol).setValue('Selesai');
+      sheet.getRange(rowIndex, cols.timeCol).setValue(new Date().toLocaleString('id-ID'));
+
+      // Indikator warna hijau lembut untuk baris yang selesai
+      sheet.getRange(rowIndex, cols.statusCol).setBackground('#dcfce7').setFontColor('#166534');
+      SpreadsheetApp.flush();
+
+      return { success: true, nim, nama, score: data.totalScore };
+    } catch (err) {
+      const errMsg = err.message || 'Kesalahan tidak diketahui';
+      sheet.getRange(rowIndex, cols.statusCol).setValue(`Gagal: ${errMsg}`);
+      sheet.getRange(rowIndex, cols.statusCol).setBackground('#fee2e2').setFontColor('#991b1b');
+      SpreadsheetApp.flush();
+      return { success: false, nim, nama, error: errMsg };
+    }
+  },
+
+  /**
+   * Menilai hanya baris-baris mahasiswa yang sedang dipilih/disorot di spreadsheet
+   * @param {Array<number>} [targetRowIndices] - Opsional daftar nomor baris. Jika tidak diisi, ambil dari baris aktif
+   * @return {Object}
+   */
+  runSelectedRowsGrading(targetRowIndices) {
+    const settings = getAppSettings();
+    if (!settings.rawApiKey) {
+      throw new Error('Gemini API Key belum dikonfigurasi. Buka menu "⚙️ Pengaturan & Rubrik" terlebih dahulu.');
+    }
+    if (!settings.driveFolderId) {
+      throw new Error('Folder Google Drive tempat jawaban mahasiswa belum ditentukan.');
+    }
+
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const cols = this.detectColumnIndices(sheet);
+
+    // Kumpulkan seluruh nomor baris yang disorot / dipilih pengguna
+    let rowIndices = targetRowIndices;
+    if (!rowIndices || !rowIndices.length) {
+      const selectedSet = new Set();
+      const rangeList = sheet.getActiveRangeList();
+      const ranges = rangeList ? rangeList.getRanges() : [sheet.getActiveRange()];
+
+      ranges.forEach(r => {
+        if (!r) return;
+        const start = r.getRow();
+        const num = r.getNumRows();
+        for (let i = start; i < start + num; i++) {
+          if (i > 1) { // Lewati baris 1 (header)
+            selectedSet.add(i);
+          }
+        }
+      });
+      rowIndices = Array.from(selectedSet).sort((a, b) => a - b);
+    }
+
+    if (!rowIndices.length) {
+      return {
+        success: false,
+        message: 'Tidak ada baris mahasiswa yang dipilih. Silakan klik atau sorot (blok) baris mahasiswa yang ingin dinilai di spreadsheet terlebih dahulu.'
+      };
+    }
+
+    // Baca dokumen soal acuan sekali saja
+    let taskQuestionData = null;
+    if (settings.taskQuestionRef) {
+      taskQuestionData = DriveService.getTaskQuestionPayload(settings.taskQuestionRef);
+    }
+
+    let successCount = 0;
+    let failedCount = 0;
+    const scoredList = [];
+
+    for (const rowIndex of rowIndices) {
+      const result = this.gradeSingleRow(sheet, rowIndex, cols, settings, taskQuestionData);
+      if (result.skipped) continue;
+
+      if (result.success) {
+        successCount++;
+        scoredList.push(`${result.nim || result.nama}: ${result.score}`);
+      } else {
+        failedCount++;
+      }
+      Utilities.sleep(500);
+    }
+
+    const detailText = scoredList.length ? ` [${scoredList.join(', ')}]` : '';
+    const message = `Selesai menilai mahasiswa yang dipilih! Berhasil: ${successCount}, Gagal: ${failedCount}.${detailText}`;
+
+    return {
+      success: true,
+      selectedCount: rowIndices.length,
+      successCount: successCount,
+      failedCount: failedCount,
+      message: message
+    };
+  },
+
+  /**
    * Menjalankan proses penilaian batch dengan proteksi timeout dan resume otomatis
    * @param {boolean} onlyUnassessed - Jika true, hanya nilai baris yang belum dinilai atau gagal
    * @return {Object} Statistik hasil eksekusi
@@ -149,7 +320,6 @@ const GradingEngine = {
 
       const nim = String(rowValues[cols.nimCol - 1] || '').trim();
       const nama = String(rowValues[cols.namaCol - 1] || '').trim();
-      const customFile = String(rowValues[cols.fileCol - 1] || '').trim();
       const currentStatus = String(rowValues[cols.statusCol - 1] || '').trim();
 
       // Lewati baris kosong
@@ -172,78 +342,14 @@ const GradingEngine = {
         break;
       }
 
-      // Update status menjadi sedang diproses
-      sheet.getRange(rowIndex, cols.statusCol).setValue('⏳ Sedang Menilai...');
-      SpreadsheetApp.flush();
       processedCount++;
+      const result = this.gradeSingleRow(sheet, rowIndex, cols, settings, taskQuestionData);
 
-      try {
-        // 1. Ambil berkas jawaban mahasiswa dari Google Drive
-        const submissionResult = DriveService.getStudentSubmission(
-          settings.driveFolderId,
-          nim,
-          nama,
-          customFile
-        );
-
-        if (!submissionResult.success) {
-          throw new Error(submissionResult.message);
-        }
-
-        // Catat nama berkas jika kolom berkas masih kosong
-        if (!customFile && submissionResult.fileName) {
-          sheet.getRange(rowIndex, cols.fileCol).setValue(submissionResult.fileName);
-        }
-
-        // 2. Evaluasi menggunakan Gemini API (membandingkan jawaban vs soal + rubrik porsi nilai)
-        const evalResult = GeminiService.evaluateSubmission(
-          submissionResult,
-          { nim, nama },
-          settings.rubricText,
-          settings.rawApiKey,
-          settings.modelName,
-          taskQuestionData
-        );
-
-        const data = evalResult.data;
-
-        // 3. Format rincian poin per butir soal / kriteria
-        let formattedCriteria = '';
-        if (data.criteriaScores && Array.isArray(data.criteriaScores)) {
-          formattedCriteria = data.criteriaScores
-            .map(c => `• ${c.criterion}: ${c.score}/${c.maxScore} poin (${c.feedback})`)
-            .join('\n');
-        }
-
-        // 4. Format catatan dan alasan penilaian lengkap
-        let fullFeedback = data.summaryFeedback || '';
-        if (data.strengths && data.strengths.length > 0) {
-          fullFeedback += '\n\n[Kelebihan Jawaban]:\n' + data.strengths.map(s => `✓ ${s}`).join('\n');
-        }
-        if (data.improvements && data.improvements.length > 0) {
-          fullFeedback += '\n\n[Catatan & Rekomendasi]:\n' + data.improvements.map(im => `⚠ ${im}`).join('\n');
-        }
-
-        // 5. Tuliskan nilai dan ulasan langsung ke Google Sheets secara real-time
-        sheet.getRange(rowIndex, cols.scoreCol).setValue(data.totalScore);
-        sheet.getRange(rowIndex, cols.criteriaCol).setValue(formattedCriteria);
-        sheet.getRange(rowIndex, cols.feedbackCol).setValue(fullFeedback);
-        sheet.getRange(rowIndex, cols.statusCol).setValue('Selesai');
-        sheet.getRange(rowIndex, cols.timeCol).setValue(new Date().toLocaleString('id-ID'));
-
-        // Indikator warna hijau lembut untuk baris yang selesai
-        sheet.getRange(rowIndex, cols.statusCol).setBackground('#dcfce7').setFontColor('#166534');
-
+      if (result.success) {
         successCount++;
-      } catch (err) {
+      } else if (!result.skipped) {
         failedCount++;
-        const errMsg = err.message || 'Kesalahan tidak diketahui';
-        sheet.getRange(rowIndex, cols.statusCol).setValue(`Gagal: ${errMsg}`);
-        sheet.getRange(rowIndex, cols.statusCol).setBackground('#fee2e2').setFontColor('#991b1b');
       }
-
-      // Flush real-time agar dosen bisa melihat penilaian masuk baris demi baris langsung
-      SpreadsheetApp.flush();
 
       // Jeda 500ms antar baris
       Utilities.sleep(500);
