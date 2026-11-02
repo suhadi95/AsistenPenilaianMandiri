@@ -1,0 +1,44 @@
+# ==========================================================
+# Konfigurasi Apache / LiteSpeed untuk Shared Hosting
+# Asisten Penilaian Mandiri Web Application
+# ==========================================================
+
+# 1. Nonaktifkan penelusuran direktori terbuka
+Options -Indexes
+
+# 2. Standar Karakter UTF-8
+AddDefaultCharset UTF-8
+
+# 3. Lindungi Berkas Konfigurasi, Basis Data & Berkas Privat
+<FilesMatch "^(config\.php|config\.example\.php|database\.sqlite|database\.sql|\.env|\.gitignore|\.git)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# 4. Pengaturan Batas Unggah PHP (jika diizinkan oleh host)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 50M
+    php_value post_max_size 55M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 128M
+</IfModule>
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 50M
+    php_value post_max_size 55M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 128M
+</IfModule>
+<IfModule mod_php8.c>
+    php_value upload_max_filesize 50M
+    php_value post_max_size 55M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 128M
+</IfModule>

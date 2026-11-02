@@ -1,128 +1,168 @@
-# 🎓 Asisten Penilaian Mahasiswa Multimodal (Google Apps Script & Gemini API)
+# 🎓 Asisten Penilaian Mandiri (Web Application & AI Multimodal)
 
-Aplikasi otomatisasi penilaian tugas mahasiswa berbasis **Google Apps Script (GAS)** yang terintegrasi secara mulus dengan **Google Sheets**, **Google Drive**, dan **Gemini API (Multimodal)**. Proyek ini dikembangkan secara lokal menggunakan `@google/clasp`.
+Aplikasi web cerdas untuk otomatisasi penilaian tugas mahasiswa berbasis **PHP 8.x** dan **Google Gemini API (Multimodal)**, dirancang khusus agar siap digunakan langsung pada **Shared Hosting (cPanel / DirectAdmin / Apache / LiteSpeed)** maupun lingkungan lokal.
+
+Aplikasi ini merupakan transformasi penuh dari versi Google Apps Script (GAS) terdahulu, menggantikan Google Sheets dengan **Database Relasional (MySQL / SQLite)** guna menghadirkan performa responsif tanpa batasan kuota, timeout 6 menit, atau latensi spreadsheet.
 
 ---
 
 ## 🌟 Fitur Utama
 
-1. **Alur Kerja Lokal dengan Clasp (`@google/clasp`)**:
-   - Struktur modular rapi di direktori `src/`.
-   - Sinkronisasi instan via `npm run push` tanpa perlu copy-paste manual ke editor browser.
-   - IntelliSense kode lengkap dengan `@types/google-apps-script`.
+1. **Evaluasi Multimodal Berbasis AI (Gemini 3.5 Flash-Lite)**:
+   - Menggunakan model default **`gemini-3.5-flash-lite`** yang sangat cepat, cerdas, berkuota luas, dan hemat biaya.
+   - Format respons terstruktur berbasis **JSON Schema**: menghasilkan skor per butir kriteria, total nilai akumulatif, ulasan ringkas, poin kelebihan, serta saran perbaikan.
+   - **Ekstraksi Rubrik Otomatis**: AI menganalisis berkas soal tugas dan menyusun pembagian porsi poin otomatis (akumulasi 100 poin).
+   - **Pencocokan Cerdas Isi Dokumen (*Content-Based Matching*)**: Jika berkas mahasiswa diunggah tanpa NIM pada nama file (misal `Tugas1.pdf` atau `Laporan.docx`), AI akan membaca sampul/cover dan teks dokumen untuk mengenali NIM & nama pemilik tugas secara akurat.
 
-2. **Evaluasi Multimodal Cerdas (Gemini API via UrlFetchApp)**:
-   - Menggunakan model default **`gemini-3.5-flash-lite`** (cepat, inferensi multimodal akurat, dan batas kuota luas).
-   - Mendukung berbagai format tugas di Google Drive: **PDF, Google Docs/Word, Gambar (PNG, JPG, WebP), Audio, Video, dan Source Code**.
-   - Mendukung berkas acuan **Soal Tugas / Kunci Jawaban di Google Drive** beserta fitur **Ekstrak Otomatis Porsi Poin & Kriteria dari Soal**.
-   - Menghasilkan respon terstruktur (`responseMimeType: "application/json"`) yang mengevaluasi skor per kriteria, total nilai, kelebihan, serta saran perbaikan.
+2. **Fleksibilitas Pengumpulan Tugas (Upload ZIP & Google Drive)**:
+   - **Unggah 1 File ZIP**: Dosen cukup mengunduh berkas pengumpulan tugas dari LMS (Google Classroom, Moodle, Edmodo, dll.) lalu mengunggah berkas ZIP tersebut ke sistem. Server akan mengekstrak otomatis dan memetakan setiap berkas ke mahasiswa yang bersangkutan.
+   - **Unggah Berkas Tunggal / Langsung**: Mendukung format PDF, Word (.docx), gambar (PNG/JPG/WebP), teks, dan kode program (Python, JS, HTML, Java, C++, dll.).
+   - **Tautan Google Drive**: Tetap kompatibel untuk membaca referensi folder/berkas Google Drive publik.
 
-3. **Fleksibilitas Penilaian (Semua Mahasiswa atau Mahasiswa Terpilih Saja)**:
-   - **Nilai Baris yang Dipilih**: Cukup sorot/blok baris mahasiswa tertentu di Google Sheets untuk menilai hanya mahasiswa tersebut (sangat praktis untuk susulan, revisi, atau pengujian).
-   - **Nilai Semua Baris (Batch)** dengan mekanisme **Checkpoint & Resume Otomatis** (batas 6 menit GAS).
+3. **Struktur Berpusat Mata Kuliah (Course-Centric Multi-Class)**:
+   - 1 Mata Kuliah dapat menaungi beberapa kelas paralel (misal: Kelas A, Kelas B, Kelas C).
+   - Tugas dibuat satu kali di tingkat Mata Kuliah dan otomatis berlaku untuk seluruh kelas tanpa perlu mengisi ulang berkas soal atau rubrik nilai.
+   - Mendukung override folder/berkas khusus jika ada kelas yang memiliki tempat pengumpulan berbeda.
 
-4. **Antarmuka Google Sheets Interaktif**:
-   - Custom Menu `"🎓 Asisten Penilaian"` pada toolbar spreadsheet (`onOpen`).
-   - Sidebar pengaturan interaktif untuk konfigurasi API Key, pemilihan model Gemini, Berkas Soal, Folder Jawaban Drive, dan Porsi Poin.
-   - Pencatatan nilai, rincian kriteria, dan catatan ulasan secara *real-time* dengan `SpreadsheetApp.flush()`.
+4. **Penilaian Tanpa Batas Waktu (*Continuous Queue*)**:
+   - Proses penilaian batch dilakukan per-mahasiswa secara asinkron (*AJAX continuous queue*) dilengkapi bilah progres (*progress bar*), log waktu nyata (*real-time log*), tombol jeda/hentikan, dan nada notifikasi selesai.
+   - Bebas dari resiko PHP execution timeout di shared hosting.
+
+5. **Ekspor & Rekapitulasi Nilai Lengkap**:
+   - Rekapitulasi nilai per kelas dengan perhitungan nilai akhir terbobot otomatis berdasarkan persentase tugas.
+   - Ekspor laporan multi-sheet langsung ke format **Excel (.xlsx)** (Sheet 1: Rekap Nilai Kelas, Sheet 2 dst: Rincian Poin & Ulasan tiap tugas) serta opsi salin satu-klik untuk SIAKAD.
+
+---
+
+## 💾 Pilihan Basis Data: MySQL vs. SQLite
+
+Sistem dilengkapi **Database Abstraction Layer (PDO)** yang mendukung kedua driver melalui file `config.php`:
+
+| Parameter | MySQL / MariaDB (Direkomendasikan) | SQLite |
+| :--- | :--- | :--- |
+| **Target Penggunaan** | **Shared Hosting (cPanel / Produksi)** | **Pengembangan Lokal / Portabel** |
+| **Kelebihan** | Mendukung konkurensi banyak pengguna, aman saat penilaian batch, terintegrasi phpMyAdmin | Tanpa instalasi database server, cukup satu file `database.sqlite` |
+| **Pengaturan** | Buat database & user di cPanel, masukkan ke `config.php` | Sudah otomatis aktif secara *default* |
 
 ---
 
 ## 📁 Struktur Direktori
 
 ```text
-AsistenPenilaianGAS/
-├── package.json               # Konfigurasi npm & skrip clasp
-├── .claspignore               # Berkas yang diabaikan saat push ke GAS
-├── .gitignore                 # Berkas kredensial & node_modules
-├── jsconfig.json              # IntelliSense VS Code untuk Apps Script
-├── README.md                  # Dokumentasi proyek
-└── src/                       # Direktori sumber skrip Google Apps Script
-    ├── appsscript.json        # Manifest GAS (OAuth Scopes: Drive, Sheets, Fetch)
-    ├── Config.js              # Manajemen PropertiesService & Default Settings
-    ├── DriveService.js        # Pencarian & konversi berkas tugas di Google Drive
-    ├── GeminiService.js       # Integrasi Gemini Multimodal API & JSON Schema
-    ├── GradingEngine.js       # Pemroses batch sheet, template, & checkpoint timeout
-    ├── Menu.js                # Custom Menu toolbar, triggers, & API bridge
-    └── Sidebar.html           # UI Sidebar Pengaturan & Kontrol Penilaian
+AsistenPenilaianMandiri/
+├── assets/
+│   ├── css/
+│   │   └── style.css          # Styling kustom & animasi
+│   └── js/
+│       └── api.js             # Client API & adapter kompatibilitas UI
+├── config.example.php         # Template konfigurasi basis data & Gemini
+├── config.php                 # Berkas konfigurasi aktif
+├── core/
+│   ├── Database.php           # PDO Database Wrapper (MySQL & SQLite)
+│   └── Helper.php             # Utilitas unik ID, sanitasi, dan JSON helper
+├── services/
+│   ├── GeminiService.php      # Integrasi Gemini 3.5 Flash-Lite (cURL & Multimodal)
+│   ├── FileService.php        # Ekstraksi ZIP, parsing DOCX/PDF, & pencocokan file
+│   └── GradingService.php     # Orkestrasi penilaian per mahasiswa & batch
+├── uploads/                   # Direktori penyimpanan aman berkas tugas & soal
+│   ├── .htaccess              # Mencegah eksekusi skrip berbahaya
+│   └── .gitkeep
+├── .htaccess                  # Konfigurasi Apache / LiteSpeed (keamanan & UTF-8)
+├── .gitignore                 # Berkas kredensial & runtime yang diabaikan
+├── database.sql               # Skema DDL tabel database
+├── install.php                # Web installer & migrator satu-klik
+├── index.php                  # Antarmuka web utama (Single Page Application)
+└── api.php                    # REST API Gateway & endpoint handler
 ```
 
 ---
 
-## 🚀 Panduan Setup & Langkah Pertama
+## 🚀 Panduan Instalasi di Shared Hosting (cPanel)
 
-### Langkah 1: Aktifkan Google Apps Script API (Wajib Satu Kali)
-Sebelum dapat menggunakan `clasp login` dan membuat proyek:
-1. Buka browser dan kunjungi: **[Google Apps Script User Settings](https://script.google.com/home/usersettings)**.
-2. Pastikan opsi **Google Apps Script API** diubah ke posisi **ON** (Aktif).
-
----
-
-### Langkah 2: Otentikasi Login Clasp
-Jalankan perintah berikut di terminal:
-
-```powershell
-npm run login
-```
-*atau:*
-```powershell
-npx clasp login
-```
-Browser akan terbuka otomatis meminta izin akses Google Apps Script. Pilih akun Google Anda dan setujui izinnya. Setelah berhasil, token tersimpan di komputer Anda (`~/.clasprc.json`).
+### Langkah 1: Unggah Berkas ke Hosting
+1. Masuk ke **cPanel** hosting Anda, lalu buka **File Manager**.
+2. Masuk ke direktori `public_html` (atau folder subdomain Anda).
+3. Unggah seluruh berkas proyek ini ke dalam direktori tersebut.
+4. Pastikan direktori `uploads/` memiliki izin tulis (`permission 755` atau `775`).
 
 ---
 
-### Langkah 3: Membuat Proyek Google Sheets Baru Terikat (Container-bound)
-Buat Google Spreadsheet baru yang langsung terikat dengan skrip ini:
+### Langkah 2: Konfigurasi Basis Data (Pilih Salah Satu)
 
-```powershell
-npm run create:sheet
-```
-*atau secara manual:*
-```powershell
-npx clasp create --type sheets --title "Asisten Penilaian Mahasiswa Multimodal" --rootDir ./src
-```
+#### Opsi A: Menggunakan MySQL (Disarankan untuk Produksi)
+1. Di cPanel, buka menu **MySQL® Databases**.
+2. Buat database baru (misal: `u12345_penilaian`).
+3. Buat pengguna database baru dan simpan kata sandinya.
+4. Hubungkan pengguna tersebut ke database dengan hak akses penuh (**ALL PRIVILEGES**).
+5. Salin berkas `config.example.php` menjadi `config.php`:
+   ```php
+   return [
+       'db_driver' => 'mysql',
+       'mysql' => [
+           'host'     => 'localhost',
+           'port'     => 3306,
+           'database' => 'u12345_penilaian',
+           'username' => 'u12345_user',
+           'password' => 'PasswordDatabaseAnda',
+           'charset'  => 'utf8mb4'
+       ],
+       // ...
+   ];
+   ```
+6. Buka URL installer di browser: `https://domain-anda.com/install.php` lalu klik tombol **Jalankan Inisialisasi Basis Data**. Seluruh tabel dan data contoh awal akan otomatis terbuat!
 
-> **Catatan jika ingin menghubungkan ke Spreadsheet yang sudah ada:**
-> Jika Anda sudah memiliki Google Sheets, salin `scriptId` dari editor Apps Script spreadsheet tersebut, lalu buat berkas `.clasp.json` di root:
-> ```json
-> {
->   "scriptId": "YOUR_SCRIPT_ID_HERE",
->   "rootDir": "./src"
-> }
-> ```
-
----
-
-### Langkah 4: Push Kode Lokal ke Google Apps Script
-Kirim seluruh kode dari folder `src/` ke Google Sheets:
-
-```powershell
-npm run push
-```
-
-Untuk membuka Google Spreadsheet dan editor skrip langsung di browser:
-```powershell
-npm run open
-```
+#### Opsi B: Menggunakan SQLite (Zero-Configuration)
+Jika tidak ingin membuat database MySQL di cPanel:
+1. Pastikan `db_driver` pada `config.php` bernilai `'sqlite'`.
+2. Buka `https://domain-anda.com/install.php` untuk memvalidasi dan menginisialisasi basis data `database.sqlite` secara otomatis.
 
 ---
 
-## ⚙️ Penggunaan di Google Sheets
-
-1. **Buka Google Spreadsheet** yang telah dibuat/di-push.
-2. Refresh halaman. Menu kustom **🎓 Asisten Penilaian** akan muncul di bilah toolbar atas.
-3. Klik **🎓 Asisten Penilaian > ⚙️ Pengaturan & Rubrik**:
-   - **Tab API**: Masukkan Gemini API Key Anda (dapat diperoleh gratis dari [Google AI Studio](https://aistudio.google.com/app/apikey)) dan klik *Uji Koneksi*.
-   - **Tab Drive**: Masukkan ID atau URL Folder Google Drive tempat berkas tugas mahasiswa dikumpulkan, lalu klik *Verifikasi Akses*.
-   - **Tab Rubrik**: Sesuaikan deskripsi kriteria dan bobot nilai sesuai mata kuliah Anda (tersedia preset Cepat).
+### Langkah 3: Konfigurasi Gemini API Key
+1. Dapatkan API Key Gemini gratis dari **[Google AI Studio](https://aistudio.google.com/app/apikey)**.
+2. Buka aplikasi web Anda (`https://domain-anda.com`).
+3. Klik ikon roda gigi **⚙️ Pengaturan**:
+   - Masukkan API Key Anda pada kolom **Gemini API Key**.
+   - Pilih model **gemini-3.5-flash-lite**.
+   - Klik **🔍 Uji Koneksi API Key** untuk memastikan koneksi aktif.
    - Klik **💾 Simpan Pengaturan**.
-4. Klik **📋 Siapkan Kolom Template Sheet** untuk membuat kolom standar (`NIM`, `Nama Mahasiswa`, `Berkas`, `Nilai Total`, `Rincian Nilai`, `Catatan & Masukan AI`, `Status Penilaian`, `Waktu Penilaian`).
-5. Masukkan daftar mahasiswa (NIM dan Nama).
-6. Klik **▶️ Mulai / Lanjutkan Penilaian**. Pantau nilai dan ulasan terisi secara otomatis baris demi baris!
 
 ---
 
-## 🛡️ Keamanan & Kredensial
-- API Key Gemini disimpan di `PropertiesService.getUserProperties()`, sehingga API Key bersifat privat bagi akun dosen/penilai dan **tidak akan terekspos** jika file Google Sheets dibagikan kepada asisten atau mahasiswa.
-- Berkas `.clasprc.json` dan token otentikasi diabaikan oleh `.gitignore`.
+## 💻 Menjalankan di Lingkungan Lokal (Local Development)
+
+Jika ingin menjalankan aplikasi di komputer lokal:
+
+1. Pastikan komputer Anda telah terpasang **PHP 8.1+** dengan ekstensi `pdo_sqlite`, `curl`, `zip`, dan `mbstring` aktif.
+2. Jalankan PHP Built-in Server di terminal:
+   ```powershell
+   php -S localhost:8000
+   ```
+3. Buka browser dan akses:
+   ```text
+   http://localhost:8000
+   ```
+4. Aplikasi akan otomatis menginisialisasi database SQLite lokal dan siap digunakan.
+
+---
+
+## 📖 Alur Kerja Penilaian Cepat
+
+1. **Pilih / Buat Mata Kuliah & Kelas**: Di tab **👥 MK & Kelas**, buat mata kuliah (contoh: *Pemrograman Web*) dan kelas paralel (*Kelas A*, *Kelas B*).
+2. **Masukkan Mahasiswa**: Gunakan tombol **📋 Impor Massal** untuk menempelkan daftar NIM dan Nama mahasiswa dari Excel atau SIAKAD.
+3. **Buat Tugas**: Di tab **📝 Kelola Tugas**, tambahkan tugas baru:
+   - Masukkan judul dan bobot nilai.
+   - Klik **🤖 Ekstrak dari Soal** untuk membuat rubrik otomatis.
+4. **Unggah Berkas Tugas**: Di tab **🎓 Penilaian**:
+   - Klik tombol **📦 Upload ZIP Tugas** lalu pilih berkas ZIP tugas mahasiswa dari LMS.
+5. **Mulai Penilaian**:
+   - Klik **▶️ Nilai Semua** atau centang mahasiswa tertentu lalu klik **🎯 Pilihan**.
+   - Perhatikan skor, justifikasi, dan masukan AI terisi secara *real-time*!
+6. **Unduh Rekapitulasi**: Di tab **📊 Rekapitulasi**, klik **📥 Download Excel** untuk mengunduh rekapitulasi nilai multi-sheet.
+
+---
+
+## 🛡️ Keamanan & Lisensi
+- File konfigurasi `config.php` dan database SQLite dilindungi dari akses langsung publik via `.htaccess`.
+- Direktori `uploads/` dilindungi dari eksekusi berkas skrip PHP.
+- Proyek ini dirilis di bawah lisensi MIT untuk kemudahan penggunaan di lingkungan akademik.

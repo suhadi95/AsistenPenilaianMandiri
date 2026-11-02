@@ -1,3 +1,8 @@
+<?php
+require_once __DIR__ . '/core/Database.php';
+// Otomatis inisialisasi basis data jika belum ada
+Database::initDatabase();
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -8,6 +13,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS CDN untuk Ekspor Excel (.xlsx) Multi-Sheet -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- API Gateway Client & Adapter -->
+  <script src="assets/js/api.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -349,6 +356,9 @@
             <button onclick="gradeAllStudents()" id="btnGradeAll" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 sm:px-4 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5">
               <span>▶️</span> <span>Nilai Semua</span>
             </button>
+            <button type="button" onclick="openUploadZipModal()" id="btnUploadZip" class="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Unggah 1 berkas ZIP berisi tugas seluruh mahasiswa">
+              <span>📦</span> <span>Upload ZIP Tugas</span>
+            </button>
             <button type="button" onclick="openCurrentTaskFolder()" id="btnOpenTaskFolder" class="bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Buka folder Google Drive tempat berkas jawaban mahasiswa tersimpan">
               <span>📁</span> <span>Folder Drive</span> <span class="text-[10px] text-slate-400">↗</span>
             </button>
@@ -529,11 +539,11 @@
           <div>
             <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Pilihan Model Gemini</label>
             <select id="selectModelName" class="w-full text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-medium">
-              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Rekomendasi Utama - Cepat & Bebas Kuota)</option>
-              <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Ringan & Cepat)</option>
-              <option value="gemini-3.6-flash">gemini-3.6-flash (Multimodal 3.6)</option>
-              <option value="gemini-flash-latest">gemini-flash-latest</option>
-              <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+              <option value="gemini-3.5-flash-lite" selected>gemini-3.5-flash-lite (Rekomendasi Utama - Cepat & Kuota Luas)</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash (Model Terbaru 2.5)</option>
+              <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (Ringan & Cepat)</option>
+              <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+              <option value="gemini-1.5-pro">gemini-1.5-pro (Penalaran Kompleks)</option>
             </select>
           </div>
 
@@ -822,6 +832,41 @@
       <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
         <button onclick="closeModal('gradeDetailModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Tutup</button>
         <button onclick="submitSaveManualGrade()" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-xs">Simpan Perubahan Nilai</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. MODAL UNGGAH ZIP TUGAS -->
+  <div id="uploadZipModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div>
+          <h3 class="font-bold text-slate-900 text-base">Unggah Berkas ZIP Tugas</h3>
+          <p class="text-xs text-slate-400">Unggah 1 file ZIP berisi berkas tugas mahasiswa dari LMS</p>
+        </div>
+        <button onclick="closeModal('uploadZipModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="p-3 bg-blue-50 text-blue-800 rounded-xl border border-blue-200">
+          <p class="font-semibold">💡 Ekstraksi Otomatis di Server</p>
+          <p class="mt-1 text-[11px] leading-relaxed">
+            Sistem akan otomatis mengekstrak seluruh berkas di dalam ZIP ke folder tugas kelas ini, dan mencocokkan setiap berkas dengan NIM atau Nama mahasiswa secara otomatis saat penilaian.
+          </p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Pilih Berkas ZIP Tugas (.zip)</label>
+          <input type="file" id="inputZipFile" accept=".zip" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+        <div id="uploadZipAlert" class="hidden p-2.5 rounded-xl text-xs font-medium"></div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeModal('uploadZipModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
+        <button onclick="submitUploadZip()" id="btnSubmitZip" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-xs flex items-center gap-1.5">
+          <span>📤 Unggah & Ekstrak</span>
+        </button>
       </div>
     </div>
   </div>
@@ -2224,6 +2269,56 @@
 
     function closeModal(modalId) {
       document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function openUploadZipModal() {
+      const taskId = appState.selectedGradingTaskId;
+      if (!taskId) return alert('Pilih tugas terlebih dahulu!');
+      if (!appState.activeClassId) return alert('Pilih kelas terlebih dahulu!');
+      document.getElementById('inputZipFile').value = '';
+      const alertBox = document.getElementById('uploadZipAlert');
+      if (alertBox) alertBox.classList.add('hidden');
+      openModal('uploadZipModal');
+    }
+
+    async function submitUploadZip() {
+      const fileInput = document.getElementById('inputZipFile');
+      const file = fileInput.files[0];
+      if (!file) return alert('Pilih berkas ZIP tugas terlebih dahulu!');
+
+      const taskId = appState.selectedGradingTaskId;
+      const classId = appState.activeClassId;
+      const btn = document.getElementById('btnSubmitZip');
+      const alertBox = document.getElementById('uploadZipAlert');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner inline-block w-3.5 h-3.5 border-2 border-white/50 border-t-white mr-1"></span> Mengunggah & Mengekstrak...';
+      if (alertBox) {
+        alertBox.className = 'p-2.5 rounded-xl text-xs bg-blue-50 text-blue-800 border border-blue-200 block';
+        alertBox.textContent = 'Sedang mengunggah berkas ZIP dan mengekstrak di server...';
+      }
+
+      try {
+        const res = await AppAPI.uploadSubmissionsZip(taskId, classId, file);
+        if (alertBox) {
+          alertBox.className = 'p-2.5 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block';
+          alertBox.textContent = '✓ ' + res.message;
+        }
+        showGlobalAlert(res.message, 'success');
+        setTimeout(() => {
+          closeModal('uploadZipModal');
+          btn.disabled = false;
+          btn.innerHTML = '<span>📤 Unggah & Ekstrak</span>';
+          loadGradingTable(taskId);
+        }, 1200);
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>📤 Unggah & Ekstrak</span>';
+        if (alertBox) {
+          alertBox.className = 'p-2.5 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block';
+          alertBox.textContent = 'Gagal mengunggah: ' + err.message;
+        }
+      }
     }
 
     // 0. Mata Kuliah Modal

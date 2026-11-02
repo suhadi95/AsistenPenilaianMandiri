@@ -1,16 +1,20 @@
-# Dependency & build
-node_modules/
-package-lock.json
-
-# Clasp auth credentials (sangat penting: jangan pernah commit kredensial ini)
-.clasprc.json
-
-# Environment / local configs
+# Konfigurasi Privat & Basis Data Runtime
+config.php
+database.sqlite
 .env
-.env.local
 *.log
 
-# OS & Editor
+# Berkas Unggahan Tugas Mahasiswa (kecuali file pengaman)
+uploads/*
+!uploads/.gitkeep
+!uploads/.htaccess
+
+# Node & Tooling Lama
+node_modules/
+.clasprc.json
+.clasp.json
+
+# Sistem Operasi & Editor
 .DS_Store
 Thumbs.db
 .vscode/
