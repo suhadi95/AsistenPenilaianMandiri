@@ -563,6 +563,20 @@
             </button>
             <div id="saveSettingsAlert" class="hidden mt-2 p-3 rounded-xl text-xs"></div>
           </div>
+
+          <!-- Zona Pemeliharaan & Reset Database -->
+          <div class="pt-5 border-t border-slate-200 space-y-3">
+            <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider text-rose-600 flex items-center gap-1.5">
+              <span>⚠️</span> Pemeliharaan & Reset Basis Data
+            </h4>
+            <div class="p-3 bg-rose-50/80 border border-rose-200 rounded-xl text-xs text-rose-900 leading-relaxed">
+              Jika tabel atau struktur data lama bermasalah, Anda dapat mengosongkan seluruh database dan menginisialisasi ulang dengan struktur baru yang bersih dan teratur.
+            </div>
+            <button onclick="confirmResetDatabase()" id="btnResetDatabase" class="w-full bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 font-bold text-xs py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-2">
+              🗑️ Reset / Mulai Bersih Database
+            </button>
+            <div id="resetDbAlert" class="hidden mt-2 p-3 rounded-xl text-xs font-medium"></div>
+          </div>
         </div>
       </div>
 
@@ -616,16 +630,18 @@
       <input type="hidden" id="modalClassId">
       <div class="space-y-3 text-xs">
         <div>
+          <label class="block font-semibold text-slate-700 mb-1">Mata Kuliah Induk</label>
+          <select id="modalClassCourseSelect" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-semibold text-slate-800">
+            <!-- options populated via JS -->
+          </select>
+        </div>
+        <div>
           <label class="block font-semibold text-slate-700 mb-1">Nama Kelas</label>
-          <input type="text" id="modalClassName" placeholder="Contoh: Kelas A - Pemrograman Web" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+          <input type="text" id="modalClassName" placeholder="Contoh: Kelas A" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
         </div>
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Mata Kuliah</label>
-          <input type="text" id="modalCourseName" placeholder="Contoh: Pemrograman Web" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Semester / Tahun Akademik</label>
-          <input type="text" id="modalSemester" placeholder="Contoh: Ganjil 2026/2027" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+          <label class="block font-semibold text-slate-700 mb-1">Semester / Tahun Akademik (Opsional)</label>
+          <input type="text" id="modalClassSemester" placeholder="Contoh: Ganjil 2026/2027" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
         </div>
       </div>
 
@@ -700,6 +716,13 @@
 
       <input type="hidden" id="modalTaskId">
       <div class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Mata Kuliah</label>
+          <select id="modalTaskCourseId" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-semibold text-slate-800">
+            <!-- options populated via JS -->
+          </select>
+        </div>
+
         <div>
           <label class="block font-semibold text-slate-700 mb-1">Judul Tugas</label>
           <input type="text" id="modalTaskTitle" placeholder="Contoh: Tugas 1 - Perancangan Database" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
@@ -2266,14 +2289,27 @@
 
     // 1. Kelas Modal
     function openClassModal(classData = null) {
-      document.getElementById('classModalTitle').textContent = classData ? 'Edit Kelas' : 'Tambah Kelas Baru';
-      document.getElementById('modalClassId').value = classData ? classData.id_kelas : '';
-      document.getElementById('modalClassName').value = classData ? classData.nama_kelas : '';
-      document.getElementById('modalClassSemester').value = classData ? classData.semester : '';
+      if (!appState.courses || appState.courses.length === 0) {
+        alert('Belum ada mata kuliah yang terdaftar.\nSistem akan membuka form Tambah Mata Kuliah terlebih dahulu agar kelas Anda terhubung ke mata kuliah.');
+        openCourseModal();
+        return;
+      }
+      const titleEl = document.getElementById('classModalTitle');
+      if (titleEl) titleEl.textContent = classData ? 'Edit Kelas' : 'Tambah Kelas Baru';
 
+      const idEl = document.getElementById('modalClassId');
+      if (idEl) idEl.value = classData ? classData.id_kelas : '';
+
+      const nameEl = document.getElementById('modalClassName');
+      if (nameEl) nameEl.value = classData ? classData.nama_kelas : '';
+
+      const semEl = document.getElementById('modalClassSemester');
+      if (semEl) semEl.value = classData ? (classData.semester || '') : '';
+
+      renderCourseDropdowns();
       const selectCourse = document.getElementById('modalClassCourseSelect');
       if (selectCourse) {
-        selectCourse.value = classData ? classData.id_mata_kuliah : appState.activeCourseId;
+        selectCourse.value = classData ? classData.id_mata_kuliah : (appState.activeCourseId || (appState.courses.length > 0 ? appState.courses[0].id_mata_kuliah : ''));
       }
 
       openModal('classModal');
@@ -2285,33 +2321,45 @@
     }
 
     function submitSaveClass() {
-      const courseId = document.getElementById('modalClassCourseSelect').value;
-      const name = document.getElementById('modalClassName').value.trim();
+      const selectCourse = document.getElementById('modalClassCourseSelect');
+      const courseId = selectCourse ? selectCourse.value : (appState.activeCourseId || (appState.courses.length > 0 ? appState.courses[0].id_mata_kuliah : ''));
+      const nameEl = document.getElementById('modalClassName');
+      const name = nameEl ? nameEl.value.trim() : '';
+
       if (!name) return alert('Nama kelas wajib diisi!');
       if (!courseId) return alert('Pilih mata kuliah induk terlebih dahulu!');
 
+      const idEl = document.getElementById('modalClassId');
+      const semEl = document.getElementById('modalClassSemester');
+
       const data = {
-        id_kelas: document.getElementById('modalClassId').value,
+        id_kelas: idEl ? idEl.value : '',
         id_mata_kuliah: courseId,
         nama_kelas: name,
-        semester: document.getElementById('modalClassSemester').value.trim()
+        semester: semEl ? semEl.value.trim() : ''
       };
 
       const btn = document.getElementById('btnSubmitClass');
-      btn.disabled = true;
-      btn.textContent = 'Menyimpan...';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Menyimpan...';
+      }
 
       google.script.run
         .withSuccessHandler(function(res) {
-          btn.disabled = false;
-          btn.textContent = 'Simpan Kelas';
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Simpan Kelas';
+          }
           closeModal('classModal');
           showGlobalAlert('Kelas berhasil disimpan!', 'success');
           reloadAllData(courseId, res.id_kelas);
         })
         .withFailureHandler(function(err) {
-          btn.disabled = false;
-          btn.textContent = 'Simpan Kelas';
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Simpan Kelas';
+          }
           alert('Gagal menyimpan kelas: ' + err.message);
         })
         .apiSaveClass(data);
@@ -2405,15 +2453,30 @@
 
     // 3. Tugas Modal
     function openCreateTaskModal() {
-      if (appState.courses.length === 0) return alert('Buat mata kuliah terlebih dahulu sebelum membuat tugas!');
-      document.getElementById('taskModalTitle').textContent = 'Buat Tugas Baru';
-      document.getElementById('modalTaskId').value = '';
-      document.getElementById('modalTaskTitle').value = '';
-      document.getElementById('modalTaskDesc').value = '';
-      document.getElementById('modalTaskWeight').value = '25';
-      document.getElementById('modalTaskQuestionRef').value = '';
-      document.getElementById('modalTaskFolderId').value = '';
-      document.getElementById('modalTaskRubric').value = `## PANDUAN PORSI NILAI TUGAS (TOTAL: 100 POIN)
+      if (!appState.courses || appState.courses.length === 0) {
+        alert('Buat mata kuliah terlebih dahulu sebelum membuat tugas!');
+        openCourseModal();
+        return;
+      }
+      renderCourseDropdowns();
+      const titleEl = document.getElementById('taskModalTitle');
+      if (titleEl) titleEl.textContent = 'Buat Tugas Baru';
+
+      const idEl = document.getElementById('modalTaskId');
+      if (idEl) idEl.value = '';
+      const tTitleEl = document.getElementById('modalTaskTitle');
+      if (tTitleEl) tTitleEl.value = '';
+      const tDescEl = document.getElementById('modalTaskDesc');
+      if (tDescEl) tDescEl.value = '';
+      const tWeightEl = document.getElementById('modalTaskWeight');
+      if (tWeightEl) tWeightEl.value = '25';
+      const tRefEl = document.getElementById('modalTaskQuestionRef');
+      if (tRefEl) tRefEl.value = '';
+      const tFolderEl = document.getElementById('modalTaskFolderId');
+      if (tFolderEl) tFolderEl.value = '';
+      const tRubricEl = document.getElementById('modalTaskRubric');
+      if (tRubricEl) {
+        tRubricEl.value = `## PANDUAN PORSI NILAI TUGAS (TOTAL: 100 POIN)
 
 1. Soal 1 (Porsi: 35 Poin)
    - Ketepatan konsep, logika pemikiran, dan keakuratan jawaban.
@@ -2423,13 +2486,19 @@
 
 3. Kerapian & Format (Porsi: 25 Poin)
    - Format penulisan, cover, identitas mahasiswa, dan kerapian berkas.`;
+      }
 
       const courseSelect = document.getElementById('modalTaskCourseId');
-      if (courseSelect) courseSelect.value = appState.activeCourseId;
+      if (courseSelect) {
+        courseSelect.value = appState.activeCourseId || (appState.courses.length > 0 ? appState.courses[0].id_mata_kuliah : '');
+      }
 
-      document.getElementById('verifyTaskAlert').classList.add('hidden');
-      document.getElementById('verifyFolderAlert').classList.add('hidden');
-      document.getElementById('autoExtractAlert').classList.add('hidden');
+      const vTaskAlert = document.getElementById('verifyTaskAlert');
+      if (vTaskAlert) vTaskAlert.classList.add('hidden');
+      const vFolderAlert = document.getElementById('verifyFolderAlert');
+      if (vFolderAlert) vFolderAlert.classList.add('hidden');
+      const aExtAlert = document.getElementById('autoExtractAlert');
+      if (aExtAlert) aExtAlert.classList.add('hidden');
 
       openModal('taskModal');
     }
@@ -2788,6 +2857,49 @@
           alertBox.textContent = 'Gagal menyimpan: ' + err.message;
         })
         .apiSaveSettings(data);
+    }
+
+    function confirmResetDatabase() {
+      const msg = "PERINGATAN KERAS:\n\nApakah Anda yakin ingin mengosongkan seluruh database dan menginisialisasi ulang?\n\nSemua mata kuliah, kelas, tugas, mahasiswa, dan riwayat nilai akan di-reset ke kondisi bawaan awal yang bersih.";
+      if (!confirm(msg)) return;
+
+      const btn = document.getElementById('btnResetDatabase');
+      const alertBox = document.getElementById('resetDbAlert');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Mereset Database...';
+      }
+      showLoading(true);
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '🗑️ Reset / Mulai Bersih Database';
+          }
+          showLoading(false);
+          showGlobalAlert(res.message, 'success');
+          if (alertBox) {
+            alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
+            alertBox.textContent = '✓ ' + res.message;
+            setTimeout(() => alertBox.classList.add('hidden'), 5000);
+          }
+          // Muat ulang seluruh data aplikasi
+          initApp();
+        })
+        .withFailureHandler(function(err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '🗑️ Reset / Mulai Bersih Database';
+          }
+          showLoading(false);
+          showGlobalAlert('Gagal mereset database: ' + err.message, 'error');
+          if (alertBox) {
+            alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
+            alertBox.textContent = 'Galat: ' + err.message;
+          }
+        })
+        .apiResetDatabase();
     }
 
     function showGlobalAlert(msg, type = 'info') {

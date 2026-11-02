@@ -24,10 +24,24 @@ function onOpen() {
     .addSeparator()
     .addItem('📊 Generate / Update Sheet Rekapitulasi', 'menuExportActiveReport')
     .addItem('📋 Inisialisasi Database Kelas', 'menuInitDatabase')
+    .addItem('⚠️ Reset / Bersihkan Basis Data', 'menuResetDatabase')
     .addSeparator()
     .addItem('⚙️ Pengaturan & API Key', 'openSidebar')
     .addItem('ℹ️ Panduan Sistem', 'openHelpDialog')
     .addToUi();
+}
+
+function menuResetDatabase() {
+  const ui = SpreadsheetApp.getUi();
+  const resp = ui.alert(
+    'Konfirmasi Reset Basis Data',
+    'PERINGATAN: Tindakan ini akan mengosongkan seluruh database dan menginisialisasi ulang dengan struktur baru dan contoh data bersih. Apakah Anda yakin?',
+    ui.ButtonSet.YES_NO
+  );
+  if (resp === ui.Button.YES) {
+    const res = DatabaseService.resetDatabase();
+    ui.alert('Berhasil', res.message, ui.ButtonSet.OK);
+  }
 }
 
 /**
@@ -105,6 +119,10 @@ Panduan Sistem Manajemen Mata Kuliah, Kelas & Penilaian Akademik:
 // ==========================================
 // API RPC JEMBATAN UNTUK WEB APP (google.script.run)
 // ==========================================
+
+function apiResetDatabase() {
+  return DatabaseService.resetDatabase();
+}
 
 function apiGetInitialData() {
   DatabaseService.initDatabase();

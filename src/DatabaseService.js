@@ -68,32 +68,116 @@ const DatabaseService = {
     // Jalankan migrasi jika tabel kelas atau tugas masih berformat lama
     this.migrateToCourseHierarchy();
 
-    // Jika belum ada mata kuliah sama sekali, buatkan contoh mata kuliah dan kelas
+    // Auto-repair & penjaminan konsistensi hierarki Mata Kuliah & Kelas
     const courses = this.getCourses();
-    if (courses.length === 0) {
+    let defaultCourseId = courses.length > 0 ? courses[0].id_mata_kuliah : null;
+
+    if (!defaultCourseId) {
       const sampleCourse = this.saveCourse({
         kode_mk: 'IF210',
         nama_mata_kuliah: 'Pemrograman Web',
         semester: 'Ganjil 2026/2027'
       });
+      defaultCourseId = sampleCourse.id_mata_kuliah;
+    }
 
+    const classSheet = this.getOrCreateSheet(DB_SHEETS.CLASSES);
+    if (classSheet.getLastRow() < 2) {
       const sampleClassA = this.saveClass({
-        id_mata_kuliah: sampleCourse.id_mata_kuliah,
+        id_mata_kuliah: defaultCourseId,
         nama_kelas: 'Kelas A',
         semester: 'Ganjil 2026/2027'
       });
 
       this.saveClass({
-        id_mata_kuliah: sampleCourse.id_mata_kuliah,
+        id_mata_kuliah: defaultCourseId,
         nama_kelas: 'Kelas B',
         semester: 'Ganjil 2026/2027'
       });
 
-      // Tambahkan contoh mahasiswa di Kelas A
-      this.saveStudentsBulk(sampleClassA.id_kelas, `2024001\tBudi Santoso\n2024002\tSiti Rahmawati\n2024003\tAhmad Hidayat`);
+      this.saveStudentsBulk(sampleClassA.id_kelas, '2024001\tBudi Santoso\n2024002\tSiti Rahmawati\n2024003\tAhmad Hidayat');
+    } else {
+      // Hubungkan kelas yatim (tanpa id_mata_kuliah valid) ke defaultCourseId
+      const courseIdSet = new Set(this.getCourses().map(c => c.id_mata_kuliah));
+      const classRows = classSheet.getRange(2, 1, classSheet.getLastRow() - 1, 2).getValues();
+      classRows.forEach((r, idx) => {
+        const cId = String(r[1] || '').trim();
+        if (!cId || !courseIdSet.has(cId)) {
+          classSheet.getRange(idx + 2, 2).setValue(defaultCourseId);
+        }
+      });
     }
 
     return { success: true, message: 'Basis data sistem siap digunakan.' };
+  },
+
+  /**
+   * Reset total seluruh basis data ke kondisi awal yang bersih & terstruktur
+   */
+  resetDatabase() {
+    const ss = this.getSpreadsheet();
+    const sheetConfigs = [
+      { name: DB_SHEETS.COURSES, headers: ['id_mata_kuliah', 'kode_mk', 'nama_mata_kuliah', 'semester', 'created_at'] },
+      { name: DB_SHEETS.CLASSES, headers: ['id_kelas', 'id_mata_kuliah', 'nama_kelas', 'semester', 'created_at'] },
+      { name: DB_SHEETS.STUDENTS, headers: ['id_mahasiswa', 'id_kelas', 'nim', 'nama_mahasiswa', 'created_at'] },
+      { name: DB_SHEETS.TASKS, headers: ['id_tugas', 'id_mata_kuliah', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at'] },
+      { name: DB_SHEETS.GRADES, headers: ['id_nilai', 'id_tugas', 'id_kelas', 'nim', 'nama_mahasiswa', 'file_name', 'nilai_total', 'rincian_poin', 'catatan_ai', 'status', 'waktu_penilaian'] },
+      { name: DB_SHEETS.CLASS_FOLDERS, headers: ['id_folder_kelas', 'id_tugas', 'id_kelas', 'drive_folder_id', 'created_at'] }
+    ];
+
+    sheetConfigs.forEach(cfg => {
+      let sheet = ss.getSheetByName(cfg.name);
+      if (sheet) {
+        sheet.clear();
+      } else {
+        sheet = ss.insertSheet(cfg.name);
+      }
+      sheet.getRange(1, 1, 1, cfg.headers.length).setValues([cfg.headers]);
+      sheet.getRange(1, 1, 1, cfg.headers.length)
+           .setBackground('#1e293b')
+           .setFontColor('#ffffff')
+           .setFontWeight('bold')
+           .setHorizontalAlignment('center')
+           .setVerticalAlignment('middle');
+      sheet.setRowHeight(1, 35);
+      sheet.setFrozenRows(1);
+    });
+
+    // Buat data contoh awal yang bersih & konsisten
+    const sampleCourse = this.saveCourse({
+      kode_mk: 'IF210',
+      nama_mata_kuliah: 'Pemrograman Web',
+      semester: 'Ganjil 2026/2027'
+    });
+
+    const sampleClassA = this.saveClass({
+      id_mata_kuliah: sampleCourse.id_mata_kuliah,
+      nama_kelas: 'Kelas A',
+      semester: 'Ganjil 2026/2027'
+    });
+
+    const sampleClassB = this.saveClass({
+      id_mata_kuliah: sampleCourse.id_mata_kuliah,
+      nama_kelas: 'Kelas B',
+      semester: 'Ganjil 2026/2027'
+    });
+
+    // Mahasiswa Kelas A
+    this.saveStudentsBulk(sampleClassA.id_kelas, '2024001\tBudi Santoso\n2024002\tSiti Rahmawati\n2024003\tAhmad Hidayat');
+
+    // Tugas Contoh di tingkat Mata Kuliah
+    this.saveTask({
+      id_mata_kuliah: sampleCourse.id_mata_kuliah,
+      judul_tugas: 'Tugas 1 - Pemrograman Web Dasar',
+      deskripsi: 'Tugas implementasi antarmuka HTML dan CSS responsif.',
+      bobot_persentase: 25,
+      rubrik_text: '## PANDUAN PORSI NILAI TUGAS (TOTAL: 100 POIN)\n\n1. Struktur HTML & Semantik (Porsi: 35 Poin)\n   - Kebersihan tag, struktur hierarki DOM, dan kelengkapan elemen.\n\n2. Tampilan & Responsif CSS (Porsi: 40 Poin)\n   - Kesesuaian styling, penggunaan flexbox/grid, responsivitas layar HP.\n\n3. Kerapian & Format (Porsi: 25 Poin)\n   - Indentasi kode, komentar, kerapian berkas.'
+    });
+
+    return { 
+      success: true, 
+      message: 'Basis data berhasil dibersihkan dan diinisialisasi ulang dengan struktur baru yang siap pakai.' 
+    };
   },
 
   /**
@@ -351,7 +435,23 @@ const DatabaseService = {
   saveClass(data) {
     const sheet = this.getOrCreateSheet(DB_SHEETS.CLASSES, ['id_kelas', 'id_mata_kuliah', 'nama_kelas', 'semester', 'created_at']);
     const classId = data.id_kelas || generateId('KLS');
-    const courseId = data.id_mata_kuliah || '';
+    let courseId = data.id_mata_kuliah || '';
+
+    // Auto-repair: jika courseId kosong, hubungkan ke mata kuliah pertama atau buatkan default
+    if (!courseId) {
+      const courses = this.getCourses();
+      if (courses.length > 0) {
+        courseId = courses[0].id_mata_kuliah;
+      } else {
+        const defaultCourse = this.saveCourse({
+          kode_mk: 'IF210',
+          nama_mata_kuliah: 'Pemrograman Web',
+          semester: data.semester || 'Ganjil 2026/2027'
+        });
+        courseId = defaultCourse.id_mata_kuliah;
+      }
+    }
+
     const lastRow = sheet.getLastRow();
 
     if (data.id_kelas && lastRow >= 2) {
@@ -612,7 +712,11 @@ const DatabaseService = {
   saveTask(data) {
     const sheet = this.getOrCreateSheet(DB_SHEETS.TASKS, ['id_tugas', 'id_mata_kuliah', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']);
     const taskId = data.id_tugas || generateId('TGS');
-    const courseId = data.id_mata_kuliah || '';
+    let courseId = data.id_mata_kuliah || '';
+    if (!courseId) {
+      const courses = this.getCourses();
+      if (courses.length > 0) courseId = courses[0].id_mata_kuliah;
+    }
     const lastRow = sheet.getLastRow();
     const cleanFolderId = extractDriveFolderId(data.drive_folder_id) || (data.drive_folder_id || '').trim();
 
