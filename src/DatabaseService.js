@@ -662,6 +662,55 @@ const DatabaseService = {
     };
   },
 
+  /**
+   * Mengambil data rekapitulasi lengkap beserta rincian seluruh tugas untuk ekspor Excel multi-sheet
+   * @param {string} classId
+   * @return {Object}
+   */
+  getClassFullExportData(classId) {
+    const report = this.getClassReport(classId);
+    const cleanId = String(classId).trim();
+    const grades = this.getGradesByClass(cleanId);
+    const students = this.getStudentsByClass(cleanId);
+
+    // Siapkan detail per tugas
+    const taskDetails = report.tasks.map(task => {
+      const taskGrades = students.map((st, idx) => {
+        const nimKey = st.nim.trim().toLowerCase();
+        const g = grades.find(item => item.id_tugas === task.id_tugas && item.nim.trim().toLowerCase() === nimKey);
+
+        let scoreVal = '-';
+        if (g && g.nilai_total !== null && g.nilai_total !== undefined && !isNaN(g.nilai_total)) {
+          scoreVal = Number(g.nilai_total);
+        }
+
+        return {
+          no: idx + 1,
+          nim: st.nim,
+          nama_mahasiswa: st.nama_mahasiswa,
+          file_name: g ? (g.file_name || '-') : '-',
+          nilai_total: scoreVal,
+          rincian_poin: g ? (g.rincian_poin || '-') : '-',
+          catatan_ai: g ? (g.catatan_ai || '-') : '-',
+          status: g ? (g.status || 'Belum Dinilai') : 'Belum Dinilai',
+          waktu_penilaian: g ? (g.waktu_penilaian || '-') : '-'
+        };
+      });
+
+      return {
+        task: task,
+        grades: taskGrades
+      };
+    });
+
+    return {
+      success: true,
+      classInfo: report.classInfo,
+      report: report,
+      taskDetails: taskDetails
+    };
+  },
+
   // Helper hapus baris berdasarkan nilai kolom
   deleteRowsByColumnValue(sheetName, colIndex, targetValue) {
     const ss = this.getSpreadsheet();

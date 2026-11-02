@@ -221,6 +221,10 @@ function apiExportReportToSheet(classId) {
   return DatabaseService.exportReportToSheet(classId);
 }
 
+function apiGetClassFullExportData(classId) {
+  return DatabaseService.getClassFullExportData(classId);
+}
+
 // Utilitas & Integrasi
 function apiValidateDriveFolder(folderId) {
   return DriveService.validateFolder(folderId);
