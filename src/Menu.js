@@ -106,15 +106,58 @@ Panduan Sistem Manajemen Kelas & Penilaian Akademik:
 // ==========================================
 
 function apiGetInitialData() {
-  DatabaseService.initDatabase();
-  const settings = getAppSettings();
-  const classes = DatabaseService.getClasses();
-  const webAppUrl = ScriptApp.getService().getUrl() || '';
+  try {
+    DatabaseService.initDatabase();
+    const settings = getAppSettings();
+    const classes = DatabaseService.getClasses() || [];
+    
+    let activeClassId = settings.activeClassId || '';
+    if (!activeClassId && classes.length > 0) {
+      activeClassId = classes[0].id_kelas;
+    }
 
+    let initialStudents = [];
+    let initialTasks = [];
+    if (activeClassId) {
+      initialStudents = DatabaseService.getStudentsByClass(activeClassId) || [];
+      initialTasks = DatabaseService.getTasksByClass(activeClassId) || [];
+    }
+
+    let webAppUrl = '';
+    try {
+      webAppUrl = ScriptApp.getService().getUrl() || '';
+    } catch (e) {}
+
+    return {
+      success: true,
+      settings: settings,
+      classes: classes,
+      activeClassId: activeClassId,
+      initialStudents: initialStudents,
+      initialTasks: initialTasks,
+      webAppUrl: webAppUrl
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || String(error),
+      settings: getAppSettings(),
+      classes: [],
+      activeClassId: '',
+      initialStudents: [],
+      initialTasks: [],
+      webAppUrl: ''
+    };
+  }
+}
+
+function apiGetClassDetails(classId) {
+  if (!classId) return { students: [], tasks: [] };
+  const students = DatabaseService.getStudentsByClass(classId) || [];
+  const tasks = DatabaseService.getTasksByClass(classId) || [];
   return {
-    settings: settings,
-    classes: classes,
-    webAppUrl: webAppUrl
+    students: students,
+    tasks: tasks
   };
 }
 
@@ -170,30 +213,8 @@ function apiGetGradesByTask(taskId) {
   return DatabaseService.getGradesByTask(taskId);
 }
 
-function apiGradeSingleStudent(taskId, studentNim) {
-  const task = DatabaseService.getTaskById(taskId);
-  if (!task) throw new Error('Tugas tidak ditemukan.');
-
-  const settings = getAppSettings();
-  if (!settings.rawApiKey) {
-    throw new Error('Gemini API Key belum dimasukkan di menu Pengaturan.');
-  }
-  if (!task.drive_folder_id) {
-    throw new Error('Folder Google Drive jawaban mahasiswa belum diisi pada tugas ini.');
-  }
-
-  const students = DatabaseService.getStudentsByClass(task.id_kelas);
-  const student = students.find(s => String(s.nim).trim() === String(studentNim).trim());
-  if (!student) {
-    throw new Error(`Mahasiswa dengan NIM "${studentNim}" tidak ditemukan dalam kelas ini.`);
-  }
-
-  let taskQuestionData = null;
-  if (task.task_file_ref) {
-    taskQuestionData = DriveService.getTaskQuestionPayload(task.task_file_ref);
-  }
-
-  return GradingService.gradeStudent(task, student, settings, taskQuestionData);
+function apiGradeSingleStudent(taskId, nim) {
+  return GradingService.gradeSingleStudent(taskId, nim);
 }
 
 function apiGradeSelectedStudents(taskId, studentNims) {
