@@ -304,6 +304,9 @@
 
           <!-- Action Buttons -->
           <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="openCurrentTaskFolder()" id="btnOpenTaskFolder" class="bg-white border border-slate-200 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/40 text-slate-700 font-semibold text-xs px-3.5 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer" title="Buka folder Google Drive tempat berkas jawaban mahasiswa tersimpan">
+              <span>📂</span> <span>Buka Folder Jawaban</span> <span class="text-[10px] text-slate-400">↗</span>
+            </button>
             <button onclick="gradeSelectedStudents()" id="btnGradeSelected" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50" disabled>
               🎯 Nilai yang Dipilih (<span id="selectedCountBadge">0</span>)
             </button>
@@ -322,13 +325,23 @@
             <span class="text-slate-400 font-medium">Bobot Nilai Akhir:</span>
             <p class="font-bold text-slate-800 text-sm mt-0.5" id="taskInfoWeight">0%</p>
           </div>
-          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <span class="text-slate-400 font-medium">Berkas Soal Acuan:</span>
-            <p class="font-semibold text-blue-600 truncate mt-0.5" id="taskInfoQuestion">Ada</p>
+          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between gap-2">
+            <div class="truncate">
+              <span class="text-slate-400 font-medium">Berkas Soal Acuan:</span>
+              <p class="font-semibold text-blue-600 truncate mt-0.5" id="taskInfoQuestion">Ada</p>
+            </div>
+            <button type="button" onclick="openCurrentTaskQuestion()" id="btnCardOpenQuestion" class="px-2.5 py-1 bg-white border border-slate-200 hover:border-blue-400 hover:text-blue-600 rounded-lg text-[11px] font-semibold text-slate-700 transition flex items-center gap-1 shadow-sm shrink-0" title="Buka berkas soal di Google Drive">
+              <span>📄</span> <span>Lihat Soal</span> <span class="text-[9px]">↗</span>
+            </button>
           </div>
-          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <span class="text-slate-400 font-medium">Folder Jawaban Mahasiswa:</span>
-            <p class="font-semibold text-slate-800 truncate mt-0.5" id="taskInfoFolder">Terhubung</p>
+          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between gap-2">
+            <div class="truncate">
+              <span class="text-slate-400 font-medium">Folder Jawaban Mahasiswa:</span>
+              <p class="font-semibold text-slate-800 truncate mt-0.5" id="taskInfoFolder">Terhubung</p>
+            </div>
+            <button type="button" onclick="openCurrentTaskFolder()" id="btnCardOpenFolder" class="px-2.5 py-1 bg-white border border-slate-200 hover:border-blue-400 hover:text-blue-600 rounded-lg text-[11px] font-semibold text-slate-700 transition flex items-center gap-1 shadow-sm shrink-0" title="Buka folder jawaban di Google Drive">
+              <span>📂</span> <span>Buka Drive</span> <span class="text-[9px]">↗</span>
+            </button>
           </div>
         </div>
 
@@ -1049,6 +1062,50 @@
       }
     }
 
+    function openCurrentTaskFolder() {
+      const taskId = appState.selectedGradingTaskId;
+      if (!taskId) {
+        return alert('Pilih tugas terlebih dahulu.');
+      }
+      const task = appState.currentTasks.find(t => t.id_tugas === taskId);
+      if (!task || !task.drive_folder_id) {
+        return alert('Folder Google Drive jawaban mahasiswa belum diatur untuk tugas ini. Silakan klik tombol "Edit" pada tugas ini untuk mengisi ID/link folder Drive.');
+      }
+
+      const folderIdOrUrl = String(task.drive_folder_id).trim();
+      let targetUrl = folderIdOrUrl;
+
+      // Jika formatnya hanya folder ID mentah, ubah ke URL Google Drive standar
+      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        targetUrl = `https://drive.google.com/drive/folders/${folderIdOrUrl}`;
+      }
+
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    function openCurrentTaskQuestion() {
+      const taskId = appState.selectedGradingTaskId;
+      if (!taskId) return alert('Pilih tugas terlebih dahulu.');
+      const task = appState.currentTasks.find(t => t.id_tugas === taskId);
+      if (!task || !task.task_file_ref) {
+        return alert('Tautan berkas soal tugas belum diisi.');
+      }
+
+      const ref = String(task.task_file_ref).trim();
+      let targetUrl = ref;
+
+      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        if (ref.length > 20 && !ref.includes(' ')) {
+          targetUrl = `https://drive.google.com/file/d/${ref}/view`;
+        } else {
+          alert('Instruksi Soal Tugas:\n\n' + ref);
+          return;
+        }
+      }
+
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+
     function loadGradingTable(taskId) {
       if (typeof gradingQueue !== 'undefined' && gradingQueue.isRunning) {
         alert('Penilaian sedang berlangsung. Harap hentikan atau tunggu antrean selesai sebelum mengganti tugas.');
@@ -1076,7 +1133,21 @@
         document.getElementById('gradingTaskInfo').classList.remove('hidden');
         document.getElementById('taskInfoWeight').textContent = (task.bobot_persentase > 0 ? task.bobot_persentase + '%' : 'Rata-rata');
         document.getElementById('taskInfoQuestion').textContent = task.task_file_ref ? 'Tercatat di Drive' : 'Belum diisi';
-        document.getElementById('taskInfoFolder').textContent = task.drive_folder_id ? 'Tercatat di Drive' : 'Belum diisi';
+        document.getElementById('taskInfoFolder').textContent = task.drive_folder_id ? 'Terhubung di Drive' : 'Belum diisi';
+
+        const btnQuestion = document.getElementById('btnCardOpenQuestion');
+        if (btnQuestion) btnQuestion.style.display = task.task_file_ref ? 'inline-flex' : 'none';
+
+        const btnCardFolder = document.getElementById('btnCardOpenFolder');
+        if (btnCardFolder) btnCardFolder.style.display = task.drive_folder_id ? 'inline-flex' : 'none';
+
+        const btnFolder = document.getElementById('btnOpenTaskFolder');
+        if (btnFolder) {
+          btnFolder.disabled = !task.drive_folder_id;
+          btnFolder.className = task.drive_folder_id
+            ? 'bg-white border border-slate-200 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/40 text-slate-700 font-semibold text-xs px-3.5 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer'
+            : 'bg-slate-50 border border-slate-200 text-slate-400 font-semibold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-not-allowed opacity-60';
+        }
       }
 
       const tbody = document.getElementById('gradingTableBody');
@@ -1130,7 +1201,9 @@
             </td>
             <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${g.nim}</td>
             <td class="px-4 py-2.5 font-medium text-slate-900">${g.nama_mahasiswa}</td>
-            <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[130px]" title="${g.file_name || '-'}">${g.file_name || '-'}</td>
+            <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[140px]" title="${g.file_name || '-'}">
+              ${g.file_name ? `<span class="cursor-pointer hover:text-blue-600 hover:underline inline-flex items-center gap-1" onclick="openCurrentTaskFolder()" title="Klik untuk membuka folder Google Drive"><span>📄</span><span class="truncate">${g.file_name}</span></span>` : '-'}
+            </td>
             <td id="score-cell-${g.nim}" class="px-4 py-2.5 text-center font-bold text-sm ${isCompleted ? 'text-blue-700' : 'text-slate-400'}">${g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '-'}</td>
             <td id="points-cell-${g.nim}" class="px-4 py-2.5 text-slate-600 line-clamp-1 max-w-[200px]" title="${g.rincian_poin || g.status || '-'}">${pointsContent}</td>
             <td id="status-cell-${g.nim}" class="px-4 py-2.5 text-center">${statusBadge}</td>
@@ -1309,7 +1382,7 @@
           row.className = 'bg-emerald-50/40 hover:bg-emerald-50/70 border-l-4 border-l-emerald-500 transition';
         }
         if (fileCell && data.fileName) {
-          fileCell.textContent = data.fileName;
+          fileCell.innerHTML = `<span class="cursor-pointer hover:text-blue-600 hover:underline inline-flex items-center gap-1" onclick="openCurrentTaskFolder()" title="Klik untuk membuka folder Google Drive"><span>📄</span><span class="truncate">${data.fileName}</span></span>`;
           fileCell.title = data.fileName;
         }
         if (scoreCell) {
