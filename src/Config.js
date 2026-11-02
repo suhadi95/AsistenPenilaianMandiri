@@ -23,23 +23,24 @@ const DEFAULT_SETTINGS = {
 };
 
 /**
- * Mengambil pengaturan aplikasi (API Key, Model, dsb) secara aman
+ * Mengambil pengaturan aplikasi (API Key, Model, dsb)
  * @return {Object}
  */
 function getAppSettings() {
-  const userProps = PropertiesService.getUserProperties();
+  let userProps = null;
+  try { userProps = PropertiesService.getUserProperties(); } catch (e) {}
   let scriptProps = null;
   try { scriptProps = PropertiesService.getScriptProperties(); } catch (e) {}
   let docProps = null;
   try { docProps = PropertiesService.getDocumentProperties(); } catch (e) {}
 
-  const apiKey = userProps.getProperty(CONFIG_KEYS.GEMINI_API_KEY) || 
+  const apiKey = (userProps ? userProps.getProperty(CONFIG_KEYS.GEMINI_API_KEY) : '') || 
                  (scriptProps ? scriptProps.getProperty(CONFIG_KEYS.GEMINI_API_KEY) : '') ||
                  (docProps ? docProps.getProperty(CONFIG_KEYS.GEMINI_API_KEY) : '') || '';
 
   const modelName = (scriptProps ? scriptProps.getProperty(CONFIG_KEYS.MODEL_NAME) : '') ||
                     (docProps ? docProps.getProperty(CONFIG_KEYS.MODEL_NAME) : '') ||
-                    userProps.getProperty(CONFIG_KEYS.MODEL_NAME) || 
+                    (userProps ? userProps.getProperty(CONFIG_KEYS.MODEL_NAME) : '') || 
                     DEFAULT_SETTINGS.modelName;
 
   const activeClassId = (scriptProps ? scriptProps.getProperty(CONFIG_KEYS.ACTIVE_CLASS_ID) : '') ||
@@ -62,7 +63,8 @@ function getAppSettings() {
  */
 function saveAppSettings(data) {
   try {
-    const userProps = PropertiesService.getUserProperties();
+    let userProps = null;
+    try { userProps = PropertiesService.getUserProperties(); } catch (e) {}
     let scriptProps = null;
     try { scriptProps = PropertiesService.getScriptProperties(); } catch (e) {}
     let docProps = null;
@@ -70,19 +72,19 @@ function saveAppSettings(data) {
 
     if (data.apiKey && !data.apiKey.includes('****')) {
       const cleanKey = data.apiKey.trim();
-      userProps.setProperty(CONFIG_KEYS.GEMINI_API_KEY, cleanKey);
+      if (userProps) userProps.setProperty(CONFIG_KEYS.GEMINI_API_KEY, cleanKey);
       if (scriptProps) scriptProps.setProperty(CONFIG_KEYS.GEMINI_API_KEY, cleanKey);
     }
 
     if (data.modelName) {
       const cleanModel = data.modelName.trim();
-      userProps.setProperty(CONFIG_KEYS.MODEL_NAME, cleanModel);
+      if (userProps) userProps.setProperty(CONFIG_KEYS.MODEL_NAME, cleanModel);
       if (scriptProps) scriptProps.setProperty(CONFIG_KEYS.MODEL_NAME, cleanModel);
       if (docProps) docProps.setProperty(CONFIG_KEYS.MODEL_NAME, cleanModel);
     }
 
     if (data.activeClassId !== undefined) {
-      userProps.setProperty(CONFIG_KEYS.ACTIVE_CLASS_ID, data.activeClassId);
+      if (userProps) userProps.setProperty(CONFIG_KEYS.ACTIVE_CLASS_ID, data.activeClassId);
       if (scriptProps) scriptProps.setProperty(CONFIG_KEYS.ACTIVE_CLASS_ID, data.activeClassId);
       if (docProps) docProps.setProperty(CONFIG_KEYS.ACTIVE_CLASS_ID, data.activeClassId);
     }

@@ -4,7 +4,7 @@
 
 const DatabaseService = {
   /**
-   * Mengambil Spreadsheet aktif atau membuka melalui ID terikat jika dijalankan via Web App
+   * Mengambil Spreadsheet aktif
    */
   getSpreadsheet() {
     let ss = null;
