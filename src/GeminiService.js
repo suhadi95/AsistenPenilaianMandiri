@@ -378,6 +378,92 @@ INSTRUKSI PENILAIAN:
    * @param {string} model - Nama model Gemini
    * @return {Object|null} { nim: string, nama: string }
    */
+    /**
+   * Memeriksa apakah sebuah dokumen memuat NIM atau Nama mahasiswa target secara spesifik
+   * @param {Object} filePayload - Payload berkas dari DriveService.processFileForGemini
+   * @param {string} targetNim - NIM yang dicari
+   * @param {string} targetNama - Nama yang dicari
+   * @param {string} apiKey - Gemini API Key
+   * @param {string} model - Nama model Gemini
+   * @return {Object|null} { isMatch: boolean, detectedNim: string, detectedNama: string }
+   */
+  checkDocumentBelongsToStudent(filePayload, targetNim, targetNama, apiKey, model) {
+    if (!apiKey) return null;
+    const selectedModel = model || 'gemini-3.5-flash-lite';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+
+    const parts = [];
+    parts.push({
+      text: `Periksa dokumen tugas mahasiswa berikut ini secara teliti.
+TUGAS ANDA:
+Periksa apakah dokumen ini adalah berkas tugas milik mahasiswa dengan:
+• Target NIM  : "${targetNim || '-'}"
+• Target Nama : "${targetNama || '-'}"
+
+PETUNJUK PEMERIKSAAN:
+1. Telusuri seluruh halaman dokumen: cover depan, judul/header, footer, tabel identitas penulis, halaman pertama, atau teks di dalam dokumen.
+2. Temukan nomor induk mahasiswa (NIM / NPM / No. Mahasiswa) dan nama mahasiswa yang tertera.
+3. Tentukan apakah ada kecocokan dengan Target NIM atau Target Nama di atas (isMatch: true/false).
+
+Kembalikan format JSON persis sesuai schema.`
+    });
+
+    if (filePayload.isTextOnly) {
+      const snippet = (filePayload.textContent || '').slice(0, 10000);
+      parts.push({ text: `=== AWAL DOKUMEN ===\n${snippet}\n=== AKHIR DOKUMEN ===` });
+    } else if (filePayload.base64Data) {
+      parts.push({
+        inline_data: {
+          mime_type: filePayload.mimeType,
+          data: filePayload.base64Data
+        }
+      });
+    } else {
+      return null;
+    }
+
+    const payload = {
+      contents: [{ parts: parts }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 200,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            isMatch: { type: 'BOOLEAN', description: 'True jika dokumen memuat NIM atau Nama target' },
+            detectedNim: { type: 'STRING', description: 'NIM yang ditemukan di dalam dokumen' },
+            detectedNama: { type: 'STRING', description: 'Nama mahasiswa yang ditemukan di dalam dokumen' }
+          },
+          required: ['isMatch', 'detectedNim', 'detectedNama']
+        }
+      }
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    try {
+      const response = UrlFetchApp.fetch(url, options);
+      if (response.getResponseCode() !== 200) {
+        console.warn('Gemini checkDocumentBelongsToStudent HTTP ' + response.getResponseCode() + ': ' + response.getContentText().slice(0, 200));
+        return null;
+      }
+      const resJson = JSON.parse(response.getContentText());
+      const candidate = resJson.candidates && resJson.candidates[0];
+      if (!candidate || !candidate.content || !candidate.content.parts || !candidate.content.parts[0]) return null;
+      const rawText = candidate.content.parts[0].text;
+      return JSON.parse(rawText);
+    } catch (e) {
+      console.warn('Gagal memeriksa kepemilikan dokumen via Gemini: ' + e.message);
+      return null;
+    }
+  },
+
   identifyStudentFromDocument(filePayload, apiKey, model) {
     if (!apiKey) return null;
     const selectedModel = model || 'gemini-3.5-flash-lite';

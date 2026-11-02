@@ -186,6 +186,45 @@ const DriveService = {
     }
   },
 
+    /**
+   * Mengambil seluruh berkas dari folder utama dan subfolder di dalamnya
+   * @param {Folder} folder
+   * @return {Array<File>}
+   */
+  getAllFilesInFolder(folder) {
+    const allFiles = [];
+    try {
+      const mainFiles = folder.getFiles();
+      while (mainFiles.hasNext()) {
+        allFiles.push(mainFiles.next());
+      }
+    } catch (e) {}
+
+    try {
+      const subfolders = folder.getFolders();
+      while (subfolders.hasNext()) {
+        const sub = subfolders.next();
+        const subFiles = sub.getFiles();
+        while (subFiles.hasNext()) {
+          allFiles.push(subFiles.next());
+        }
+        // Periksa 1 kedalaman subfolder lagi jika ada
+        const subSubfolders = sub.getFolders();
+        while (subSubfolders.hasNext()) {
+          const subSub = subSubfolders.next();
+          const subSubFiles = subSub.getFiles();
+          while (subSubFiles.hasNext()) {
+            allFiles.push(subSubFiles.next());
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Gagal membaca subfolder: ' + e.message);
+    }
+
+    return allFiles;
+  },
+
   /**
    * Mencari berkas di dalam folder berdasarkan prioritas: NIM > Nama > Filename
    */
@@ -193,13 +232,14 @@ const DriveService = {
     const cleanNim = (nim || '').toString().trim().toLowerCase();
     const cleanNama = (nama || '').toString().trim().toLowerCase();
     const cleanCustom = (customFileName || '').toString().trim().toLowerCase();
+    const sanitizedNim = cleanNim.replace(/[^0-9a-z]/g, '');
 
-    const files = folder.getFiles();
+    const allFiles = this.getAllFilesInFolder(folder);
     let candidateByName = null;
 
-    while (files.hasNext()) {
-      const file = files.next();
+    for (const file of allFiles) {
       const fileNameLower = file.getName().toLowerCase();
+      const sanitizedFileName = fileNameLower.replace(/[^0-9a-z]/g, '');
 
       // Prioritas 1: Cocok dengan nama file spesifik jika diinput
       if (cleanCustom && (fileNameLower === cleanCustom || fileNameLower.includes(cleanCustom))) {
@@ -207,9 +247,6 @@ const DriveService = {
       }
 
       // Prioritas 2: Cocok dengan NIM (menghilangkan tanda titik/strip)
-      const sanitizedNim = cleanNim.replace(/[^0-9a-z]/g, '');
-      const sanitizedFileName = fileNameLower.replace(/[^0-9a-z]/g, '');
-
       if (cleanNim && (fileNameLower.includes(cleanNim) || (sanitizedNim.length >= 4 && sanitizedFileName.includes(sanitizedNim)))) {
         return file;
       }
@@ -217,21 +254,6 @@ const DriveService = {
       // Simpan kandidat cadangan jika nama mahasiswa cocok
       if (!candidateByName && cleanNama && cleanNama.length > 3 && fileNameLower.includes(cleanNama)) {
         candidateByName = file;
-      }
-    }
-
-    // Jika pencarian file di folder utama belum dapat, cek apakah mahasiswa punya subfolder
-    if (!candidateByName) {
-      const subfolders = folder.getFolders();
-      while (subfolders.hasNext()) {
-        const sub = subfolders.next();
-        const subName = sub.getName().toLowerCase();
-        if ((cleanNim && subName.includes(cleanNim)) || (cleanNama && subName.includes(cleanNama))) {
-          const subFiles = sub.getFiles();
-          if (subFiles.hasNext()) {
-            return subFiles.next();
-          }
-        }
       }
     }
 
@@ -243,15 +265,18 @@ const DriveService = {
    * @param {Blob} blob
    * @return {string}
    */
-  extractTextFromDocx(blob) {
+    extractTextFromDocx(blob) {
     try {
       const unzipped = Utilities.unzip(blob);
+      let fullText = '';
       for (const item of unzipped) {
-        if (item.getName() === 'word/document.xml') {
+        const itemName = item.getName();
+        if (itemName.startsWith('word/') && (itemName.includes('document') || itemName.includes('header') || itemName.includes('footer'))) {
           const xml = item.getDataAsString('UTF-8');
-          return xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          fullText += ' ' + xml.replace(/<[^>]+>/g, ' ');
         }
       }
+      return fullText.replace(/\s+/g, ' ').trim();
     } catch (e) {
       console.warn('Gagal membaca struktur .docx XML: ' + e.message);
     }
@@ -268,9 +293,15 @@ const DriveService = {
       const mime = file.getMimeType();
       const name = file.getName().toLowerCase();
 
-      // Google Docs
+      // Google Docs (termasuk header dan footer)
       if (mime === MimeType.GOOGLE_DOCS) {
-        return DocumentApp.openById(file.getId()).getBody().getText();
+        const doc = DocumentApp.openById(file.getId());
+        let txt = doc.getBody().getText();
+        const hdr = doc.getHeader();
+        if (hdr) txt += ' ' + hdr.getText();
+        const ftr = doc.getFooter();
+        if (ftr) txt += ' ' + ftr.getText();
+        return txt;
       }
 
       // Google Sheets
@@ -337,26 +368,24 @@ const DriveService = {
    * @param {Object} cache
    * @return {File|null}
    */
-  searchFileByContent(folder, nim, nama, allStudentNims = [], apiKey = '', modelName = '', cache = null) {
+    searchFileByContent(folder, nim, nama, allStudentNims = [], apiKey = '', modelName = '', cache = null) {
     const cleanNim = (nim || '').toString().trim().toLowerCase();
     const sanitizedNim = cleanNim.replace(/[^0-9a-z]/g, '');
     const cleanNama = (nama || '').toString().trim().toLowerCase();
 
-    // Himpunan NIM mahasiswa lain untuk memeriksa kepemilikan nama file
+    // Himpunan NIM mahasiswa lain untuk memeriksa kepemilikan nama file (hanya jika panjang >= 5)
     const otherNimsSanitized = allStudentNims
       .map(n => String(n).trim().toLowerCase().replace(/[^0-9a-z]/g, ''))
-      .filter(n => n.length >= 4 && n !== sanitizedNim);
+      .filter(n => n.length >= 5 && n !== sanitizedNim);
 
-    const files = folder.getFiles();
+    const allFiles = this.getAllFilesInFolder(folder);
     const candidateFiles = [];
 
     // Filter berkas di folder: abaikan berkas yang nama filenya sudah jelas memuat NIM mahasiswa lain
-    while (files.hasNext()) {
-      const file = files.next();
+    for (const file of allFiles) {
       const fileNameLower = file.getName().toLowerCase();
       const sanitizedFileName = fileNameLower.replace(/[^0-9a-z]/g, '');
 
-      // Apakah nama file ini memuat NIM mahasiswa lain?
       const isOtherStudentFile = otherNimsSanitized.some(otherNim => sanitizedFileName.includes(otherNim));
       if (!isOtherStudentFile) {
         candidateFiles.push(file);
@@ -370,23 +399,25 @@ const DriveService = {
 
     for (const file of candidateFiles) {
       const extractedText = this.extractTextFromFile(file);
-      if (extractedText && extractedText.length > 10) {
+      if (extractedText && extractedText.length > 5) {
         const textLower = extractedText.toLowerCase();
         const sanitizedText = textLower.replace(/[^0-9a-z]/g, '');
 
         const nimMatched = cleanNim && (textLower.includes(cleanNim) || (sanitizedNim.length >= 4 && sanitizedText.includes(sanitizedNim)));
-        const namaMatched = cleanNama && cleanNama.length >= 5 && textLower.includes(cleanNama);
+        const namaMatched = cleanNama && cleanNama.length >= 4 && textLower.includes(cleanNama);
 
         if (nimMatched || namaMatched) {
           return file;
         }
-      } else {
-        // Simpan berkas biner/PDF terkompresi yang tidak menghasilkan teks mentah
-        const mime = file.getMimeType();
-        const name = file.getName().toLowerCase();
-        if (mime === MimeType.PDF || name.endsWith('.pdf') || mime.startsWith('image/')) {
-          geminiCandidates.push(file);
-        }
+      }
+
+      // PENTING: Jika belum cocok di Tier 1, SELALU masukkan berkas PDF, Word, atau Gambar ke geminiCandidates!
+      const mime = file.getMimeType();
+      const name = file.getName().toLowerCase();
+      if (mime === MimeType.PDF || name.endsWith('.pdf') ||
+          mime.includes('word') || name.endsWith('.docx') || name.endsWith('.doc') ||
+          mime.startsWith('image/')) {
+        geminiCandidates.push(file);
       }
     }
 
@@ -399,19 +430,25 @@ const DriveService = {
         if (!identified) {
           const payload = this.processFileForGemini(file);
           if (payload && payload.success) {
-            identified = GeminiService.identifyStudentFromDocument(payload, apiKey, modelName);
+            // Cek langsung kecocokan dokumen dengan target mahasiswa
+            if (typeof GeminiService.checkDocumentBelongsToStudent === 'function') {
+              identified = GeminiService.checkDocumentBelongsToStudent(payload, cleanNim, cleanNama, apiKey, modelName);
+            } else {
+              identified = GeminiService.identifyStudentFromDocument(payload, apiKey, modelName);
+            }
             if (cache) cache[fileId] = identified;
           }
         }
 
         if (identified) {
-          const idNimClean = (identified.nim || '').toString().trim().toLowerCase().replace(/[^0-9a-z]/g, '');
-          const idNamaClean = (identified.nama || '').toString().trim().toLowerCase();
+          const isDirectMatch = Boolean(identified.isMatch);
+          const idNimClean = (identified.detectedNim || identified.nim || '').toString().trim().toLowerCase().replace(/[^0-9a-z]/g, '');
+          const idNamaClean = (identified.detectedNama || identified.nama || '').toString().trim().toLowerCase();
 
-          const nimMatched = sanitizedNim && idNimClean && (idNimClean === sanitizedNim || idNimClean.includes(sanitizedNim));
-          const namaMatched = cleanNama && idNamaClean && cleanNama.length >= 5 && idNamaClean.includes(cleanNama);
+          const nimMatched = sanitizedNim && idNimClean && (idNimClean === sanitizedNim || idNimClean.includes(sanitizedNim) || sanitizedNim.includes(idNimClean));
+          const namaMatched = cleanNama && idNamaClean && cleanNama.length >= 4 && (idNamaClean.includes(cleanNama) || cleanNama.includes(idNamaClean));
 
-          if (nimMatched || namaMatched) {
+          if (isDirectMatch || nimMatched || namaMatched) {
             return file;
           }
         }
