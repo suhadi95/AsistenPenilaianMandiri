@@ -5,15 +5,18 @@
 const SPREADSHEET_ID = '1RvpMKOjCDDYG1xODoX_6EVQTtTFeaH1pt7OQ-mq8jWQ';
 
 const DB_SHEETS = {
+  COURSES: '_DB_MATA_KULIAH',
   CLASSES: '_DB_KELAS',
   STUDENTS: '_DB_MAHASISWA',
   TASKS: '_DB_TUGAS',
-  GRADES: '_DB_NILAI'
+  GRADES: '_DB_NILAI',
+  CLASS_FOLDERS: '_DB_FOLDER_KELAS'
 };
 
 const CONFIG_KEYS = {
   GEMINI_API_KEY: 'GEMINI_API_KEY',
   MODEL_NAME: 'MODEL_NAME',
+  ACTIVE_COURSE_ID: 'ACTIVE_COURSE_ID',
   ACTIVE_CLASS_ID: 'ACTIVE_CLASS_ID'
 };
 
@@ -43,14 +46,20 @@ function getAppSettings() {
                     (userProps ? userProps.getProperty(CONFIG_KEYS.MODEL_NAME) : '') || 
                     DEFAULT_SETTINGS.modelName;
 
+  const activeCourseId = (scriptProps ? scriptProps.getProperty(CONFIG_KEYS.ACTIVE_COURSE_ID) : '') ||
+                         (docProps ? docProps.getProperty(CONFIG_KEYS.ACTIVE_COURSE_ID) : '') ||
+                         (userProps ? userProps.getProperty(CONFIG_KEYS.ACTIVE_COURSE_ID) : '') || '';
+
   const activeClassId = (scriptProps ? scriptProps.getProperty(CONFIG_KEYS.ACTIVE_CLASS_ID) : '') ||
-                        (docProps ? docProps.getProperty(CONFIG_KEYS.ACTIVE_CLASS_ID) : '') || '';
+                        (docProps ? docProps.getProperty(CONFIG_KEYS.ACTIVE_CLASS_ID) : '') ||
+                        (userProps ? userProps.getProperty(CONFIG_KEYS.ACTIVE_CLASS_ID) : '') || '';
 
   return {
     apiKey: apiKey ? maskApiKey(apiKey) : '',
     hasApiKey: Boolean(apiKey),
     rawApiKey: apiKey,
     modelName: modelName,
+    activeCourseId: activeCourseId,
     activeClassId: activeClassId,
     maxExecutionTimeSec: DEFAULT_SETTINGS.maxExecutionTimeSec
   };
@@ -81,6 +90,12 @@ function saveAppSettings(data) {
       if (userProps) userProps.setProperty(CONFIG_KEYS.MODEL_NAME, cleanModel);
       if (scriptProps) scriptProps.setProperty(CONFIG_KEYS.MODEL_NAME, cleanModel);
       if (docProps) docProps.setProperty(CONFIG_KEYS.MODEL_NAME, cleanModel);
+    }
+
+    if (data.activeCourseId !== undefined) {
+      if (userProps) userProps.setProperty(CONFIG_KEYS.ACTIVE_COURSE_ID, data.activeCourseId);
+      if (scriptProps) scriptProps.setProperty(CONFIG_KEYS.ACTIVE_COURSE_ID, data.activeCourseId);
+      if (docProps) docProps.setProperty(CONFIG_KEYS.ACTIVE_COURSE_ID, data.activeCourseId);
     }
 
     if (data.activeClassId !== undefined) {

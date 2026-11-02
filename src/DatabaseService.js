@@ -1,5 +1,5 @@
 /**
- * @fileoverview Layanan Basis Data Spreadsheet (CRUD Multi-Tabel: Kelas, Mahasiswa, Tugas, Nilai)
+ * @fileoverview Layanan Basis Data Spreadsheet (CRUD Multi-Tabel: Mata Kuliah, Kelas, Mahasiswa, Tugas, Nilai, Folder Kelas)
  */
 
 const DatabaseService = {
@@ -55,60 +55,285 @@ const DatabaseService = {
   },
 
   /**
-   * Inisialisasi seluruh tabel basis data
+   * Inisialisasi seluruh tabel basis data & migrasi otomatis ke hierarki Mata Kuliah
    */
   initDatabase() {
-    this.getOrCreateSheet(DB_SHEETS.CLASSES, ['id_kelas', 'nama_kelas', 'mata_kuliah', 'semester', 'created_at']);
+    this.getOrCreateSheet(DB_SHEETS.COURSES, ['id_mata_kuliah', 'kode_mk', 'nama_mata_kuliah', 'semester', 'created_at']);
+    this.getOrCreateSheet(DB_SHEETS.CLASSES, ['id_kelas', 'id_mata_kuliah', 'nama_kelas', 'semester', 'created_at']);
     this.getOrCreateSheet(DB_SHEETS.STUDENTS, ['id_mahasiswa', 'id_kelas', 'nim', 'nama_mahasiswa', 'created_at']);
-    this.getOrCreateSheet(DB_SHEETS.TASKS, ['id_tugas', 'id_kelas', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']);
+    this.getOrCreateSheet(DB_SHEETS.TASKS, ['id_tugas', 'id_mata_kuliah', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']);
     this.getOrCreateSheet(DB_SHEETS.GRADES, ['id_nilai', 'id_tugas', 'id_kelas', 'nim', 'nama_mahasiswa', 'file_name', 'nilai_total', 'rincian_poin', 'catatan_ai', 'status', 'waktu_penilaian']);
+    this.getOrCreateSheet(DB_SHEETS.CLASS_FOLDERS, ['id_folder_kelas', 'id_tugas', 'id_kelas', 'drive_folder_id', 'created_at']);
 
-    // Jika belum ada kelas, buatkan 1 kelas contoh
-    const classes = this.getClasses();
-    if (classes.length === 0) {
-      const sampleClass = this.saveClass({
-        nama_kelas: 'Kelas A - Pemrograman Web',
-        mata_kuliah: 'Pemrograman Web',
+    // Jalankan migrasi jika tabel kelas atau tugas masih berformat lama
+    this.migrateToCourseHierarchy();
+
+    // Jika belum ada mata kuliah sama sekali, buatkan contoh mata kuliah dan kelas
+    const courses = this.getCourses();
+    if (courses.length === 0) {
+      const sampleCourse = this.saveCourse({
+        kode_mk: 'IF210',
+        nama_mata_kuliah: 'Pemrograman Web',
         semester: 'Ganjil 2026/2027'
       });
 
-      // Tambahkan contoh mahasiswa
-      this.saveStudentsBulk(sampleClass.id_kelas, `2024001\tBudi Santoso\n2024002\tSiti Rahmawati\n2024003\tAhmad Hidayat`);
+      const sampleClassA = this.saveClass({
+        id_mata_kuliah: sampleCourse.id_mata_kuliah,
+        nama_kelas: 'Kelas A',
+        semester: 'Ganjil 2026/2027'
+      });
+
+      this.saveClass({
+        id_mata_kuliah: sampleCourse.id_mata_kuliah,
+        nama_kelas: 'Kelas B',
+        semester: 'Ganjil 2026/2027'
+      });
+
+      // Tambahkan contoh mahasiswa di Kelas A
+      this.saveStudentsBulk(sampleClassA.id_kelas, `2024001\tBudi Santoso\n2024002\tSiti Rahmawati\n2024003\tAhmad Hidayat`);
     }
 
     return { success: true, message: 'Basis data sistem siap digunakan.' };
+  },
+
+  /**
+   * Migrasi mulus dari skema lama (Kelas -> Tugas) ke skema baru (Mata Kuliah -> Kelas & Tugas)
+   */
+  migrateToCourseHierarchy() {
+    try {
+      const courseSheet = this.getOrCreateSheet(DB_SHEETS.COURSES, ['id_mata_kuliah', 'kode_mk', 'nama_mata_kuliah', 'semester', 'created_at']);
+      const classSheet = this.getOrCreateSheet(DB_SHEETS.CLASSES);
+      const taskSheet = this.getOrCreateSheet(DB_SHEETS.TASKS);
+
+      if (classSheet.getLastRow() >= 1) {
+        const classHeaders = classSheet.getRange(1, 1, 1, Math.max(classSheet.getLastColumn(), 5)).getValues()[0];
+        
+        // Format lama: header[1] === 'nama_kelas' && header[2] === 'mata_kuliah'
+        if (classHeaders[1] === 'nama_kelas' && classHeaders[2] === 'mata_kuliah') {
+          const classLastRow = classSheet.getLastRow();
+          const courseMap = new Map(); // nama_mk -> courseId
+
+          if (classLastRow >= 2) {
+            const classRows = classSheet.getRange(2, 1, classLastRow - 1, 5).getValues();
+            
+            // 1. Kumpulkan seluruh nama mata kuliah unik
+            classRows.forEach(row => {
+              const mkName = String(row[2] || '').trim() || 'Mata Kuliah Umum';
+              const semester = String(row[3] || '').trim();
+              if (!courseMap.has(mkName.toLowerCase())) {
+                const courseId = generateId('MK');
+                courseMap.set(mkName.toLowerCase(), courseId);
+                courseSheet.appendRow([courseId, '', mkName, semester, new Date().toISOString()]);
+              }
+            });
+
+            // 2. Perbarui baris kelas dengan id_mata_kuliah
+            const newClassRows = classRows.map(row => {
+              const mkName = String(row[2] || '').trim() || 'Mata Kuliah Umum';
+              const courseId = courseMap.get(mkName.toLowerCase()) || '';
+              return [
+                row[0], // id_kelas
+                courseId, // id_mata_kuliah
+                row[1], // nama_kelas
+                row[3], // semester
+                row[4] || new Date().toISOString() // created_at
+              ];
+            });
+            classSheet.getRange(2, 1, newClassRows.length, 5).setValues(newClassRows);
+          }
+
+          // Perbarui header kelas
+          classSheet.getRange(1, 1, 1, 5).setValues([['id_kelas', 'id_mata_kuliah', 'nama_kelas', 'semester', 'created_at']]);
+
+          // 3. Perbarui baris tugas: jika header[1] === 'id_kelas', gantikan dengan id_mata_kuliah
+          if (taskSheet.getLastRow() >= 1) {
+            const taskHeaders = taskSheet.getRange(1, 1, 1, Math.max(taskSheet.getLastColumn(), 9)).getValues()[0];
+            if (taskHeaders[1] === 'id_kelas') {
+              const taskLastRow = taskSheet.getLastRow();
+              if (taskLastRow >= 2) {
+                const taskRows = taskSheet.getRange(2, 1, taskLastRow - 1, 9).getValues();
+                const classToCourseMap = new Map();
+                if (classLastRow >= 2) {
+                  const cRows = classSheet.getRange(2, 1, classLastRow - 1, 2).getValues();
+                  cRows.forEach(r => classToCourseMap.set(String(r[0]), String(r[1])));
+                }
+
+                const defaultCourseId = courseMap.values().next().value || '';
+                const newTaskRows = taskRows.map(tRow => {
+                  const oldClassId = String(tRow[1]);
+                  const courseId = classToCourseMap.get(oldClassId) || defaultCourseId;
+                  tRow[1] = courseId; // ganti id_kelas -> id_mata_kuliah
+                  return tRow;
+                });
+                taskSheet.getRange(2, 1, newTaskRows.length, 9).setValues(newTaskRows);
+              }
+              taskSheet.getRange(1, 1, 1, 9).setValues([['id_tugas', 'id_mata_kuliah', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']]);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Peringatan migrasi basis data: ' + err.message);
+    }
+  },
+
+  // ==========================================
+  // KELOLA MATA KULIAH (COURSES)
+  // ==========================================
+
+  getCourses() {
+    const sheet = this.getOrCreateSheet(DB_SHEETS.COURSES, ['id_mata_kuliah', 'kode_mk', 'nama_mata_kuliah', 'semester', 'created_at']);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+
+    const values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    const classSheet = this.getOrCreateSheet(DB_SHEETS.CLASSES);
+    const taskSheet = this.getOrCreateSheet(DB_SHEETS.TASKS);
+    const studentSheet = this.getOrCreateSheet(DB_SHEETS.STUDENTS);
+
+    // Kumpulkan relasi kelas per mata kuliah
+    const allClasses = classSheet.getLastRow() >= 2 
+      ? classSheet.getRange(2, 1, classSheet.getLastRow() - 1, 2).getValues() 
+      : [];
+    const allTasks = taskSheet.getLastRow() >= 2 
+      ? taskSheet.getRange(2, 2, taskSheet.getLastRow() - 1, 1).getValues() 
+      : [];
+    const allStudents = studentSheet.getLastRow() >= 2
+      ? studentSheet.getRange(2, 2, studentSheet.getLastRow() - 1, 1).getValues()
+      : [];
+
+    // Map classId -> courseId
+    const classToCourse = new Map();
+    allClasses.forEach(r => classToCourse.set(String(r[0]), String(r[1])));
+
+    return values.map(row => {
+      const courseId = String(row[0]);
+      const classCount = allClasses.filter(c => String(c[1]) === courseId).length;
+      const taskCount = allTasks.filter(t => String(t[0]) === courseId).length;
+      
+      // Hitung total mahasiswa di seluruh kelas mata kuliah ini
+      const studentCount = allStudents.filter(s => classToCourse.get(String(s[0])) === courseId).length;
+
+      return {
+        id_mata_kuliah: courseId,
+        kode_mk: String(row[1] || ''),
+        nama_mata_kuliah: String(row[2] || 'Mata Kuliah'),
+        semester: String(row[3] || ''),
+        created_at: row[4] ? new Date(row[4]).toLocaleDateString('id-ID') : '',
+        classCount: classCount,
+        taskCount: taskCount,
+        studentCount: studentCount
+      };
+    });
+  },
+
+  getCourseById(courseId) {
+    const cleanId = String(courseId).trim();
+    const courses = this.getCourses();
+    return courses.find(c => c.id_mata_kuliah === cleanId) || null;
+  },
+
+  saveCourse(data) {
+    const sheet = this.getOrCreateSheet(DB_SHEETS.COURSES, ['id_mata_kuliah', 'kode_mk', 'nama_mata_kuliah', 'semester', 'created_at']);
+    const courseId = data.id_mata_kuliah || generateId('MK');
+    const lastRow = sheet.getLastRow();
+
+    if (data.id_mata_kuliah && lastRow >= 2) {
+      const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+      for (let i = 0; i < ids.length; i++) {
+        if (String(ids[i][0]) === String(data.id_mata_kuliah)) {
+          const row = i + 2;
+          sheet.getRange(row, 2, 1, 3).setValues([[
+            data.kode_mk || '',
+            data.nama_mata_kuliah || 'Mata Kuliah',
+            data.semester || ''
+          ]]);
+          return { id_mata_kuliah: courseId, ...data };
+        }
+      }
+    }
+
+    sheet.appendRow([
+      courseId,
+      data.kode_mk || '',
+      data.nama_mata_kuliah || 'Mata Kuliah Baru',
+      data.semester || '',
+      new Date().toISOString()
+    ]);
+
+    return { id_mata_kuliah: courseId, ...data };
+  },
+
+  deleteCourse(courseId) {
+    const cleanId = String(courseId).trim();
+    // Cari seluruh kelas di bawah mata kuliah ini untuk hapus mahasiswa dan nilai
+    const classes = this.getClasses(cleanId);
+    classes.forEach(c => {
+      this.deleteRowsByColumnValue(DB_SHEETS.STUDENTS, 2, c.id_kelas);
+      this.deleteRowsByColumnValue(DB_SHEETS.GRADES, 3, c.id_kelas);
+      this.deleteRowsByColumnValue(DB_SHEETS.CLASS_FOLDERS, 3, c.id_kelas);
+    });
+
+    // Cari seluruh tugas di bawah mata kuliah ini
+    const tasks = this.getTasksByCourse(cleanId);
+    tasks.forEach(t => {
+      this.deleteRowsByColumnValue(DB_SHEETS.GRADES, 2, t.id_tugas);
+      this.deleteRowsByColumnValue(DB_SHEETS.CLASS_FOLDERS, 2, t.id_tugas);
+    });
+
+    this.deleteRowsByColumnValue(DB_SHEETS.TASKS, 2, cleanId);
+    this.deleteRowsByColumnValue(DB_SHEETS.CLASSES, 2, cleanId);
+    this.deleteRowsByColumnValue(DB_SHEETS.COURSES, 1, cleanId);
+
+    return { success: true, message: 'Mata kuliah dan seluruh kelas, tugas, serta data nilai terkait berhasil dihapus.' };
   },
 
   // ==========================================
   // KELOLA KELAS (CLASSES)
   // ==========================================
 
-  getClasses() {
-    const sheet = this.getOrCreateSheet(DB_SHEETS.CLASSES, ['id_kelas', 'nama_kelas', 'mata_kuliah', 'semester', 'created_at']);
+  getClasses(courseId = null) {
+    const sheet = this.getOrCreateSheet(DB_SHEETS.CLASSES, ['id_kelas', 'id_mata_kuliah', 'nama_kelas', 'semester', 'created_at']);
     const lastRow = sheet.getLastRow();
     if (lastRow < 2) return [];
 
     const values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
     const studentsSheet = this.getOrCreateSheet(DB_SHEETS.STUDENTS);
-    const tasksSheet = this.getOrCreateSheet(DB_SHEETS.TASKS);
+    const taskSheet = this.getOrCreateSheet(DB_SHEETS.TASKS);
+    const courseSheet = this.getOrCreateSheet(DB_SHEETS.COURSES);
 
-    // Hitung relasi mahasiswa & tugas per kelas
+    // Kumpulkan nama mata kuliah
+    const courseMap = new Map();
+    if (courseSheet.getLastRow() >= 2) {
+      const cRows = courseSheet.getRange(2, 1, courseSheet.getLastRow() - 1, 3).getValues();
+      cRows.forEach(r => courseMap.set(String(r[0]), String(r[2] || '')));
+    }
+
+    // Hitung relasi mahasiswa & tugas
     const allStudents = studentsSheet.getLastRow() >= 2 
       ? studentsSheet.getRange(2, 2, studentsSheet.getLastRow() - 1, 1).getValues() 
       : [];
-    const allTasks = tasksSheet.getLastRow() >= 2 
-      ? tasksSheet.getRange(2, 2, tasksSheet.getLastRow() - 1, 1).getValues() 
+    const allTasks = taskSheet.getLastRow() >= 2 
+      ? taskSheet.getRange(2, 2, taskSheet.getLastRow() - 1, 1).getValues() 
       : [];
 
-    return values.map(row => {
+    let filteredValues = values;
+    if (courseId) {
+      const cleanCourseId = String(courseId).trim();
+      filteredValues = values.filter(row => String(row[1]) === cleanCourseId);
+    }
+
+    return filteredValues.map(row => {
       const classId = String(row[0]);
+      const cId = String(row[1] || '');
       const studentCount = allStudents.filter(s => String(s[0]) === classId).length;
-      const taskCount = allTasks.filter(t => String(t[0]) === classId).length;
+      const taskCount = allTasks.filter(t => String(t[0]) === cId).length;
 
       return {
         id_kelas: classId,
-        nama_kelas: row[1] || '',
-        mata_kuliah: row[2] || '',
+        id_mata_kuliah: cId,
+        nama_mata_kuliah: courseMap.get(cId) || '',
+        nama_kelas: row[2] || '',
         semester: row[3] || '',
         created_at: row[4] ? new Date(row[4]).toLocaleDateString('id-ID') : '',
         studentCount: studentCount,
@@ -117,9 +342,16 @@ const DatabaseService = {
     });
   },
 
+  getClassById(classId) {
+    const cleanId = String(classId).trim();
+    const classes = this.getClasses();
+    return classes.find(c => c.id_kelas === cleanId) || null;
+  },
+
   saveClass(data) {
-    const sheet = this.getOrCreateSheet(DB_SHEETS.CLASSES, ['id_kelas', 'nama_kelas', 'mata_kuliah', 'semester', 'created_at']);
+    const sheet = this.getOrCreateSheet(DB_SHEETS.CLASSES, ['id_kelas', 'id_mata_kuliah', 'nama_kelas', 'semester', 'created_at']);
     const classId = data.id_kelas || generateId('KLS');
+    const courseId = data.id_mata_kuliah || '';
     const lastRow = sheet.getLastRow();
 
     if (data.id_kelas && lastRow >= 2) {
@@ -128,8 +360,8 @@ const DatabaseService = {
         if (String(ids[i][0]) === String(data.id_kelas)) {
           const row = i + 2;
           sheet.getRange(row, 2, 1, 3).setValues([[
+            courseId,
             data.nama_kelas || '',
-            data.mata_kuliah || '',
             data.semester || ''
           ]]);
           return { id_kelas: classId, ...data };
@@ -140,8 +372,8 @@ const DatabaseService = {
     // Insert baru
     sheet.appendRow([
       classId,
+      courseId,
       data.nama_kelas || 'Kelas Baru',
-      data.mata_kuliah || '',
       data.semester || '',
       new Date().toISOString()
     ]);
@@ -153,9 +385,9 @@ const DatabaseService = {
     const cleanId = String(classId).trim();
     this.deleteRowsByColumnValue(DB_SHEETS.CLASSES, 1, cleanId);
     this.deleteRowsByColumnValue(DB_SHEETS.STUDENTS, 2, cleanId);
-    this.deleteRowsByColumnValue(DB_SHEETS.TASKS, 2, cleanId);
     this.deleteRowsByColumnValue(DB_SHEETS.GRADES, 3, cleanId);
-    return { success: true, message: 'Kelas dan seluruh data terkait berhasil dihapus.' };
+    this.deleteRowsByColumnValue(DB_SHEETS.CLASS_FOLDERS, 3, cleanId);
+    return { success: true, message: 'Kelas dan seluruh data mahasiswa serta nilai terkait berhasil dihapus.' };
   },
 
   // ==========================================
@@ -214,7 +446,6 @@ const DatabaseService = {
         nim = parts[0].trim();
         nama = parts.slice(1).join(' ').trim();
       } else {
-        // Coba pisahkan berdasarkan spasi pertama setelah angka NIM
         const match = line.match(/^([0-9a-zA-Z_-]+)[\s]+(.+)$/);
         if (match) {
           nim = match[1].trim();
@@ -227,7 +458,6 @@ const DatabaseService = {
 
       if (!nim) continue;
 
-      // Cek apakah sudah ada (update atau lewati)
       if (!existingMap.has(nim.toLowerCase())) {
         const newId = generateId('MHS');
         rowsToAdd.push([newId, classId, nim, nama, new Date().toISOString()]);
@@ -273,31 +503,33 @@ const DatabaseService = {
   },
 
   // ==========================================
-  // KELOLA TUGAS (TASKS)
+  // KELOLA TUGAS (TASKS) BERPUSAT MATA KULIAH
   // ==========================================
 
-  getTasksByClass(classId) {
-    const cleanId = String(classId).trim();
-    const sheet = this.getOrCreateSheet(DB_SHEETS.TASKS, ['id_tugas', 'id_kelas', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']);
+  getTasksByCourse(courseId) {
+    const cleanCourseId = String(courseId).trim();
+    const sheet = this.getOrCreateSheet(DB_SHEETS.TASKS, ['id_tugas', 'id_mata_kuliah', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']);
     const lastRow = sheet.getLastRow();
     if (lastRow < 2) return [];
 
     const values = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
-    const students = this.getStudentsByClass(cleanId);
-    const grades = this.getGradesByClass(cleanId);
+    const gradeSheet = this.getOrCreateSheet(DB_SHEETS.GRADES);
+    const allGrades = gradeSheet.getLastRow() >= 2 
+      ? gradeSheet.getRange(2, 1, gradeSheet.getLastRow() - 1, 10).getValues() 
+      : [];
 
     return values
-      .filter(row => String(row[1]) === cleanId)
+      .filter(row => String(row[1]) === cleanCourseId)
       .map(row => {
         const taskId = String(row[0]);
-        const taskGrades = grades.filter(g => g.id_tugas === taskId && g.status === 'Selesai');
+        const taskGrades = allGrades.filter(g => String(g[1]) === taskId && String(g[9]) === 'Selesai');
         const gradedCount = taskGrades.length;
-        const totalScore = taskGrades.reduce((sum, g) => sum + (Number(g.nilai_total) || 0), 0);
+        const totalScore = taskGrades.reduce((sum, g) => sum + (Number(g[6]) || 0), 0);
         const avgScore = gradedCount > 0 ? (totalScore / gradedCount).toFixed(1) : 0;
 
         return {
           id_tugas: taskId,
-          id_kelas: String(row[1]),
+          id_mata_kuliah: String(row[1]),
           judul_tugas: String(row[2] || ''),
           deskripsi: String(row[3] || ''),
           task_file_ref: String(row[4] || ''),
@@ -305,29 +537,69 @@ const DatabaseService = {
           rubrik_text: String(row[6] || ''),
           bobot_persentase: Number(row[7]) || 0,
           created_at: row[8] ? new Date(row[8]).toLocaleDateString('id-ID') : '',
-          totalStudents: students.length,
           gradedCount: gradedCount,
           averageScore: Number(avgScore)
         };
       });
   },
 
-  getTaskById(taskId) {
+  /**
+   * Mengambil daftar tugas yang berlaku untuk suatu kelas (diambil dari Mata Kuliah kelas tersebut)
+   */
+  getTasksByClass(classId) {
+    const cls = this.getClassById(classId);
+    if (!cls || !cls.id_mata_kuliah) return [];
+
+    const tasks = this.getTasksByCourse(cls.id_mata_kuliah);
+    const folderOverrides = this.getClassTaskFolders(classId);
+
+    const students = this.getStudentsByClass(classId);
+    const grades = this.getGradesByClass(classId);
+
+    return tasks.map(task => {
+      const taskGrades = grades.filter(g => g.id_tugas === task.id_tugas && g.status === 'Selesai');
+      const gradedCount = taskGrades.length;
+      const totalScore = taskGrades.reduce((sum, g) => sum + (Number(g.nilai_total) || 0), 0);
+      const avgScore = gradedCount > 0 ? (totalScore / gradedCount).toFixed(1) : 0;
+
+      // Cek apakah ada override folder khusus untuk kelas ini
+      const overrideFolder = folderOverrides.get(task.id_tugas);
+      const effectiveFolder = overrideFolder || task.drive_folder_id;
+
+      return {
+        ...task,
+        id_kelas: classId,
+        drive_folder_id: effectiveFolder,
+        has_class_folder_override: Boolean(overrideFolder),
+        totalStudents: students.length,
+        gradedCount: gradedCount,
+        averageScore: Number(avgScore)
+      };
+    });
+  },
+
+  getTaskById(taskId, classId = null) {
     const cleanId = String(taskId).trim();
-    const sheet = this.getOrCreateSheet(DB_SHEETS.TASKS, ['id_tugas', 'id_kelas', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']);
+    const sheet = this.getOrCreateSheet(DB_SHEETS.TASKS, ['id_tugas', 'id_mata_kuliah', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']);
     const lastRow = sheet.getLastRow();
     if (lastRow < 2) return null;
 
     const values = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
     for (const row of values) {
       if (String(row[0]) === cleanId) {
+        let folderId = String(row[5] || '');
+        if (classId) {
+          const override = this.getClassTaskFolder(cleanId, classId);
+          if (override) folderId = override;
+        }
+
         return {
           id_tugas: String(row[0]),
-          id_kelas: String(row[1]),
+          id_mata_kuliah: String(row[1]),
           judul_tugas: String(row[2] || ''),
           deskripsi: String(row[3] || ''),
           task_file_ref: String(row[4] || ''),
-          drive_folder_id: String(row[5] || ''),
+          drive_folder_id: folderId,
           rubrik_text: String(row[6] || ''),
           bobot_persentase: Number(row[7]) || 0,
           created_at: row[8] ? new Date(row[8]).toLocaleDateString('id-ID') : ''
@@ -338,8 +610,9 @@ const DatabaseService = {
   },
 
   saveTask(data) {
-    const sheet = this.getOrCreateSheet(DB_SHEETS.TASKS, ['id_tugas', 'id_kelas', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']);
+    const sheet = this.getOrCreateSheet(DB_SHEETS.TASKS, ['id_tugas', 'id_mata_kuliah', 'judul_tugas', 'deskripsi', 'task_file_ref', 'drive_folder_id', 'rubrik_text', 'bobot_persentase', 'created_at']);
     const taskId = data.id_tugas || generateId('TGS');
+    const courseId = data.id_mata_kuliah || '';
     const lastRow = sheet.getLastRow();
     const cleanFolderId = extractDriveFolderId(data.drive_folder_id) || (data.drive_folder_id || '').trim();
 
@@ -348,7 +621,8 @@ const DatabaseService = {
       for (let i = 0; i < ids.length; i++) {
         if (String(ids[i][0]) === String(data.id_tugas)) {
           const row = i + 2;
-          sheet.getRange(row, 3, 1, 6).setValues([[
+          sheet.getRange(row, 2, 1, 7).setValues([[
+            courseId,
             data.judul_tugas || '',
             data.deskripsi || '',
             data.task_file_ref || '',
@@ -356,6 +630,12 @@ const DatabaseService = {
             data.rubrik_text || '',
             Number(data.bobot_persentase) || 0
           ]]);
+
+          // Simpan folder kelas khusus jika disediakan
+          if (data.class_folders && typeof data.class_folders === 'object') {
+            this.saveClassTaskFoldersBulk(taskId, data.class_folders);
+          }
+
           return { id_tugas: taskId, ...data, drive_folder_id: cleanFolderId };
         }
       }
@@ -363,7 +643,7 @@ const DatabaseService = {
 
     sheet.appendRow([
       taskId,
-      data.id_kelas,
+      courseId,
       data.judul_tugas || 'Tugas Baru',
       data.deskripsi || '',
       data.task_file_ref || '',
@@ -373,6 +653,10 @@ const DatabaseService = {
       new Date().toISOString()
     ]);
 
+    if (data.class_folders && typeof data.class_folders === 'object') {
+      this.saveClassTaskFoldersBulk(taskId, data.class_folders);
+    }
+
     return { id_tugas: taskId, ...data, drive_folder_id: cleanFolderId };
   },
 
@@ -380,7 +664,55 @@ const DatabaseService = {
     const cleanId = String(taskId).trim();
     this.deleteRowsByColumnValue(DB_SHEETS.TASKS, 1, cleanId);
     this.deleteRowsByColumnValue(DB_SHEETS.GRADES, 2, cleanId);
+    this.deleteRowsByColumnValue(DB_SHEETS.CLASS_FOLDERS, 2, cleanId);
     return { success: true, message: 'Tugas berhasil dihapus.' };
+  },
+
+  // ==========================================
+  // FOLDER JAWABAN KHUSUS PER KELAS (OPSIONAL)
+  // ==========================================
+
+  getClassTaskFolders(classId) {
+    const cleanClassId = String(classId).trim();
+    const sheet = this.getOrCreateSheet(DB_SHEETS.CLASS_FOLDERS, ['id_folder_kelas', 'id_tugas', 'id_kelas', 'drive_folder_id', 'created_at']);
+    const lastRow = sheet.getLastRow();
+    const map = new Map();
+    if (lastRow < 2) return map;
+
+    const values = sheet.getRange(2, 2, lastRow - 1, 3).getValues();
+    values.forEach(r => {
+      if (String(r[1]) === cleanClassId && r[2]) {
+        map.set(String(r[0]), String(r[2]));
+      }
+    });
+    return map;
+  },
+
+  getClassTaskFolder(taskId, classId) {
+    const cleanTaskId = String(taskId).trim();
+    const cleanClassId = String(classId).trim();
+    const sheet = this.getOrCreateSheet(DB_SHEETS.CLASS_FOLDERS, ['id_folder_kelas', 'id_tugas', 'id_kelas', 'drive_folder_id', 'created_at']);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return '';
+
+    const values = sheet.getRange(2, 2, lastRow - 1, 3).getValues();
+    for (const r of values) {
+      if (String(r[0]) === cleanTaskId && String(r[1]) === cleanClassId) {
+        return String(r[2] || '');
+      }
+    }
+    return '';
+  },
+
+  saveClassTaskFoldersBulk(taskId, classFoldersMap) {
+    const sheet = this.getOrCreateSheet(DB_SHEETS.CLASS_FOLDERS, ['id_folder_kelas', 'id_tugas', 'id_kelas', 'drive_folder_id', 'created_at']);
+    for (const classId in classFoldersMap) {
+      const folderVal = extractDriveFolderId(classFoldersMap[classId]);
+      this.deleteRowsByTwoColumns(DB_SHEETS.CLASS_FOLDERS, 2, taskId, 3, classId);
+      if (folderVal) {
+        sheet.appendRow([generateId('FDK'), taskId, classId, folderVal, new Date().toISOString()]);
+      }
+    }
   },
 
   // ==========================================
@@ -411,11 +743,14 @@ const DatabaseService = {
       }));
   },
 
-  getGradesByTask(taskId) {
-    const task = this.getTaskById(taskId);
+  /**
+   * Mengambil data nilai untuk tugas tertentu dalam konteks kelas tertentu
+   */
+  getGradesByTaskAndClass(taskId, classId) {
+    const task = this.getTaskById(taskId, classId);
     if (!task) throw new Error('Tugas tidak ditemukan.');
 
-    const students = this.getStudentsByClass(task.id_kelas);
+    const students = this.getStudentsByClass(classId);
     const sheet = this.getOrCreateSheet(DB_SHEETS.GRADES, ['id_nilai', 'id_tugas', 'id_kelas', 'nim', 'nama_mahasiswa', 'file_name', 'nilai_total', 'rincian_poin', 'catatan_ai', 'status', 'waktu_penilaian']);
     const lastRow = sheet.getLastRow();
 
@@ -423,7 +758,7 @@ const DatabaseService = {
     if (lastRow >= 2) {
       const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
       for (const row of values) {
-        if (String(row[1]) === String(taskId)) {
+        if (String(row[1]) === String(taskId) && String(row[2]) === String(classId)) {
           const nimKey = String(row[3]).trim().toLowerCase();
           gradeMap.set(nimKey, {
             id_nilai: String(row[0]),
@@ -442,7 +777,6 @@ const DatabaseService = {
       }
     }
 
-    // Gabungkan dengan seluruh daftar mahasiswa di kelas tersebut
     return students.map(student => {
       const nimKey = student.nim.trim().toLowerCase();
       const existingGrade = gradeMap.get(nimKey);
@@ -468,19 +802,35 @@ const DatabaseService = {
     });
   },
 
+  getGradesByTask(taskId, classId = null) {
+    if (classId) {
+      return this.getGradesByTaskAndClass(taskId, classId);
+    }
+    // Jika classId tidak disertakan, cari kelas pertama yang memiliki tugas ini
+    const task = this.getTaskById(taskId);
+    if (!task) throw new Error('Tugas tidak ditemukan.');
+    const classes = this.getClasses(task.id_mata_kuliah);
+    if (classes.length > 0) {
+      return this.getGradesByTaskAndClass(taskId, classes[0].id_kelas);
+    }
+    return [];
+  },
+
   saveGrade(gradeData) {
     const sheet = this.getOrCreateSheet(DB_SHEETS.GRADES, ['id_nilai', 'id_tugas', 'id_kelas', 'nim', 'nama_mahasiswa', 'file_name', 'nilai_total', 'rincian_poin', 'catatan_ai', 'status', 'waktu_penilaian']);
     const lastRow = sheet.getLastRow();
     const cleanNim = String(gradeData.nim).trim().toLowerCase();
     const cleanTaskId = String(gradeData.id_tugas).trim();
+    const cleanClassId = String(gradeData.id_kelas).trim();
 
     if (lastRow >= 2) {
       const values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
       for (let i = 0; i < values.length; i++) {
         const rowTaskId = String(values[i][1]).trim();
+        const rowClassId = String(values[i][2]).trim();
         const rowNim = String(values[i][3]).trim().toLowerCase();
 
-        if (rowTaskId === cleanTaskId && rowNim === cleanNim) {
+        if (rowTaskId === cleanTaskId && rowClassId === cleanClassId && rowNim === cleanNim) {
           const row = i + 2;
           sheet.getRange(row, 5, 1, 7).setValues([[
             gradeData.nama_mahasiswa,
@@ -520,15 +870,14 @@ const DatabaseService = {
 
   getClassReport(classId) {
     const cleanId = String(classId).trim();
-    const classes = this.getClasses();
-    const currentClass = classes.find(c => c.id_kelas === cleanId);
+    const currentClass = this.getClassById(cleanId);
     if (!currentClass) throw new Error('Kelas tidak ditemukan.');
 
+    const course = this.getCourseById(currentClass.id_mata_kuliah);
     const students = this.getStudentsByClass(cleanId);
     const tasks = this.getTasksByClass(cleanId);
     const grades = this.getGradesByClass(cleanId);
 
-    // Pemetaan nilai per tugas dan mahasiswa
     const studentReports = students.map(student => {
       const nimKey = student.nim.trim().toLowerCase();
       const taskScores = {};
@@ -565,7 +914,6 @@ const DatabaseService = {
       };
     });
 
-    // Statistik kelas
     const allFinalScores = studentReports.map(s => s.finalScore).filter(s => s > 0);
     const classAvg = allFinalScores.length > 0 
       ? Number((allFinalScores.reduce((a, b) => a + b, 0) / allFinalScores.length).toFixed(1)) 
@@ -574,7 +922,12 @@ const DatabaseService = {
     const minScore = allFinalScores.length > 0 ? Math.min(...allFinalScores) : 0;
 
     return {
-      classInfo: currentClass,
+      classInfo: {
+        ...currentClass,
+        mata_kuliah: course ? course.nama_mata_kuliah : (currentClass.nama_mata_kuliah || 'Mata Kuliah'),
+        kode_mk: course ? course.kode_mk : ''
+      },
+      courseInfo: course,
       tasks: tasks,
       students: studentReports,
       stats: {
@@ -587,9 +940,6 @@ const DatabaseService = {
     };
   },
 
-  /**
-   * Ekspor hasil rekapitulasi ke tab sheet baru di spreadsheet
-   */
   exportReportToSheet(classId) {
     const report = this.getClassReport(classId);
     const ss = this.getSpreadsheet();
@@ -605,7 +955,7 @@ const DatabaseService = {
 
     // Header Informasi Kelas
     sheet.getRange(1, 1).setValue('REKAPITULASI PENILAIAN MAHASISWA').setFontSize(14).setFontWeight('bold');
-    sheet.getRange(2, 1).setValue(`Kelas: ${report.classInfo.nama_kelas} | Mata Kuliah: ${report.classInfo.mata_kuliah} | Semester: ${report.classInfo.semester}`).setFontColor('#475569');
+    sheet.getRange(2, 1).setValue(`Mata Kuliah: ${report.classInfo.mata_kuliah} | Kelas: ${report.classInfo.nama_kelas} | Semester: ${report.classInfo.semester}`).setFontColor('#475569');
 
     // Kolom Header Tabel
     const tableHeaders = ['No', 'NIM', 'Nama Mahasiswa'];
@@ -640,13 +990,11 @@ const DatabaseService = {
 
     if (rows.length > 0) {
       sheet.getRange(5, 1, rows.length, tableHeaders.length).setValues(rows);
-      // Format alignment
-      sheet.getRange(5, 1, rows.length, 1).setHorizontalAlignment('center'); // No
-      sheet.getRange(5, 2, rows.length, 1).setHorizontalAlignment('center'); // NIM
-      sheet.getRange(5, 4, rows.length, tableHeaders.length - 3).setHorizontalAlignment('center'); // Scores
+      sheet.getRange(5, 1, rows.length, 1).setHorizontalAlignment('center');
+      sheet.getRange(5, 2, rows.length, 1).setHorizontalAlignment('center');
+      sheet.getRange(5, 4, rows.length, tableHeaders.length - 3).setHorizontalAlignment('center');
     }
 
-    // Auto-fit column widths
     sheet.setColumnWidth(1, 45);
     sheet.setColumnWidth(2, 110);
     sheet.setColumnWidth(3, 190);
@@ -662,18 +1010,12 @@ const DatabaseService = {
     };
   },
 
-  /**
-   * Mengambil data rekapitulasi lengkap beserta rincian seluruh tugas untuk ekspor Excel multi-sheet
-   * @param {string} classId
-   * @return {Object}
-   */
   getClassFullExportData(classId) {
     const report = this.getClassReport(classId);
     const cleanId = String(classId).trim();
     const grades = this.getGradesByClass(cleanId);
     const students = this.getStudentsByClass(cleanId);
 
-    // Siapkan detail per tugas
     const taskDetails = report.tasks.map(task => {
       const taskGrades = students.map((st, idx) => {
         const nimKey = st.nim.trim().toLowerCase();
@@ -711,7 +1053,6 @@ const DatabaseService = {
     };
   },
 
-  // Helper hapus baris berdasarkan nilai kolom
   deleteRowsByColumnValue(sheetName, colIndex, targetValue) {
     const ss = this.getSpreadsheet();
     const sheet = ss.getSheetByName(sheetName);
@@ -723,6 +1064,24 @@ const DatabaseService = {
     const values = sheet.getRange(2, colIndex, lastRow - 1, 1).getValues();
     for (let i = values.length - 1; i >= 0; i--) {
       if (String(values[i][0]).trim() === targetValue) {
+        sheet.deleteRow(i + 2);
+      }
+    }
+  },
+
+  deleteRowsByTwoColumns(sheetName, col1Index, val1, col2Index, val2) {
+    const ss = this.getSpreadsheet();
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return;
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return;
+
+    const maxCol = Math.max(col1Index, col2Index);
+    const values = sheet.getRange(2, 1, lastRow - 1, maxCol).getValues();
+    for (let i = values.length - 1; i >= 0; i--) {
+      if (String(values[i][col1Index - 1]).trim() === String(val1).trim() &&
+          String(values[i][col2Index - 1]).trim() === String(val2).trim()) {
         sheet.deleteRow(i + 2);
       }
     }

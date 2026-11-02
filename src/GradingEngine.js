@@ -21,7 +21,7 @@ const GradingEngine = {
     if (!tasks.length) {
       return { success: false, message: 'Belum ada tugas pada kelas aktif. Buka Portal Web untuk membuat tugas.' };
     }
-    return GradingService.gradeAllStudents(tasks[0].id_tugas, true);
+    return GradingService.gradeAllStudents(tasks[0].id_tugas, classId, true);
   },
 
   runBatchGrading(onlyUnassessed = true) {
@@ -34,7 +34,7 @@ const GradingEngine = {
     if (!tasks.length) {
       return { success: false, message: 'Belum ada tugas pada kelas aktif. Buka Portal Web untuk membuat tugas.' };
     }
-    return GradingService.gradeAllStudents(tasks[0].id_tugas, onlyUnassessed);
+    return GradingService.gradeAllStudents(tasks[0].id_tugas, classId, onlyUnassessed);
   },
 
   resetFailedRows() {
@@ -42,6 +42,6 @@ const GradingEngine = {
     if (!classes.length) return { success: true, count: 0 };
     const tasks = DatabaseService.getTasksByClass(classes[0].id_kelas);
     if (!tasks.length) return { success: true, count: 0 };
-    return GradingService.resetFailedGrades(tasks[0].id_tugas);
+    return GradingService.resetFailedGrades(tasks[0].id_tugas, classes[0].id_kelas);
   }
 };

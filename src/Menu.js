@@ -42,7 +42,7 @@ function openWebAppPrompt() {
       <div style="font-family: -apple-system, sans-serif; padding: 16px; text-align: center;">
         <h3 style="margin-bottom: 12px; color: #1e293b;">🌐 Portal Web Penilaian Mandiri</h3>
         <p style="font-size: 13px; color: #64748b; margin-bottom: 18px;">
-          Gunakan portal web standalone untuk mengelola kelas, mahasiswa, tugas, koreksi multimodal, dan rekapitulasi nilai.
+          Gunakan portal web standalone untuk mengelola mata kuliah, kelas, mahasiswa, tugas multi-kelas, koreksi multimodal, dan rekapitulasi nilai.
         </p>
         <a href="${url}" target="_blank" style="display: inline-block; background: #2563eb; color: #ffffff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">
           🚀 Buka Portal Web di Tab Baru
@@ -84,19 +84,20 @@ function openSidebar() {
 
 function openHelpDialog() {
   const message = `
-Panduan Sistem Manajemen Kelas & Penilaian Akademik:
+Panduan Sistem Manajemen Mata Kuliah, Kelas & Penilaian Akademik:
 
 1. Portal Web Mandiri (Standalone):
-   • Kelola seluruh kelas, daftar mahasiswa, penugasan, dan penilaian melalui antarmuka web.
+   • Kelola seluruh mata kuliah, kelas, daftar mahasiswa, penugasan, dan penilaian melalui antarmuka web.
    • Buka menu "🌐 Buka Portal Web Penilaian" untuk mengakses dashboard penuh.
 
-2. Struktur Penyimpanan:
-   • Seluruh data tersimpan rapi di sheet database: _DB_KELAS, _DB_MAHASISWA, _DB_TUGAS, dan _DB_NILAI.
-   • Nilai akhir dapat diekspor langsung ke tab sheet rekapitulasi kapan saja.
+2. Struktur Penyimpanan Berpusat Mata Kuliah:
+   • 1 Mata Kuliah dapat membawahi beberapa Kelas (misal Kelas A, B, C).
+   • 1 Tugas dibuat di tingkat Mata Kuliah dan otomatis berlaku untuk seluruh kelas tanpa perlu input ulang link soal atau rubrik.
+   • Seluruh data tersimpan di sheet database: _DB_MATA_KULIAH, _DB_KELAS, _DB_MAHASISWA, _DB_TUGAS, dan _DB_NILAI.
 
-3. Penilaian Multimodal:
+3. Penilaian Multimodal & Cerdas:
    • Sistem membandingkan berkas jawaban mahasiswa di Drive terhadap berkas soal dan rubrik porsi poin.
-   • Mendukung penilaian semua mahasiswa (batch) maupun mahasiswa terpilih.
+   • Dilengkapi Pencocokan Cerdas Isi Dokumen (Content-Based Matching) dengan Gemini AI jika nama berkas tidak memuat NIM/Nama.
 `;
   SpreadsheetApp.getUi().alert('ℹ️ Panduan Sistem', message, SpreadsheetApp.getUi().ButtonSet.OK);
 }
@@ -108,19 +109,34 @@ Panduan Sistem Manajemen Kelas & Penilaian Akademik:
 function apiGetInitialData() {
   DatabaseService.initDatabase();
   const settings = getAppSettings();
+  const courses = DatabaseService.getCourses();
   const classes = DatabaseService.getClasses();
   const webAppUrl = ScriptApp.getService().getUrl() || '';
 
   return {
     settings: settings,
+    courses: courses,
     classes: classes,
     webAppUrl: webAppUrl
   };
 }
 
-// Kelas
-function apiGetClasses() {
-  return DatabaseService.getClasses();
+// Mata Kuliah (Courses)
+function apiGetCourses() {
+  return DatabaseService.getCourses();
+}
+
+function apiSaveCourse(data) {
+  return DatabaseService.saveCourse(data);
+}
+
+function apiDeleteCourse(courseId) {
+  return DatabaseService.deleteCourse(courseId);
+}
+
+// Kelas (Classes)
+function apiGetClasses(courseId = null) {
+  return DatabaseService.getClasses(courseId);
 }
 
 function apiSaveClass(data) {
@@ -131,7 +147,7 @@ function apiDeleteClass(classId) {
   return DatabaseService.deleteClass(classId);
 }
 
-// Mahasiswa
+// Mahasiswa (Students)
 function apiGetStudents(classId) {
   return DatabaseService.getStudentsByClass(classId);
 }
@@ -148,13 +164,34 @@ function apiDeleteStudent(studentId) {
   return DatabaseService.deleteStudent(studentId);
 }
 
-// Tugas
-function apiGetTasks(classId) {
+// Tugas (Tasks)
+function apiGetTasks(courseIdOrClassId) {
+  if (!courseIdOrClassId) return [];
+  const cleanId = String(courseIdOrClassId).trim();
+  // Jika diawali KLS-, ambil tugas berdasarkan kelas
+  if (cleanId.startsWith('KLS-')) {
+    return DatabaseService.getTasksByClass(cleanId);
+  }
+  // Jika diawali MK-, ambil tugas berdasarkan mata kuliah
+  if (cleanId.startsWith('MK-')) {
+    return DatabaseService.getTasksByCourse(cleanId);
+  }
+  // Fallback: coba getTasksByClass dulu, jika kosong coba getTasksByCourse
+  const byClass = DatabaseService.getTasksByClass(cleanId);
+  if (byClass && byClass.length > 0) return byClass;
+  return DatabaseService.getTasksByCourse(cleanId);
+}
+
+function apiGetTasksByCourse(courseId) {
+  return DatabaseService.getTasksByCourse(courseId);
+}
+
+function apiGetTasksByClass(classId) {
   return DatabaseService.getTasksByClass(classId);
 }
 
-function apiGetTaskById(taskId) {
-  return DatabaseService.getTaskById(taskId);
+function apiGetTaskById(taskId, classId = null) {
+  return DatabaseService.getTaskById(taskId, classId);
 }
 
 function apiSaveTask(data) {
@@ -166,12 +203,16 @@ function apiDeleteTask(taskId) {
 }
 
 // Penilaian & Koreksi
-function apiGetGradesByTask(taskId) {
+function apiGetGradesByTask(taskId, classId = null) {
+  if (classId) {
+    return DatabaseService.getGradesByTaskAndClass(taskId, classId);
+  }
   return DatabaseService.getGradesByTask(taskId);
 }
 
-function apiGradeSingleStudent(taskId, studentNim) {
-  const task = DatabaseService.getTaskById(taskId);
+function apiGradeSingleStudent(taskId, classId, studentNim) {
+  if (!classId) throw new Error('ID Kelas belum ditentukan.');
+  const task = DatabaseService.getTaskById(taskId, classId);
   if (!task) throw new Error('Tugas tidak ditemukan.');
 
   const settings = getAppSettings();
@@ -182,7 +223,7 @@ function apiGradeSingleStudent(taskId, studentNim) {
     throw new Error('Folder Google Drive jawaban mahasiswa belum diisi pada tugas ini.');
   }
 
-  const students = DatabaseService.getStudentsByClass(task.id_kelas);
+  const students = DatabaseService.getStudentsByClass(classId);
   const student = students.find(s => String(s.nim).trim() === String(studentNim).trim());
   if (!student) {
     throw new Error(`Mahasiswa dengan NIM "${studentNim}" tidak ditemukan dalam kelas ini.`);
@@ -196,16 +237,16 @@ function apiGradeSingleStudent(taskId, studentNim) {
   return GradingService.gradeStudent(task, student, settings, taskQuestionData);
 }
 
-function apiGradeSelectedStudents(taskId, studentNims) {
-  return GradingService.gradeSelectedStudents(taskId, studentNims);
+function apiGradeSelectedStudents(taskId, classId, studentNims) {
+  return GradingService.gradeSelectedStudents(taskId, classId, studentNims);
 }
 
-function apiGradeAllStudents(taskId, onlyUnassessed) {
-  return GradingService.gradeAllStudents(taskId, onlyUnassessed);
+function apiGradeAllStudents(taskId, classId, onlyUnassessed) {
+  return GradingService.gradeAllStudents(taskId, classId, onlyUnassessed);
 }
 
-function apiResetFailedGrades(taskId) {
-  return GradingService.resetFailedGrades(taskId);
+function apiResetFailedGrades(taskId, classId) {
+  return GradingService.resetFailedGrades(taskId, classId);
 }
 
 function apiSaveGradeManual(gradeData) {

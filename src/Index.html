@@ -95,7 +95,7 @@
           🏠 <span class="hidden xs:inline">Dashboard</span><span class="xs:hidden">Dash</span>
         </button>
         <button onclick="switchTab('tab-classes')" id="nav-tab-classes" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-          👥 <span class="hidden sm:inline">Kelola </span>Kelas & Mhs
+          👥 <span class="hidden sm:inline">Kelola </span>MK & Kelas
         </button>
         <button onclick="switchTab('tab-tasks')" id="nav-tab-tasks" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
           📝 <span class="hidden sm:inline">Kelola </span>Tugas
@@ -152,6 +152,13 @@
       <!-- Stat Cards Grid -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 sm:space-x-4">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0">📚</div>
+          <div class="min-w-0">
+            <p class="text-[10px] sm:text-xs font-semibold uppercase text-slate-400 truncate">Mata Kuliah</p>
+            <h3 class="text-xl sm:text-2xl font-bold text-slate-900" id="statTotalCourses">0</h3>
+          </div>
+        </div>
+        <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 sm:space-x-4">
           <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0">👥</div>
           <div class="min-w-0">
             <p class="text-[10px] sm:text-xs font-semibold uppercase text-slate-400 truncate">Total Kelas</p>
@@ -170,13 +177,6 @@
           <div class="min-w-0">
             <p class="text-[10px] sm:text-xs font-semibold uppercase text-slate-400 truncate">Total Tugas</p>
             <h3 class="text-xl sm:text-2xl font-bold text-slate-900" id="statTotalTasks">0</h3>
-          </div>
-        </div>
-        <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 sm:space-x-4">
-          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0">📈</div>
-          <div class="min-w-0">
-            <p class="text-[10px] sm:text-xs font-semibold uppercase text-slate-400 truncate">Rata-rata</p>
-            <h3 class="text-xl sm:text-2xl font-bold text-slate-900" id="statClassAvg">-</h3>
           </div>
         </div>
       </div>
@@ -205,32 +205,54 @@
     <!-- ======================================================== -->
     <section id="tab-classes" class="tab-content space-y-6">
       
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
         
-        <!-- KOLOM KIRI: DAFTAR KELAS (4 cols) -->
-        <div class="lg:col-span-4 space-y-4">
-          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="font-bold text-slate-900 text-base">Daftar Kelas</h3>
-              <button onclick="openClassModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
-                + Kelas Baru
+        <!-- KOLOM 1: DAFTAR MATA KULIAH (3 cols) -->
+        <div class="lg:col-span-3 space-y-4">
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-bold text-slate-900 text-sm sm:text-base">Mata Kuliah</h3>
+                <p class="text-[11px] text-slate-400">Pilih untuk kelola kelas</p>
+              </div>
+              <button onclick="openCourseModal()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition" title="Tambah Mata Kuliah Baru">
+                + MK Baru
               </button>
             </div>
 
-            <div id="classesListContainer" class="space-y-2.5 max-h-[600px] overflow-y-auto pr-1">
+            <div id="coursesListContainer" class="space-y-2 max-h-[550px] overflow-y-auto pr-1">
               <!-- Rendered via JS -->
             </div>
           </div>
         </div>
 
-        <!-- KOLOM KANAN: DAFTAR MAHASISWA KELAS (8 cols) -->
-        <div class="lg:col-span-8 space-y-4">
-          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+        <!-- KOLOM 2: DAFTAR KELAS DALAM MK (3 cols) -->
+        <div class="lg:col-span-3 space-y-4">
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
               <div>
-                <h3 class="font-bold text-slate-900 text-base" id="studentListTitle">Daftar Mahasiswa</h3>
-                <p class="text-xs text-slate-500" id="studentListSubtitle">Pilih kelas di sebelah kiri untuk melihat daftar mahasiswa</p>
+                <h3 class="font-bold text-slate-900 text-sm sm:text-base">Daftar Kelas</h3>
+                <p class="text-[11px] text-slate-400 truncate max-w-[130px]" id="classSectionSubtitle">Pilih mata kuliah</p>
+              </div>
+              <button onclick="openClassModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition" title="Tambah Kelas Baru">
+                + Kelas
+              </button>
+            </div>
+
+            <div id="classesListContainer" class="space-y-2 max-h-[550px] overflow-y-auto pr-1">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- KOLOM 3: DAFTAR MAHASISWA KELAS (6 cols) -->
+        <div class="lg:col-span-6 space-y-4">
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 class="font-bold text-slate-900 text-sm sm:text-base" id="studentListTitle">Daftar Mahasiswa</h3>
+                <p class="text-xs text-slate-500" id="studentListSubtitle">Pilih kelas di sebelah kiri</p>
               </div>
               <div class="flex items-center space-x-2">
                 <button onclick="openImportStudentsModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5">
@@ -243,7 +265,7 @@
             </div>
 
             <!-- Search Bar -->
-            <div class="mt-4 mb-3">
+            <div class="mt-3 mb-3">
               <input type="text" id="studentSearchInput" oninput="filterStudents(this.value)" placeholder="Cari berdasarkan NIM atau Nama..." class="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
             </div>
 
@@ -252,10 +274,10 @@
               <table class="w-full text-left text-xs">
                 <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
                   <tr>
-                    <th class="px-4 py-3 w-12 text-center">No</th>
-                    <th class="px-4 py-3 w-32">NIM</th>
-                    <th class="px-4 py-3">Nama Lengkap</th>
-                    <th class="px-4 py-3 w-20 text-center">Aksi</th>
+                    <th class="px-3 py-2.5 w-10 text-center">No</th>
+                    <th class="px-3 py-2.5 w-28">NIM</th>
+                    <th class="px-3 py-2.5">Nama Lengkap</th>
+                    <th class="px-3 py-2.5 w-16 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody id="studentsTableBody" class="divide-y divide-slate-100">
@@ -278,14 +300,22 @@
     <!-- ======================================================== -->
     <section id="tab-tasks" class="tab-content space-y-6">
       
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <h2 class="text-lg font-bold text-slate-900">Manajemen Tugas & Penugasan</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Kelola tugas, tautan soal di Drive, folder jawaban, serta bobot persentase nilai akhir</p>
+          <h2 class="text-base sm:text-lg font-bold text-slate-900">Manajemen Tugas Mata Kuliah</h2>
+          <p class="text-xs text-slate-500 mt-0.5">1 Tugas dibuat di tingkat Mata Kuliah dan otomatis berlaku untuk seluruh kelas tanpa input ulang soal atau rubrik</p>
         </div>
-        <button onclick="openCreateTaskModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md transition self-start sm:self-auto flex items-center gap-1.5">
-          + Buat Tugas Baru
-        </button>
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div class="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+            <span class="text-xs text-slate-500 font-medium">Mata Kuliah:</span>
+            <select id="taskCourseSelect" onchange="switchTaskCourse(this.value)" class="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer">
+              <!-- Rendered via JS -->
+            </select>
+          </div>
+          <button onclick="openCreateTaskModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5">
+            + Buat Tugas Baru
+          </button>
+        </div>
       </div>
 
       <!-- Grid Cards Tugas -->
@@ -544,6 +574,37 @@
   <!-- MODAL DIALOGS                                            -->
   <!-- ======================================================== -->
 
+  <!-- 0. MODAL TAMBAH/EDIT MATA KULIAH -->
+  <div id="courseModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-slate-900 text-base" id="courseModalTitle">Tambah Mata Kuliah Baru</h3>
+        <button onclick="closeModal('courseModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <input type="hidden" id="modalCourseId">
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nama Mata Kuliah</label>
+          <input type="text" id="modalCourseName" placeholder="Contoh: Pemrograman Web" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Kode Mata Kuliah (Opsional)</label>
+          <input type="text" id="modalCourseKode" placeholder="Contoh: IF210" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Semester / Tahun Akademik</label>
+          <input type="text" id="modalCourseSemester" placeholder="Contoh: Ganjil 2026/2027" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('courseModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
+        <button onclick="submitSaveCourse()" id="btnSubmitCourse" class="px-4 py-2 bg-purple-600 text-white rounded-xl font-semibold text-xs">Simpan Mata Kuliah</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 1. MODAL TAMBAH/EDIT KELAS -->
   <div id="classModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4">
@@ -746,7 +807,9 @@
   <script>
     // State Aplikasi
     let appState = {
+      courses: [],
       classes: [],
+      activeCourseId: '',
       activeClassId: '',
       currentStudents: [],
       currentTasks: [],
@@ -774,6 +837,7 @@
       showLoading(true);
       google.script.run
         .withSuccessHandler(function(data) {
+          appState.courses = data.courses || [];
           appState.classes = data.classes || [];
           appState.settings = data.settings || {};
           
@@ -785,13 +849,32 @@
             document.getElementById('inputApiKey').value = appState.settings.apiKey;
           }
 
-          renderClassDropdowns();
+          // Inisialisasi activeCourseId dan activeClassId
+          let initialClass = null;
+          if (appState.settings.activeClassId) {
+            initialClass = appState.classes.find(c => c.id_kelas === appState.settings.activeClassId);
+          }
+          if (!initialClass && appState.classes.length > 0) {
+            initialClass = appState.classes[0];
+          }
 
-          // Pilih kelas pertama jika ada
-          if (appState.classes.length > 0) {
-            const savedClassId = appState.settings.activeClassId;
-            const targetClass = appState.classes.find(c => c.id_kelas === savedClassId) || appState.classes[0];
-            switchActiveClass(targetClass.id_kelas);
+          if (initialClass) {
+            appState.activeClassId = initialClass.id_kelas;
+            appState.activeCourseId = initialClass.id_mata_kuliah || (appState.courses.length > 0 ? appState.courses[0].id_mata_kuliah : '');
+          } else if (appState.courses.length > 0) {
+            appState.activeCourseId = appState.courses[0].id_mata_kuliah;
+          }
+
+          renderClassDropdowns();
+          renderCourseDropdowns();
+          renderCoursesList();
+          renderClassesList();
+
+          if (appState.activeClassId) {
+            switchActiveClass(appState.activeClassId);
+          } else if (appState.activeCourseId) {
+            switchTaskCourse(appState.activeCourseId);
+            showLoading(false);
           } else {
             showLoading(false);
           }
@@ -818,9 +901,82 @@
       }
       document.getElementById(tabId).classList.add('active');
 
-      // Refresh data sesuai tab
       if (tabId === 'tab-reports' && appState.activeClassId) {
         loadClassReport(appState.activeClassId);
+      } else if (tabId === 'tab-tasks' && appState.activeCourseId) {
+        switchTaskCourse(appState.activeCourseId);
+      }
+    }
+
+    // Render Dropdown Header (Grouped by Course)
+    function renderClassDropdowns() {
+      const select = document.getElementById('headerClassSelect');
+      if (!select) return;
+      select.innerHTML = '<option value="" class="bg-slate-800 text-slate-300">-- Pilih Kelas --</option>';
+
+      appState.courses.forEach(course => {
+        const optGroup = document.createElement('optgroup');
+        optGroup.label = (course.kode_mk ? '[' + course.kode_mk + '] ' : '') + course.nama_mata_kuliah;
+        optGroup.className = 'bg-slate-900 text-slate-300 font-bold';
+
+        const classesInCourse = appState.classes.filter(c => c.id_mata_kuliah === course.id_mata_kuliah);
+        classesInCourse.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id_kelas;
+          opt.textContent = c.nama_kelas + ' (' + c.studentCount + ' Mhs)';
+          opt.className = 'bg-slate-800 text-slate-100 font-normal pl-3';
+          optGroup.appendChild(opt);
+        });
+
+        if (classesInCourse.length > 0) {
+          select.appendChild(optGroup);
+        }
+      });
+
+      // Kelas tanpa Mata Kuliah (jika ada)
+      const orphanClasses = appState.classes.filter(c => !c.id_mata_kuliah);
+      if (orphanClasses.length > 0) {
+        const optGroup = document.createElement('optgroup');
+        optGroup.label = 'Kelas Lainnya';
+        orphanClasses.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id_kelas;
+          opt.textContent = c.nama_kelas + ' (' + c.studentCount + ' Mhs)';
+          opt.className = 'bg-slate-800 text-slate-100';
+          optGroup.appendChild(opt);
+        });
+        select.appendChild(optGroup);
+      }
+
+      if (appState.activeClassId) {
+        select.value = appState.activeClassId;
+      }
+    }
+
+    // Render Pilihan Mata Kuliah di Tab Tugas & Modal
+    function renderCourseDropdowns() {
+      // 1. Dropdown di Tab 3 (Kelola Tugas)
+      const taskSelect = document.getElementById('taskCourseSelect');
+      if (taskSelect) {
+        taskSelect.innerHTML = appState.courses.map(c => 
+          `<option value="${c.id_mata_kuliah}" ${c.id_mata_kuliah === appState.activeCourseId ? 'selected' : ''}>${c.kode_mk ? '[' + c.kode_mk + '] ' : ''}${c.nama_mata_kuliah}</option>`
+        ).join('');
+      }
+
+      // 2. Dropdown di Modal Tambah/Edit Kelas
+      const modalClassSelect = document.getElementById('modalClassCourseSelect');
+      if (modalClassSelect) {
+        modalClassSelect.innerHTML = appState.courses.map(c => 
+          `<option value="${c.id_mata_kuliah}">${c.kode_mk ? '[' + c.kode_mk + '] ' : ''}${c.nama_mata_kuliah}</option>`
+        ).join('');
+      }
+
+      // 3. Dropdown di Modal Tambah/Edit Tugas
+      const modalTaskSelect = document.getElementById('modalTaskCourseId');
+      if (modalTaskSelect) {
+        modalTaskSelect.innerHTML = appState.courses.map(c => 
+          `<option value="${c.id_mata_kuliah}">${c.kode_mk ? '[' + c.kode_mk + '] ' : ''}${c.nama_mata_kuliah}</option>`
+        ).join('');
       }
     }
 
@@ -828,25 +984,57 @@
     function switchActiveClass(classId) {
       if (!classId) return;
       appState.activeClassId = classId;
-      document.getElementById('headerClassSelect').value = classId;
+      const headerSelect = document.getElementById('headerClassSelect');
+      if (headerSelect) headerSelect.value = classId;
 
       const currentClass = appState.classes.find(c => c.id_kelas === classId);
       if (currentClass) {
-        document.getElementById('dashClassTitle').textContent = currentClass.nama_kelas;
+        appState.activeCourseId = currentClass.id_mata_kuliah;
+        const course = appState.courses.find(c => c.id_mata_kuliah === currentClass.id_mata_kuliah);
+        const courseTitle = course ? (' • ' + course.nama_mata_kuliah) : '';
+        document.getElementById('dashClassTitle').textContent = currentClass.nama_kelas + courseTitle;
+        
+        const taskSelect = document.getElementById('taskCourseSelect');
+        if (taskSelect) taskSelect.value = appState.activeCourseId;
       }
 
+      renderCoursesList();
+      renderClassesList();
       loadClassDetails(classId);
+    }
+
+    // Ganti Mata Kuliah Aktif untuk Tab Tugas
+    function switchTaskCourse(courseId) {
+      if (!courseId) return;
+      appState.activeCourseId = courseId;
+      const taskSelect = document.getElementById('taskCourseSelect');
+      if (taskSelect) taskSelect.value = courseId;
+
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function(tasks) {
+          showLoading(false);
+          appState.currentTasks = tasks || [];
+          renderTasksGrid();
+          renderDashboardStats();
+          renderGradingTaskSelect();
+        })
+        .withFailureHandler(function(err) {
+          showLoading(false);
+          showGlobalAlert('Gagal memuat tugas mata kuliah: ' + err.message, 'error');
+        })
+        .apiGetTasksByCourse(courseId);
     }
 
     function loadClassDetails(classId) {
       showLoading(true);
-      // Ambil Mahasiswa & Tugas secara paralel
+      // Ambil Mahasiswa kelas & Tugas mata kuliahnya
       google.script.run
         .withSuccessHandler(function(students) {
           appState.currentStudents = students || [];
           renderStudentsTable(appState.currentStudents);
 
-          // Lanjut ambil tugas
+          // Ambil tugas yang berlaku untuk kelas ini
           google.script.run
             .withSuccessHandler(function(tasks) {
               showLoading(false);
@@ -859,7 +1047,7 @@
               showLoading(false);
               showGlobalAlert('Gagal memuat tugas: ' + err.message, 'error');
             })
-            .apiGetTasks(classId);
+            .apiGetTasksByClass(classId);
         })
         .withFailureHandler(function(err) {
           showLoading(false);
@@ -868,17 +1056,43 @@
         .apiGetStudents(classId);
     }
 
-    function renderClassDropdowns() {
-      const select = document.getElementById('headerClassSelect');
-      select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-      appState.classes.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id_kelas;
-        opt.textContent = `${c.nama_kelas} (${c.studentCount} Mhs)`;
-        opt.className = 'bg-slate-800 text-slate-200';
-        select.appendChild(opt);
-      });
-      renderClassesList();
+    function reloadAllData(targetCourseId = null, targetClassId = null) {
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function(data) {
+          appState.courses = data.courses || [];
+          appState.classes = data.classes || [];
+          appState.settings = data.settings || {};
+
+          renderClassDropdowns();
+          renderCourseDropdowns();
+          renderCoursesList();
+          renderClassesList();
+
+          if (targetCourseId) {
+            appState.activeCourseId = targetCourseId;
+          } else if (!appState.activeCourseId && appState.courses.length > 0) {
+            appState.activeCourseId = appState.courses[0].id_mata_kuliah;
+          }
+
+          if (targetClassId) {
+            switchActiveClass(targetClassId);
+          } else {
+            const matchingClass = appState.classes.find(c => c.id_mata_kuliah === appState.activeCourseId) || appState.classes[0];
+            if (matchingClass) {
+              switchActiveClass(matchingClass.id_kelas);
+            } else {
+              showLoading(false);
+              renderDashboardStats();
+              renderTasksGrid();
+            }
+          }
+        })
+        .withFailureHandler(function(err) {
+          showLoading(false);
+          showGlobalAlert('Gagal memuat ulang data: ' + err.message, 'error');
+        })
+        .apiGetInitialData();
     }
 
     // ==========================================
@@ -886,23 +1100,16 @@
     // ==========================================
 
     function renderDashboardStats() {
+      const elCourses = document.getElementById('statTotalCourses');
+      if (elCourses) elCourses.textContent = appState.courses.length;
       document.getElementById('statTotalClasses').textContent = appState.classes.length;
       document.getElementById('statTotalStudents').textContent = appState.currentStudents.length;
       document.getElementById('statTotalTasks').textContent = appState.currentTasks.length;
 
-      // Hitung rata-rata tugas
-      const scoredTasks = appState.currentTasks.filter(t => t.averageScore > 0);
-      if (scoredTasks.length > 0) {
-        const avg = (scoredTasks.reduce((s, t) => s + t.averageScore, 0) / scoredTasks.length).toFixed(1);
-        document.getElementById('statClassAvg').textContent = avg;
-      } else {
-        document.getElementById('statClassAvg').textContent = '-';
-      }
-
       // Render daftar tugas dashboard
       const listContainer = document.getElementById('dashTasksList');
-      if (appState.currentTasks.length === 0) {
-        listContainer.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Belum ada tugas pada kelas ini. Klik "+ Tambah Tugas" untuk membuat tugas baru.</div>';
+      if (!appState.currentTasks || appState.currentTasks.length === 0) {
+        listContainer.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Belum ada tugas pada mata kuliah kelas ini. Buka tab "Kelola Tugas" untuk membuat tugas.</div>';
         return;
       }
 
@@ -921,7 +1128,7 @@
               <div class="w-28 sm:w-36">
                 <div class="flex justify-between text-[11px] mb-1">
                   <span class="text-slate-400 font-medium">Dinilai</span>
-                  <span class="font-bold text-slate-700">${t.gradedCount}/${t.totalStudents} (${pct}%)</span>
+                  <span class="font-bold text-slate-700">${t.gradedCount}/${t.totalStudents || 0} (${pct}%)</span>
                 </div>
                 <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                   <div class="bg-blue-600 h-full rounded-full transition-all" style="width: ${pct}%"></div>
@@ -942,31 +1149,90 @@
     }
 
     // ==========================================
-    // RENDER: KELOLA KELAS & MAHASISWA
+    // RENDER: KELOLA MATA KULIAH & KELAS (TAB 2)
     // ==========================================
 
-    function renderClassesList() {
-      const container = document.getElementById('classesListContainer');
-      if (appState.classes.length === 0) {
-        container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Belum ada kelas. Klik "+ Kelas Baru".</div>';
+    function renderCoursesList() {
+      const container = document.getElementById('coursesListContainer');
+      if (!container) return;
+      if (appState.courses.length === 0) {
+        container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Belum ada mata kuliah. Klik "+ MK Baru".</div>';
         return;
       }
 
-      container.innerHTML = appState.classes.map(c => {
+      container.innerHTML = appState.courses.map(c => {
+        const isActive = c.id_mata_kuliah === appState.activeCourseId;
+        return `
+          <div onclick="selectCourseInTab('${c.id_mata_kuliah}')" class="p-3 rounded-xl border cursor-pointer transition ${isActive ? 'bg-purple-50/90 border-purple-500 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}">
+            <div class="flex items-start justify-between gap-1">
+              <div class="min-w-0">
+                <h4 class="font-bold text-xs truncate ${isActive ? 'text-purple-900' : 'text-slate-800'}">${c.nama_mata_kuliah}</h4>
+                <p class="text-[10px] text-slate-500 mt-0.5">${c.kode_mk ? c.kode_mk + ' • ' : ''}${c.semester || 'Reguler'}</p>
+              </div>
+              <div class="flex space-x-0.5 shrink-0">
+                <button onclick="event.stopPropagation(); editCourse('${c.id_mata_kuliah}')" class="p-1 text-slate-400 hover:text-purple-600 text-xs" title="Edit Mata Kuliah">✏️</button>
+                <button onclick="event.stopPropagation(); confirmDeleteCourse('${c.id_mata_kuliah}', '${c.nama_mata_kuliah}')" class="p-1 text-slate-400 hover:text-red-600 text-xs" title="Hapus Mata Kuliah">🗑️</button>
+              </div>
+            </div>
+            <div class="mt-2 flex items-center gap-1.5 text-[9px] text-slate-400">
+              <span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">${c.classCount} Kelas</span>
+              <span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium">${c.taskCount} Tugas</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectCourseInTab(courseId) {
+      appState.activeCourseId = courseId;
+      renderCoursesList();
+      renderClassesList();
+
+      // Pilih kelas pertama di mata kuliah tersebut jika ada
+      const classesInCourse = appState.classes.filter(c => c.id_mata_kuliah === courseId);
+      if (classesInCourse.length > 0) {
+        switchActiveClass(classesInCourse[0].id_kelas);
+      } else {
+        appState.activeClassId = '';
+        renderStudentsTable([]);
+        document.getElementById('studentListTitle').textContent = 'Daftar Mahasiswa';
+        document.getElementById('studentListSubtitle').textContent = 'Buat kelas baru pada mata kuliah ini.';
+      }
+    }
+
+    function renderClassesList() {
+      const container = document.getElementById('classesListContainer');
+      if (!container) return;
+
+      const course = appState.courses.find(c => c.id_mata_kuliah === appState.activeCourseId);
+      const subtitle = document.getElementById('classSectionSubtitle');
+      if (subtitle) {
+        subtitle.textContent = course ? course.nama_mata_kuliah : 'Semua Kelas';
+      }
+
+      const filteredClasses = appState.activeCourseId 
+        ? appState.classes.filter(c => c.id_mata_kuliah === appState.activeCourseId)
+        : appState.classes;
+
+      if (filteredClasses.length === 0) {
+        container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Belum ada kelas pada mata kuliah ini. Klik "+ Kelas".</div>';
+        return;
+      }
+
+      container.innerHTML = filteredClasses.map(c => {
         const isActive = c.id_kelas === appState.activeClassId;
         return `
-          <div onclick="switchActiveClass('${c.id_kelas}')" class="p-3.5 rounded-xl border cursor-pointer transition ${isActive ? 'bg-blue-50/80 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}">
+          <div onclick="switchActiveClass('${c.id_kelas}')" class="p-3 rounded-xl border cursor-pointer transition ${isActive ? 'bg-blue-50/80 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'}">
             <div class="flex items-center justify-between">
               <h4 class="font-bold text-xs ${isActive ? 'text-blue-900' : 'text-slate-800'}">${c.nama_kelas}</h4>
-              <div class="flex space-x-1">
+              <div class="flex space-x-0.5">
                 <button onclick="event.stopPropagation(); editClass('${c.id_kelas}')" class="p-1 text-slate-400 hover:text-blue-600 text-xs">✏️</button>
                 <button onclick="event.stopPropagation(); confirmDeleteClass('${c.id_kelas}', '${c.nama_kelas}')" class="p-1 text-slate-400 hover:text-red-600 text-xs">🗑️</button>
               </div>
             </div>
-            <p class="text-[11px] text-slate-500 mt-0.5">${c.mata_kuliah} • ${c.semester}</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">${c.semester || 'Reguler'}</p>
             <div class="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
               <span class="bg-slate-100 px-2 py-0.5 rounded-md font-medium text-slate-600">${c.studentCount} Mahasiswa</span>
-              <span class="bg-slate-100 px-2 py-0.5 rounded-md font-medium text-slate-600">${c.taskCount} Tugas</span>
             </div>
           </div>
         `;
@@ -978,8 +1244,8 @@
       const currentClass = appState.classes.find(c => c.id_kelas === appState.activeClassId);
       
       if (currentClass) {
-        document.getElementById('studentListTitle').textContent = `Mahasiswa: ${currentClass.nama_kelas}`;
-        document.getElementById('studentListSubtitle').textContent = `Total: ${students.length} Mahasiswa terdaftar`;
+        document.getElementById('studentListTitle').textContent = 'Mahasiswa: ' + currentClass.nama_kelas;
+        document.getElementById('studentListSubtitle').textContent = 'Total: ' + students.length + ' Mahasiswa terdaftar';
       }
 
       if (!students || students.length === 0) {
@@ -989,10 +1255,10 @@
 
       tbody.innerHTML = students.map((s, idx) => `
         <tr class="hover:bg-slate-50 transition">
-          <td class="px-4 py-2.5 text-center text-slate-400 font-medium">${idx + 1}</td>
-          <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${s.nim}</td>
-          <td class="px-4 py-2.5 font-medium text-slate-900">${s.nama_mahasiswa}</td>
-          <td class="px-4 py-2.5 text-center">
+          <td class="px-3 py-2 text-center text-slate-400 font-medium">${idx + 1}</td>
+          <td class="px-3 py-2 font-mono font-semibold text-slate-700">${s.nim}</td>
+          <td class="px-3 py-2 font-medium text-slate-900">${s.nama_mahasiswa}</td>
+          <td class="px-3 py-2 text-center">
             <button onclick="confirmDeleteStudent('${s.id_mahasiswa}', '${s.nama_mahasiswa}')" class="text-slate-400 hover:text-red-600 transition" title="Hapus Mahasiswa">
               🗑️
             </button>
@@ -1010,15 +1276,19 @@
     }
 
     // ==========================================
-    // RENDER: KELOLA TUGAS
+    // RENDER: KELOLA TUGAS (TAB 3)
     // ==========================================
 
     function renderTasksGrid() {
       const container = document.getElementById('tasksGridContainer');
+      if (!container) return;
       if (!appState.currentTasks || appState.currentTasks.length === 0) {
-        container.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-slate-200">Belum ada tugas pada kelas ini. Klik "+ Buat Tugas Baru".</div>';
+        container.innerHTML = '<div class="col-span-full text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-slate-200">Belum ada tugas pada mata kuliah ini. Klik "+ Buat Tugas Baru".</div>';
         return;
       }
+
+      const course = appState.courses.find(c => c.id_mata_kuliah === appState.activeCourseId);
+      const courseName = course ? course.nama_mata_kuliah : 'Mata Kuliah';
 
       container.innerHTML = appState.currentTasks.map(t => {
         const pct = t.totalStudents > 0 ? Math.round((t.gradedCount / t.totalStudents) * 100) : 0;
@@ -1036,13 +1306,17 @@
               </div>
               <h3 class="font-bold text-slate-900 text-sm mt-2">${t.judul_tugas}</h3>
               <p class="text-xs text-slate-400 line-clamp-2 mt-1">${t.deskripsi || 'Tidak ada deskripsi.'}</p>
+              
+              <div class="mt-2.5 inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[10px] font-medium px-2 py-0.5 rounded-md">
+                <span>📚</span> <span>Berlaku untuk seluruh kelas ${courseName}</span>
+              </div>
             </div>
 
             <div class="space-y-3 pt-3 border-t border-slate-100 text-xs">
               <div>
                 <div class="flex justify-between text-[11px] mb-1">
                   <span class="text-slate-400">Progres Penilaian</span>
-                  <span class="font-bold text-slate-700">${t.gradedCount}/${t.totalStudents} (${pct}%)</span>
+                  <span class="font-bold text-slate-700">${t.gradedCount}/${t.totalStudents || 0} (${pct}%)</span>
                 </div>
                 <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                   <div class="bg-emerald-500 h-full rounded-full transition-all" style="width: ${pct}%"></div>
@@ -1059,16 +1333,17 @@
     }
 
     // ==========================================
-    // RENDER: KOREKSI & PENILAIAN TUGAS
+    // RENDER: KOREKSI & PENILAIAN TUGAS (TAB 4)
     // ==========================================
 
     function renderGradingTaskSelect() {
       const select = document.getElementById('gradingTaskSelect');
+      if (!select) return;
       select.innerHTML = '<option value="">-- Pilih Tugas --</option>';
       appState.currentTasks.forEach(t => {
         const opt = document.createElement('option');
         opt.value = t.id_tugas;
-        opt.textContent = `${t.judul_tugas} (Bobot: ${t.bobot_persentase}%)`;
+        opt.textContent = t.judul_tugas + ' (Bobot: ' + t.bobot_persentase + '%)';
         select.appendChild(opt);
       });
 
@@ -1095,7 +1370,7 @@
       }
       const task = appState.currentTasks.find(t => t.id_tugas === taskId);
       if (!task || !task.drive_folder_id) {
-        return alert('Folder Google Drive tempat berkas jawaban mahasiswa belum diatur untuk tugas ini. Silakan klik tombol "Edit" pada tugas ini untuk mengisi link/ID folder Drive.');
+        return alert('Folder Google Drive tempat berkas jawaban mahasiswa belum diatur untuk tugas ini.');
       }
 
       const folderIdOrUrl = String(task.drive_folder_id).trim();
@@ -1106,7 +1381,7 @@
       window.open(targetUrl, '_blank', 'noopener,noreferrer');
     }
 
-        function renderFileNameCell(fileName) {
+    function renderFileNameCell(fileName) {
       if (!fileName) return '-';
       const isContent = fileName.includes('[via isi]');
       const cleanName = fileName.replace('[via isi]', '').trim();
@@ -1137,7 +1412,6 @@
       appState.selectedStudentNims.clear();
       updateSelectedCountBadge();
 
-      // Sembunyikan panel progres dan banner selesai saat ganti tugas
       const progressPanel = document.getElementById('gradingProgressPanel');
       if (progressPanel) progressPanel.classList.add('hidden');
       const completionBanner = document.getElementById('gradingCompletionBanner');
@@ -1146,9 +1420,9 @@
       const task = appState.currentTasks.find(t => t.id_tugas === taskId);
       if (task) {
         document.getElementById('gradingTaskInfo').classList.remove('hidden');
-        document.getElementById('taskInfoWeight').textContent = (task.bobot_persentase > 0 ? task.bobot_persentase + '%' : 'Rata-rata');
+        document.getElementById('taskInfoWeight').textContent = (t => (t.bobot_persentase > 0 ? t.bobot_persentase + '%' : 'Rata-rata'))(task);
         document.getElementById('taskInfoQuestion').textContent = task.task_file_ref ? 'Tercatat di Drive' : 'Belum diisi';
-        document.getElementById('taskInfoFolder').textContent = task.drive_folder_id ? 'Tercatat di Drive' : 'Belum diisi';
+        document.getElementById('taskInfoFolder').textContent = task.drive_folder_id ? (task.has_class_folder_override ? 'Khusus Kelas' : 'Tercatat di Drive') : 'Belum diisi';
       }
 
       const tbody = document.getElementById('gradingTableBody');
@@ -1162,7 +1436,7 @@
         .withFailureHandler(function(err) {
           showGlobalAlert('Gagal memuat penilaian tugas: ' + err.message, 'error');
         })
-        .apiGetGradesByTask(taskId);
+        .apiGetGradesByTask(taskId, appState.activeClassId);
     }
 
     function renderGradingTableRows(grades) {
@@ -1177,6 +1451,7 @@
         const isFailed = g.status && g.status.toLowerCase().startsWith('gagal');
         const isGrading = g.status && g.status.toLowerCase().includes('sedang');
 
+        let statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">Belum Dinilai</span>';
         let pointsContent = g.rincian_poin || '-';
         if (isCompleted) {
           statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">✓ Selesai</span>';
@@ -1254,6 +1529,7 @@
       successCount: 0,
       failedCount: 0,
       taskId: null,
+      classId: null,
       originalDocTitle: document.title
     };
 
@@ -1264,6 +1540,9 @@
       if (!queueItems || queueItems.length === 0) {
         return alert('Tidak ada mahasiswa dalam antrean penilaian.');
       }
+      if (!appState.activeClassId) {
+        return alert('Pilih kelas terlebih dahulu.');
+      }
 
       gradingQueue.isRunning = true;
       gradingQueue.isAborted = false;
@@ -1273,25 +1552,23 @@
       gradingQueue.successCount = 0;
       gradingQueue.failedCount = 0;
       gradingQueue.taskId = appState.selectedGradingTaskId;
+      gradingQueue.classId = appState.activeClassId;
       gradingQueue.originalDocTitle = document.title;
 
-      // Sembunyikan banner selesai jika sebelumnya ada
       const banner = document.getElementById('gradingCompletionBanner');
       if (banner) banner.classList.add('hidden');
 
-      // Tampilkan Progress Panel
       const panel = document.getElementById('gradingProgressPanel');
       if (panel) panel.classList.remove('hidden');
       document.getElementById('progressPanelTitle').textContent = queueTitle;
-      document.getElementById('progressPanelSubtitle').textContent = `Mempersiapkan antrean ${queueItems.length} mahasiswa...`;
+      document.getElementById('progressPanelSubtitle').textContent = 'Mempersiapkan antrean ' + queueItems.length + ' mahasiswa...';
       document.getElementById('gradingProgressBox').innerHTML = '';
 
-      // Nonaktifkan tombol aksi saat running
       document.getElementById('btnGradeSelected').disabled = true;
       document.getElementById('btnGradeAll').disabled = true;
 
       updateGradingProgressUI();
-      showProgressLog(`▶️ Memulai antrean penilaian: ${queueItems.length} mahasiswa akan dinilai secara otomatis.`);
+      showProgressLog('▶️ Memulai antrean penilaian: ' + queueItems.length + ' mahasiswa akan dinilai secara otomatis.');
 
       processNextQueueItem();
     }
@@ -1314,15 +1591,13 @@
       const nama = item.nama_mahasiswa || item.nama || nim;
       const currentNumber = gradingQueue.currentIndex + 1;
 
-      // Perbarui label panel & judul tab browser
-      document.getElementById('progressPanelSubtitle').textContent = `Sedang mengevaluasi (${currentNumber}/${gradingQueue.totalCount}): ${nim} - ${nama}`;
-      document.title = `(${currentNumber}/${gradingQueue.totalCount}) Menilai ${nama}... - Asisten Penilaian`;
-      showProgressLog(`[${currentNumber}/${gradingQueue.totalCount}] Memeriksa berkas & mengevaluasi jawaban NIM: ${nim} (${nama})...`);
+      document.getElementById('progressPanelSubtitle').textContent = 'Sedang mengevaluasi (' + currentNumber + '/' + gradingQueue.totalCount + '): ' + nim + ' - ' + nama;
+      document.title = '(' + currentNumber + '/' + gradingQueue.totalCount + ') Menilai ' + nama + '... - Asisten Penilaian';
+      showProgressLog('[' + currentNumber + '/' + gradingQueue.totalCount + '] Memeriksa berkas & mengevaluasi jawaban NIM: ' + nim + ' (' + nama + ')...');
 
-      // Update baris visual menjadi kuning
       updateStudentRowState(nim, 'grading');
 
-      // Panggil backend per 1 mahasiswa
+      // Evaluasi 1 mahasiswa dengan menyertakan classId
       google.script.run
         .withSuccessHandler(function(res) {
           if (!gradingQueue.isRunning) return;
@@ -1331,186 +1606,165 @@
             gradingQueue.successCount++;
             updateStudentRowState(nim, 'success', res);
             const contentNote = (res.matchedBy === 'content' || (res.fileName && res.fileName.includes('[via isi]'))) ? ' 🔍 [Ditemukan via Isi Berkas]' : '';
-            showProgressLog(`✅ NIM: ${nim} (${nama}) berhasil dinilai. Skor: ${res.score} (${res.fileName || 'Berkas Drive'}${contentNote})`);
+            showProgressLog('✅ NIM: ' + nim + ' (' + nama + ') berhasil dinilai. Skor: ' + res.score + ' (' + (res.fileName || 'Berkas Drive') + contentNote + ')');
           } else {
             gradingQueue.failedCount++;
             updateStudentRowState(nim, 'failed', res);
-            showProgressLog(`❌ NIM: ${nim} (${nama}) gagal: ${res.error || res.status}` + (res.advice ? ` (💡 ${res.advice})` : ''));
+            showProgressLog('❌ NIM: ' + nim + ' (' + nama + ') gagal: ' + (res.error || res.status) + (res.advice ? ' (💡 ' + res.advice + ')' : ''));
           }
 
           gradingQueue.currentIndex++;
           updateGradingProgressUI();
 
-          // Jeda halus 400ms sebelum lanjut ke mahasiswa berikutnya
-          setTimeout(processNextQueueItem, 400);
+          setTimeout(processNextQueueItem, 600);
         })
         .withFailureHandler(function(err) {
           if (!gradingQueue.isRunning) return;
 
           gradingQueue.failedCount++;
-          updateStudentRowState(nim, 'failed', { error: err.message, status: 'Gagal: ' + err.message });
-          showProgressLog(`❌ NIM: ${nim} (${nama}) error koneksi: ${err.message}`);
+          const errRes = {
+            success: false,
+            nim: nim,
+            nama: nama,
+            error: err.message,
+            status: 'Gagal: ' + err.message,
+            catatan_ai: '[ERROR JARINGAN/SERVER]:\n' + err.message
+          };
+          updateStudentRowState(nim, 'failed', errRes);
+          showProgressLog('💥 NIM: ' + nim + ' (' + nama + ') gagal: ' + err.message);
 
           gradingQueue.currentIndex++;
           updateGradingProgressUI();
 
-          setTimeout(processNextQueueItem, 400);
+          setTimeout(processNextQueueItem, 1000);
         })
-        .apiGradeSingleStudent(gradingQueue.taskId, nim);
+        .apiGradeSingleStudent(item.taskId || gradingQueue.taskId, gradingQueue.classId, nim);
     }
 
     function updateStudentRowState(nim, state, data) {
-      const row = document.getElementById(`row-student-${nim}`);
-      const fileCell = document.getElementById(`file-cell-${nim}`);
-      const scoreCell = document.getElementById(`score-cell-${nim}`);
-      const pointsCell = document.getElementById(`points-cell-${nim}`);
-      const statusCell = document.getElementById(`status-cell-${nim}`);
-
-      // Sinkronisasi data in-memory di appState.currentGrades
-      const gradeObj = appState.currentGrades.find(g => g.nim === nim);
+      const row = document.getElementById('row-student-' + nim);
+      const scoreCell = document.getElementById('score-cell-' + nim);
+      const pointsCell = document.getElementById('points-cell-' + nim);
+      const statusCell = document.getElementById('status-cell-' + nim);
+      const fileCell = document.getElementById('file-cell-' + nim);
 
       if (state === 'grading') {
-        if (row) {
-          row.className = 'bg-amber-50/80 border-l-4 border-l-amber-500 transition';
-          row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-        if (statusCell) {
-          statusCell.innerHTML = '<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 flex items-center justify-center gap-1 animate-pulse"><span class="spinner inline-block w-2.5 h-2.5 border-amber-800 border-t-transparent"></span> Menilai...</span>';
-        }
+        if (row) row.className = 'bg-amber-50/70 border-l-4 border-amber-400 transition';
+        if (statusCell) statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 animate-pulse">⏳ Menilai...</span>';
       } else if (state === 'success' && data) {
-        if (row) {
-          row.className = 'bg-emerald-50/40 hover:bg-emerald-50/70 border-l-4 border-l-emerald-500 transition';
-        }
-        if (fileCell && data.fileName) {
-          fileCell.innerHTML = renderFileNameCell(data.fileName);
-          fileCell.title = data.fileName;
-        }
+        if (row) row.className = 'bg-emerald-50/60 transition';
         if (scoreCell) {
+          scoreCell.textContent = data.score;
           scoreCell.className = 'px-4 py-2.5 text-center font-bold text-sm text-blue-700';
-          scoreCell.textContent = data.score !== undefined ? data.score : '-';
-        }
-        if (pointsCell && data.rincian_poin) {
-          pointsCell.textContent = data.rincian_poin;
-          pointsCell.title = data.rincian_poin;
-        }
-        if (statusCell) {
-          statusCell.innerHTML = '<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">✓ Selesai</span>';
-        }
-
-        if (gradeObj) {
-          gradeObj.status = 'Selesai';
-          gradeObj.nilai_total = data.score;
-          gradeObj.file_name = data.fileName || gradeObj.file_name;
-          gradeObj.rincian_poin = data.rincian_poin || gradeObj.rincian_poin;
-          gradeObj.catatan_ai = data.catatan_ai || gradeObj.catatan_ai;
-          gradeObj.waktu_penilaian = data.waktu_penilaian || new Date().toLocaleString('id-ID');
-        }
-      } else if (state === 'failed') {
-        const rawErr = data && (data.error || data.status) ? (data.error || data.status) : 'Gagal';
-        const cleanReason = rawErr.replace(/^Gagal:\s*/i, '');
-        if (row) {
-          row.className = 'bg-rose-50/40 hover:bg-rose-50/70 border-l-4 border-l-rose-500 transition';
         }
         if (pointsCell) {
-          pointsCell.innerHTML = `<span class="text-rose-600 text-[11px] font-medium" title="${rawErr}">⚠️ ${cleanReason}</span>`;
+          pointsCell.textContent = data.rincian_poin || '-';
+          pointsCell.title = data.rincian_poin || '-';
+        }
+        if (fileCell) {
+          fileCell.innerHTML = renderFileNameCell(data.fileName);
+        }
+        if (statusCell) {
+          statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">✓ Selesai</span>';
+        }
+
+        const idx = appState.currentGrades.findIndex(g => g.nim === nim);
+        if (idx !== -1) {
+          appState.currentGrades[idx].nilai_total = data.score;
+          appState.currentGrades[idx].rincian_poin = data.rincian_poin;
+          appState.currentGrades[idx].catatan_ai = data.catatan_ai;
+          appState.currentGrades[idx].file_name = data.fileName;
+          appState.currentGrades[idx].status = 'Selesai';
+        }
+      } else if (state === 'failed' && data) {
+        if (row) row.className = 'bg-rose-50/60 transition';
+        const cleanReason = (data.error || data.status || 'Gagal').replace(/^Gagal:\s*/i, '');
+        if (pointsCell) {
+          pointsCell.innerHTML = '<span class="text-rose-600 text-[11px] font-medium" title="' + cleanReason + '">⚠️ ' + cleanReason + '</span>';
         }
         if (statusCell) {
           statusCell.innerHTML = `
-            <button type="button" onclick="openGradeDetailModal('${nim}')" class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-100 hover:bg-rose-200 text-rose-800 transition inline-flex items-center gap-1 cursor-pointer shadow-sm text-left" title="Klik untuk rincian penyebab: ${cleanReason}">
+            <button type="button" onclick="openGradeDetailModal('${nim}')" class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-100 hover:bg-rose-200 text-rose-800 transition inline-flex items-center gap-1 cursor-pointer shadow-sm text-left" title="Klik untuk rincian: ${cleanReason}">
               <span>❌ Gagal</span>
               <span class="text-[9px] text-rose-600 underline">Rincian</span>
             </button>
           `;
         }
 
-        if (gradeObj) {
-          gradeObj.status = (data && data.status) || `Gagal: ${cleanReason}`;
-          gradeObj.catatan_ai = (data && data.catatan_ai) || `[PENILAIAN GAGAL]:\n${cleanReason}`;
+        const idx = appState.currentGrades.findIndex(g => g.nim === nim);
+        if (idx !== -1) {
+          appState.currentGrades[idx].status = data.status || ('Gagal: ' + cleanReason);
+          appState.currentGrades[idx].catatan_ai = data.catatan_ai || cleanReason;
         }
       }
     }
 
     function updateGradingProgressUI() {
-      const current = gradingQueue.currentIndex;
+      const cur = gradingQueue.currentIndex;
       const total = gradingQueue.totalCount;
-      const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+      const pct = total > 0 ? Math.round((cur / total) * 100) : 0;
+
+      const fill = document.getElementById('progressBarFill');
+      if (fill) fill.style.width = pct + '%';
 
       const counter = document.getElementById('progressPanelCounter');
-      if (counter) counter.textContent = `${current} / ${total} (${pct}%)`;
-
-      const bar = document.getElementById('progressBarFill');
-      if (bar) bar.style.width = `${pct}%`;
+      if (counter) counter.textContent = cur + ' / ' + total + ' (' + pct + '%)';
     }
 
     function abortGradingQueue() {
       if (!gradingQueue.isRunning) return;
-      if (confirm('Apakah Anda yakin ingin menghentikan antrean penilaian? Mahasiswa yang sudah dinilai tetap tersimpan.')) {
+      const confirmAbort = confirm('Apakah Anda yakin ingin menghentikan antrean penilaian? Mahasiswa yang sudah dinilai akan tetap tersimpan.');
+      if (confirmAbort) {
         gradingQueue.isAborted = true;
-        document.getElementById('progressPanelSubtitle').textContent = 'Menghentikan proses... Menyelesaikan mahasiswa aktif...';
-        showProgressLog('⚠️ Permintaan pembatalan diterima. Antrean dihentikan setelah mahasiswa aktif selesai.');
+        document.getElementById('progressPanelSubtitle').textContent = 'Menghentikan antrean penilaian...';
+        showProgressLog('⏹️ Pengguna meminta penghentian antrean...');
       }
     }
 
     function finishGradingQueue(wasAborted) {
       gradingQueue.isRunning = false;
-      document.title = wasAborted ? '⚠️ Penilaian Dihentikan' : '✅ Penilaian Selesai!';
+      document.title = gradingQueue.originalDocTitle || 'Asisten Penilaian Mahasiswa';
 
-      // Pulihkan tombol aksi
-      updateSelectedCountBadge();
+      document.getElementById('btnGradeSelected').disabled = false;
       document.getElementById('btnGradeAll').disabled = false;
+      updateSelectedCountBadge();
 
-      // Sembunyikan panel progres setelah beberapa detik
-      setTimeout(() => {
-        const panel = document.getElementById('gradingProgressPanel');
-        if (panel) panel.classList.add('hidden');
-        document.title = gradingQueue.originalDocTitle || 'Asisten Penilaian Akademik';
-      }, 3500);
+      const panel = document.getElementById('gradingProgressPanel');
+      if (panel) panel.classList.add('hidden');
 
-      const totalDone = gradingQueue.successCount + gradingQueue.failedCount;
-      showProgressLog(`🏁 ${wasAborted ? 'Penilaian Dihentikan.' : 'Penilaian Selesai!'} Berhasil: ${gradingQueue.successCount}, Gagal: ${gradingQueue.failedCount} dari total ${gradingQueue.totalCount} mahasiswa.`);
-
-      // Tampilkan banner notifikasi selesai
       const banner = document.getElementById('gradingCompletionBanner');
       if (banner) {
         banner.classList.remove('hidden');
-        document.getElementById('completionTitle').textContent = wasAborted ? 'Penilaian Dihentikan' : '🎉 Penilaian Telah Selesai!';
-        document.getElementById('completionDesc').textContent = `${gradingQueue.successCount} berhasil dinilai, ${gradingQueue.failedCount} gagal dari total ${totalDone} mahasiswa yang diproses. Data telah tersinkronisasi otomatis tanpa perlu refresh manual.`;
+        if (wasAborted) {
+          document.getElementById('completionTitle').textContent = 'Penilaian Dihentikan';
+          document.getElementById('completionDesc').textContent = 'Antrean dihentikan: ' + gradingQueue.successCount + ' mahasiswa berhasil dinilai, ' + gradingQueue.failedCount + ' gagal.';
+        } else {
+          document.getElementById('completionTitle').textContent = '🎉 Penilaian Selesai!';
+          document.getElementById('completionDesc').textContent = 'Seluruh antrean telah selesai dievaluasi: ' + gradingQueue.successCount + ' berhasil, ' + gradingQueue.failedCount + ' gagal.';
+          playSuccessChime();
+        }
       }
 
-      // Mainkan suara notifikasi lembut
-      if (!wasAborted && gradingQueue.successCount > 0) {
-        playSuccessChime();
-      }
-
-      // Perbarui statistik dashboard di latar belakang secara hening
-      if (appState.activeClassId) {
-        loadClassDetails(appState.activeClassId);
-      }
+      showProgressLog(wasAborted ? '⏹️ Antrean penilaian dihentikan.' : '🎉 Antrean penilaian selesai seluruhnya!');
     }
 
     function playSuccessChime() {
       try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
         osc.type = 'sine';
-        const now = ctx.currentTime;
-        osc.frequency.setValueAtTime(523.25, now); // C5
-        osc.frequency.setValueAtTime(783.99, now + 0.15); // G5
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-        osc.start(now);
-        osc.stop(now + 0.6);
-      } catch (e) {
-        // Abaikan jika browser membatasi audio sebelum interaksi pengguna
-      }
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.12); // A5
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.45);
+      } catch (e) {}
     }
 
-    // Eksekusi Penilaian dari UI
     function gradeSelectedStudents() {
       const taskId = appState.selectedGradingTaskId;
       const nims = Array.from(appState.selectedStudentNims);
@@ -1518,32 +1772,29 @@
       if (nims.length === 0) return alert('Pilih minimal satu mahasiswa yang ingin dinilai.');
 
       const items = appState.currentGrades.filter(g => nims.includes(g.nim));
-      startGradingQueue(items, `Menilai ${items.length} Mahasiswa Terpilih`);
+      startGradingQueue(items, 'Menilai ' + items.length + ' Mahasiswa Terpilih');
     }
 
     function gradeAllStudents() {
       const taskId = appState.selectedGradingTaskId;
       if (!taskId) return alert('Pilih tugas terlebih dahulu.');
 
-      // Filter mahasiswa yang belum berstatus 'Selesai'
-      const unassessed = appState.currentGrades.filter(g => {
-        const status = (g.status || '').toLowerCase();
-        return status !== 'selesai';
-      });
-
+      const unassessed = appState.currentGrades.filter(g => !g.status || g.status.toLowerCase() !== 'selesai');
       if (unassessed.length === 0) {
-        if (confirm('Seluruh mahasiswa di kelas ini sudah selesai dinilai (Status: Selesai). Apakah Anda ingin menilai ulang seluruh kelas?')) {
-          startGradingQueue(appState.currentGrades, 'Menilai Ulang Seluruh Kelas');
+        if (!confirm('Seluruh mahasiswa sudah selesai dinilai. Apakah Anda ingin menilai ulang seluruh mahasiswa?')) {
+          return;
         }
+        startGradingQueue(appState.currentGrades, 'Menilai Ulang Seluruh Mahasiswa (' + appState.currentGrades.length + ' Mhs)');
         return;
       }
 
-      startGradingQueue(unassessed, `Menilai ${unassessed.length} Mahasiswa (Batch)`);
+      startGradingQueue(unassessed, 'Menilai Mahasiswa Belum Selesai (' + unassessed.length + ' Mhs)');
     }
 
     function resetFailedGrades() {
       const taskId = appState.selectedGradingTaskId;
       if (!taskId) return;
+      if (!appState.activeClassId) return alert('Pilih kelas terlebih dahulu.');
 
       if (typeof gradingQueue !== 'undefined' && gradingQueue.isRunning) {
         return alert('Harap tunggu antrean penilaian selesai sebelum melakukan reset.');
@@ -1551,100 +1802,99 @@
 
       google.script.run
         .withSuccessHandler(function(res) {
-          showGlobalAlert(res.message, 'success');
+          showGlobalAlert(res.message, 'info');
           loadGradingTable(taskId);
         })
         .withFailureHandler(function(err) {
           showGlobalAlert('Gagal reset: ' + err.message, 'error');
         })
-        .apiResetFailedGrades(taskId);
+        .apiResetFailedGrades(taskId, appState.activeClassId);
     }
 
     function showProgressLog(msg) {
       const box = document.getElementById('gradingProgressBox');
       if (!box) return;
-      box.classList.remove('hidden');
-      const time = new Date().toLocaleTimeString();
-      box.innerHTML += `<div>[${time}] ${msg}</div>`;
+      const p = document.createElement('p');
+      p.className = 'leading-relaxed break-words';
+      p.textContent = '[' + new Date().toLocaleTimeString('id-ID') + '] ' + msg;
+      box.appendChild(p);
       box.scrollTop = box.scrollHeight;
     }
 
     // ==========================================
-    // RENDER: REKAPITULASI & LAPORAN NILAI
+    // REKAPITULASI NILAI (TAB 5)
     // ==========================================
+
+    let reportSortState = { colKey: null, direction: 'asc' };
+    let currentReportData = null;
 
     function loadClassReport(classId) {
       const container = document.getElementById('reportTableContainer');
-      container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm"><span class="spinner inline-block w-4 h-4 mr-2 border-slate-400 border-t-blue-600"></span>Menghitung rekapitulasi nilai tugas...</div>';
+      container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm"><span class="spinner inline-block w-4 h-4 mr-2 border-slate-400 border-t-blue-600"></span>Memuat rekapitulasi nilai...</div>';
 
       google.script.run
         .withSuccessHandler(function(report) {
-          appState.reportData = report;
-          appState.reportSortColumn = 'no';
-          appState.reportSortOrder = 'asc';
-          appState.reportSearchQuery = '';
-          const searchInput = document.getElementById('reportSearchInput');
-          if (searchInput) searchInput.value = '';
+          currentReportData = report;
+          reportSortState = { colKey: null, direction: 'asc' };
           renderReportTable();
         })
         .withFailureHandler(function(err) {
-          container.innerHTML = `<div class="p-6 text-center text-rose-600 text-xs font-medium">Gagal memuat rekapitulasi: ${err.message}</div>`;
+          container.innerHTML = '<div class="text-center py-12 text-rose-500 text-sm">Gagal memuat rekapitulasi: ' + err.message + '</div>';
         })
         .apiGetClassReport(classId);
     }
 
     function filterReportTable(query) {
-      appState.reportSearchQuery = query;
       renderReportTable();
     }
 
     function handleSortReport(colKey) {
-      if (appState.reportSortColumn === colKey) {
-        appState.reportSortOrder = appState.reportSortOrder === 'asc' ? 'desc' : 'asc';
+      if (reportSortState.colKey === colKey) {
+        reportSortState.direction = reportSortState.direction === 'asc' ? 'desc' : 'asc';
       } else {
-        appState.reportSortColumn = colKey;
-        // Default: jika nilai, urutkan dari terbesar ke terkecil (desc); jika nama/nim/no, urutkan A-Z (asc)
-        appState.reportSortOrder = (colKey === 'nama' || colKey === 'nim' || colKey === 'no') ? 'asc' : 'desc';
+        reportSortState.colKey = colKey;
+        reportSortState.direction = (colKey === 'nim' || colKey === 'nama') ? 'asc' : 'desc';
       }
       renderReportTable();
     }
 
     function getFilteredAndSortedReportStudents() {
-      if (!appState.reportData || !appState.reportData.students) return [];
+      if (!currentReportData || !currentReportData.students) return [];
+      const query = (document.getElementById('reportSearchInput')?.value || '').trim().toLowerCase();
 
-      let list = [...appState.reportData.students];
+      let list = currentReportData.students.filter(s => {
+        if (!query) return true;
+        return (s.nim && s.nim.toLowerCase().includes(query)) ||
+               (s.nama_mahasiswa && s.nama_mahasiswa.toLowerCase().includes(query));
+      });
 
-      // 1. Filter pencarian
-      const q = (appState.reportSearchQuery || '').toLowerCase().trim();
-      if (q) {
-        list = list.filter(s => 
-          (s.nim || '').toLowerCase().includes(q) || 
-          (s.nama_mahasiswa || '').toLowerCase().includes(q)
-        );
-      }
+      if (reportSortState.colKey) {
+        const key = reportSortState.colKey;
+        const dir = reportSortState.direction === 'asc' ? 1 : -1;
 
-      // 2. Pengurutan (Sorting)
-      const col = appState.reportSortColumn || 'no';
-      const dir = appState.reportSortOrder === 'asc' ? 1 : -1;
-
-      if (col === 'no') {
-        if (appState.reportSortOrder === 'desc') {
-          list.reverse();
-        }
-      } else if (col === 'nim') {
-        list.sort((a, b) => a.nim.localeCompare(b.nim, undefined, { numeric: true }) * dir);
-      } else if (col === 'nama') {
-        list.sort((a, b) => (a.nama_mahasiswa || '').localeCompare(b.nama_mahasiswa || '', 'id') * dir);
-      } else if (col === 'average') {
-        list.sort((a, b) => ((Number(a.averageScore) || 0) - (Number(b.averageScore) || 0)) * dir);
-      } else if (col === 'final') {
-        list.sort((a, b) => ((Number(a.finalScore) || 0) - (Number(b.finalScore) || 0)) * dir);
-      } else if (col.startsWith('task_')) {
-        const taskId = col.replace('task_', '');
         list.sort((a, b) => {
-          const valA = a.taskScores && a.taskScores[taskId] !== null && a.taskScores[taskId] !== undefined ? Number(a.taskScores[taskId]) : -1;
-          const valB = b.taskScores && b.taskScores[taskId] !== null && b.taskScores[taskId] !== undefined ? Number(b.taskScores[taskId]) : -1;
-          return (valA - valB) * dir;
+          let valA, valB;
+          if (key === 'nim') {
+            valA = a.nim || '';
+            valB = b.nim || '';
+            return valA.localeCompare(valB) * dir;
+          } else if (key === 'nama') {
+            valA = a.nama_mahasiswa || '';
+            valB = b.nama_mahasiswa || '';
+            return valA.localeCompare(valB) * dir;
+          } else if (key === 'avg') {
+            valA = Number(a.averageScore) || 0;
+            valB = Number(b.averageScore) || 0;
+            return (valA - valB) * dir;
+          } else if (key === 'final') {
+            valA = Number(a.finalScore) || 0;
+            valB = Number(b.finalScore) || 0;
+            return (valA - valB) * dir;
+          } else {
+            valA = a.taskScores && a.taskScores[key] !== null ? Number(a.taskScores[key]) : -1;
+            valB = b.taskScores && b.taskScores[key] !== null ? Number(b.taskScores[key]) : -1;
+            return (valA - valB) * dir;
+          }
         });
       }
 
@@ -1653,72 +1903,70 @@
 
     function renderReportTable() {
       const container = document.getElementById('reportTableContainer');
-      if (!appState.reportData || !appState.reportData.students || appState.reportData.students.length === 0) {
-        container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">Belum ada mahasiswa di kelas ini.</div>';
+      if (!currentReportData || !currentReportData.tasks) {
+        container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">Belum ada data tugas pada kelas ini.</div>';
         return;
       }
 
-      const tasks = appState.reportData.tasks || [];
+      const report = currentReportData;
+      const tasks = report.tasks;
       const students = getFilteredAndSortedReportStudents();
 
-      function sortIndicator(key) {
-        if (appState.reportSortColumn === key) {
-          return appState.reportSortOrder === 'asc' 
-            ? '<span class="text-blue-600 font-bold ml-1 text-xs">▲</span>' 
-            : '<span class="text-blue-600 font-bold ml-1 text-xs">▼</span>';
-        }
-        return '<span class="text-slate-300 group-hover:text-slate-400 ml-1 text-[10px]">⇅</span>';
-      }
-
-      let html = `
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200 select-none">
+      let headerHtml = `
+        <table class="w-full text-left text-xs" id="rekapMatrixTable">
+          <thead class="bg-slate-900 text-white font-semibold select-none">
             <tr>
-              <th onclick="handleSortReport('no')" class="px-3.5 py-3 w-12 text-center cursor-pointer hover:bg-slate-100/80 transition group" title="Klik untuk mengurutkan no urut">
-                <span class="inline-flex items-center justify-center">No ${sortIndicator('no')}</span>
-              </th>
-              <th onclick="handleSortReport('nim')" class="px-4 py-3 w-36 cursor-pointer hover:bg-slate-100/80 transition group" title="Klik untuk mengurutkan NIM">
-                <div class="flex items-center justify-between">
-                  <span class="inline-flex items-center">NIM ${sortIndicator('nim')}</span>
-                  <button type="button" onclick="copyReportColumn('nim', 'NIM'); event.stopPropagation();" class="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 rounded transition ml-1" title="Salin seluruh kolom NIM">📋</button>
+              <th class="px-3.5 py-3.5 w-12 text-center">No</th>
+              <th onclick="handleSortReport('nim')" class="px-4 py-3.5 w-32 cursor-pointer hover:bg-slate-800 transition">
+                <div class="flex items-center justify-between gap-1">
+                  <span>NIM</span>
+                  <span class="text-[10px] text-slate-400">${sortIndicator('nim')}</span>
                 </div>
               </th>
-              <th onclick="handleSortReport('nama')" class="px-4 py-3 min-w-[180px] cursor-pointer hover:bg-slate-100/80 transition group" title="Klik untuk mengurutkan Nama">
-                <div class="flex items-center justify-between">
-                  <span class="inline-flex items-center">Nama Mahasiswa ${sortIndicator('nama')}</span>
-                  <button type="button" onclick="copyReportColumn('nama', 'Nama Mahasiswa'); event.stopPropagation();" class="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 rounded transition ml-1" title="Salin seluruh kolom Nama">📋</button>
+              <th onclick="handleSortReport('nama')" class="px-4 py-3.5 w-52 cursor-pointer hover:bg-slate-800 transition">
+                <div class="flex items-center justify-between gap-1">
+                  <span>Nama Mahasiswa</span>
+                  <span class="text-[10px] text-slate-400">${sortIndicator('nama')}</span>
                 </div>
               </th>
       `;
 
       tasks.forEach(t => {
-        const colKey = `task_${t.id_tugas}`;
-        const bobotText = t.bobot_persentase > 0 ? `${t.bobot_persentase}%` : 'Standar';
-        html += `
-          <th onclick="handleSortReport('${colKey}')" class="px-3 py-3 text-center min-w-[120px] cursor-pointer hover:bg-slate-100/80 transition group" title="Klik untuk mengurutkan nilai ${t.judul_tugas}">
-            <div class="flex items-center justify-center gap-1">
-              <span class="truncate max-w-[90px] font-bold text-slate-800">${t.judul_tugas}</span>
-              ${sortIndicator(colKey)}
-              <button type="button" onclick="copyReportColumn('${colKey}', '${t.judul_tugas}'); event.stopPropagation();" class="p-0.5 text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 rounded transition" title="Salin nilai kolom ${t.judul_tugas}">📋</button>
+        const weightLabel = t.bobot_persentase > 0 ? (' (' + t.bobot_persentase + '%)') : '';
+        headerHtml += `
+          <th class="px-4 py-3.5 text-center min-w-[140px] hover:bg-slate-800 transition group relative">
+            <div class="flex items-center justify-between gap-1">
+              <span onclick="handleSortReport('${t.id_tugas}')" class="cursor-pointer truncate max-w-[120px]" title="${t.judul_tugas}${weightLabel}">
+                ${t.judul_tugas}${weightLabel}
+              </span>
+              <div class="flex items-center gap-1">
+                <button type="button" onclick="copyReportColumn('${t.id_tugas}', '${t.judul_tugas}')" class="text-slate-400 hover:text-white text-[11px] p-0.5 rounded transition" title="Salin seluruh nilai kolom ${t.judul_tugas}">
+                  📋
+                </button>
+                <span onclick="handleSortReport('${t.id_tugas}')" class="cursor-pointer text-[10px] text-slate-400">${sortIndicator(t.id_tugas)}</span>
+              </div>
             </div>
-            <span class="text-[10px] text-blue-600 font-medium block normal-case">(${bobotText})</span>
           </th>
         `;
       });
 
-      html += `
-              <th onclick="handleSortReport('average')" class="px-3.5 py-3 text-center w-28 bg-slate-100/60 font-bold text-slate-800 cursor-pointer hover:bg-slate-200/60 transition group" title="Klik untuk mengurutkan Rata-rata">
-                <div class="flex items-center justify-center gap-1">
+      headerHtml += `
+              <th onclick="handleSortReport('avg')" class="px-4 py-3.5 text-center w-28 bg-slate-800 cursor-pointer hover:bg-slate-700 transition">
+                <div class="flex items-center justify-between gap-1">
                   <span>Rata-rata</span>
-                  ${sortIndicator('average')}
-                  <button type="button" onclick="copyReportColumn('average', 'Rata-rata'); event.stopPropagation();" class="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 rounded transition ml-0.5" title="Salin seluruh kolom Rata-rata">📋</button>
+                  <div class="flex items-center gap-1">
+                    <button type="button" onclick="event.stopPropagation(); copyReportColumn('avg', 'Rata-rata')" class="text-slate-400 hover:text-white text-[11px] p-0.5 rounded" title="Salin seluruh nilai kolom Rata-rata">📋</button>
+                    <span class="text-[10px] text-slate-400">${sortIndicator('avg')}</span>
+                  </div>
                 </div>
               </th>
-              <th onclick="handleSortReport('final')" class="px-3.5 py-3 text-center w-32 bg-blue-50 font-bold text-blue-900 cursor-pointer hover:bg-blue-100/70 transition group" title="Klik untuk mengurutkan Nilai Akhir">
-                <div class="flex items-center justify-center gap-1">
-                  <span>Nilai Akhir</span>
-                  ${sortIndicator('final')}
-                  <button type="button" onclick="copyReportColumn('final', 'Nilai Akhir'); event.stopPropagation();" class="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-200/50 rounded transition ml-0.5" title="Salin seluruh kolom Nilai Akhir">📋</button>
+              <th onclick="handleSortReport('final')" class="px-4 py-3.5 text-center w-36 bg-blue-900/80 cursor-pointer hover:bg-blue-800 transition">
+                <div class="flex items-center justify-between gap-1">
+                  <span>Nilai Terbobot</span>
+                  <div class="flex items-center gap-1">
+                    <button type="button" onclick="event.stopPropagation(); copyReportColumn('final', 'Nilai Akhir Terbobot')" class="text-blue-200 hover:text-white text-[11px] p-0.5 rounded" title="Salin seluruh nilai kolom Nilai Terbobot">📋</button>
+                    <span class="text-[10px] text-blue-200">${sortIndicator('final')}</span>
+                  </div>
                 </div>
               </th>
             </tr>
@@ -1727,105 +1975,92 @@
       `;
 
       if (students.length === 0) {
-        html += `<tr><td colspan="${5 + tasks.length}" class="text-center py-8 text-slate-400">Tidak ada mahasiswa yang cocok dengan pencarian.</td></tr>`;
+        headerHtml += '<tr><td colspan="' + (5 + tasks.length) + '" class="text-center py-10 text-slate-400">Tidak ada data mahasiswa yang cocok dengan pencarian.</td></tr>';
       } else {
         students.forEach((s, idx) => {
-          html += `
-            <tr class="hover:bg-slate-50/80 transition">
-              <td class="px-3.5 py-2.5 text-center text-slate-400 font-medium">${idx + 1}</td>
+          headerHtml += `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="px-3.5 py-2.5 text-center text-slate-400 font-mono text-[11px]">${idx + 1}</td>
               <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${s.nim}</td>
               <td class="px-4 py-2.5 font-medium text-slate-900">${s.nama_mahasiswa}</td>
           `;
 
           tasks.forEach(t => {
             const score = s.taskScores ? s.taskScores[t.id_tugas] : null;
-            const hasScore = score !== null && score !== undefined && score !== '';
-            html += `<td class="px-3 py-2.5 text-center font-semibold ${hasScore ? 'text-slate-800' : 'text-slate-300'}">${hasScore ? score : '-'}</td>`;
+            const displayScore = (score !== null && score !== undefined) ? score : '-';
+            const colorClass = score !== null ? (score >= 70 ? 'text-emerald-700 font-bold' : 'text-slate-700 font-semibold') : 'text-slate-300';
+            headerHtml += `<td class="px-4 py-2.5 text-center ${colorClass}">${displayScore}</td>`;
           });
 
-          html += `
-              <td class="px-3.5 py-2.5 text-center font-semibold text-slate-700 bg-slate-50/50">${s.averageScore > 0 ? s.averageScore : '-'}</td>
-              <td class="px-3.5 py-2.5 text-center font-bold text-sm text-blue-700 bg-blue-50/30">${s.finalScore > 0 ? s.finalScore : '-'}</td>
+          headerHtml += `
+              <td class="px-4 py-2.5 text-center font-bold text-slate-700 bg-slate-50/50">${s.averageScore > 0 ? s.averageScore : '-'}</td>
+              <td class="px-4 py-2.5 text-center font-extrabold text-blue-700 bg-blue-50/40 text-sm">${s.finalScore > 0 ? s.finalScore : '-'}</td>
             </tr>
           `;
         });
       }
 
-      html += `
-          </tbody>
-        </table>
-      `;
+      headerHtml += '</tbody></table>';
+      container.innerHTML = headerHtml;
+    }
 
-      container.innerHTML = html;
+    function sortIndicator(key) {
+      if (reportSortState.colKey !== key) return '⇅';
+      return reportSortState.direction === 'asc' ? '▲' : '▼';
     }
 
     function copyReportColumn(colKey, colTitle) {
       const students = getFilteredAndSortedReportStudents();
       if (!students || students.length === 0) {
-        return showGlobalAlert('Tidak ada data mahasiswa untuk disalin.', 'warning');
+        return alert('Tidak ada data baris yang dapat disalin.');
       }
 
-      const values = students.map(s => {
+      const lines = students.map(s => {
         if (colKey === 'nim') return s.nim;
         if (colKey === 'nama') return s.nama_mahasiswa;
-        if (colKey === 'average') return s.averageScore !== null && s.averageScore !== undefined ? s.averageScore : '';
-        if (colKey === 'final') return s.finalScore !== null && s.finalScore !== undefined ? s.finalScore : '';
-        if (colKey.startsWith('task_')) {
-          const taskId = colKey.replace('task_', '');
-          const val = s.taskScores ? s.taskScores[taskId] : null;
-          return val !== null && val !== undefined ? val : '';
-        }
-        return '';
+        if (colKey === 'avg') return s.averageScore > 0 ? String(s.averageScore) : '';
+        if (colKey === 'final') return s.finalScore > 0 ? String(s.finalScore) : '';
+        const sc = s.taskScores ? s.taskScores[colKey] : null;
+        return (sc !== null && sc !== undefined) ? String(sc) : '';
       });
 
-      const textToCopy = values.join('\n');
-      copyTextToClipboard(textToCopy, `Kolom "${colTitle}" (${values.length} baris) berhasil disalin ke clipboard! Siap dipaste ke SIAKAD atau Excel.`);
+      const text = lines.join('\n');
+      copyTextToClipboard(text, 'Kolom "' + colTitle + '" (' + lines.length + ' baris) berhasil disalin ke clipboard!');
     }
 
     function copyAllReportData() {
-      if (!appState.reportData || !appState.reportData.students || appState.reportData.students.length === 0) {
-        return showGlobalAlert('Tidak ada data rekapitulasi untuk disalin.', 'warning');
+      if (!currentReportData || !currentReportData.tasks) {
+        return alert('Data rekapitulasi belum dimuat.');
       }
-
-      const tasks = appState.reportData.tasks || [];
+      const tasks = currentReportData.tasks;
       const students = getFilteredAndSortedReportStudents();
 
-      // Baris Header TSV (Tab Separated Values)
       const headers = ['No', 'NIM', 'Nama Mahasiswa'];
-      tasks.forEach(t => {
-        const bobotStr = t.bobot_persentase > 0 ? ` (${t.bobot_persentase}%)` : '';
-        headers.push(`${t.judul_tugas}${bobotStr}`);
-      });
-      headers.push('Rata-rata', 'Nilai Akhir');
+      tasks.forEach(t => headers.push(t.judul_tugas + (t.bobot_persentase > 0 ? ' (' + t.bobot_persentase + '%)' : '')));
+      headers.push('Rata-rata');
+      headers.push('Nilai Terbobot');
 
       const rows = [headers.join('\t')];
-
-      // Baris Data Mahasiswa TSV
       students.forEach((s, idx) => {
-        const row = [
-          idx + 1,
-          s.nim,
-          s.nama_mahasiswa
-        ];
-
+        const r = [idx + 1, s.nim, s.nama_mahasiswa];
         tasks.forEach(t => {
           const score = s.taskScores ? s.taskScores[t.id_tugas] : null;
-          row.push(score !== null && score !== undefined ? score : '');
+          r.push(score !== null && score !== undefined ? score : '');
         });
-
-        row.push(s.averageScore || '', s.finalScore || '');
-        rows.push(row.join('\t'));
+        r.push(s.averageScore > 0 ? s.averageScore : '');
+        r.push(s.finalScore > 0 ? s.finalScore : '');
+        rows.push(r.join('\t'));
       });
 
       const fullText = rows.join('\n');
-      copyTextToClipboard(fullText, `Seluruh tabel rekapitulasi (${students.length} mahasiswa) berhasil disalin ke clipboard! Siap dipaste langsung ke Excel atau Google Sheets.`);
+      copyTextToClipboard(fullText, 'Seluruh tabel matriks rekapitulasi (' + students.length + ' mahasiswa) berhasil disalin!');
     }
 
     function copyTextToClipboard(text, successMsg) {
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(() => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
           showGlobalAlert(successMsg, 'success');
-        }).catch(err => {
+        }).catch(function() {
           fallbackCopyText(text, successMsg);
         });
       } else {
@@ -1834,21 +2069,19 @@
     }
 
     function fallbackCopyText(text, successMsg) {
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
       try {
         document.execCommand('copy');
         showGlobalAlert(successMsg, 'success');
-      } catch (err) {
-        alert('Gagal menyalin teks otomatis ke clipboard.');
+      } catch (e) {
+        alert('Gagal menyalin otomatis. Harap gunakan browser modern.');
       }
-      document.body.removeChild(textArea);
+      document.body.removeChild(ta);
     }
 
     function downloadClassReportExcel() {
@@ -1859,83 +2092,72 @@
       if (btnText) btnText.textContent = 'Menyiapkan Excel...';
 
       google.script.run
-        .withSuccessHandler(function(res) {
+        .withSuccessHandler(function(exportData) {
           if (btn) btn.disabled = false;
           if (btnText) btnText.textContent = 'Download Excel';
 
-          if (!res || !res.success) {
-            return showGlobalAlert('Gagal menyiapkan data ekspor Excel: ' + ((res && res.message) || 'Data tidak tersedia'), 'error');
+          if (!exportData || !exportData.success) {
+            return alert('Gagal menyiapkan data ekspor: ' + (exportData ? exportData.message : 'Unknown error'));
           }
 
           try {
             if (typeof XLSX === 'undefined') {
-              throw new Error('Pustaka SheetJS belum termuat. Periksa koneksi internet Anda lalu coba lagi.');
+              throw new Error('Pustaka SheetJS (XLSX) belum siap dimuat di peramban Anda.');
             }
 
             const wb = XLSX.utils.book_new();
+            const report = exportData.report;
+            const tasks = report.tasks || [];
+            const students = report.students || [];
+            const classInfo = exportData.classInfo || {};
 
-            // ==========================================
-            // SHEET 1: REKAPITULASI NILAI KELAS
-            // ==========================================
-            const rekapHeaders = ['No', 'NIM', 'Nama Mahasiswa'];
-            res.report.tasks.forEach(t => {
-              const weightStr = t.bobot_persentase > 0 ? ` (${t.bobot_persentase}%)` : '';
-              rekapHeaders.push(`${t.judul_tugas}${weightStr}`);
+            // Sheet 1: Rekapitulasi Nilai Kelas
+            const rekapRows = [];
+            rekapRows.push(['REKAPITULASI PENILAIAN MAHASISWA']);
+            rekapRows.push(['Mata Kuliah: ' + (classInfo.mata_kuliah || '-') + ' | Kelas: ' + (classInfo.nama_kelas || '-') + ' | Semester: ' + (classInfo.semester || '-')]);
+            rekapRows.push([]);
+
+            const headerRow = ['No', 'NIM', 'Nama Mahasiswa'];
+            tasks.forEach(t => {
+              headerRow.push(t.judul_tugas + (t.bobot_persentase > 0 ? ' (' + t.bobot_persentase + '%)' : ''));
             });
-            rekapHeaders.push('Rata-rata Tugas');
-            rekapHeaders.push('Nilai Akhir Terbobot');
+            headerRow.push('Rata-rata');
+            headerRow.push('Nilai Akhir Terbobot');
+            rekapRows.push(headerRow);
 
-            const rekapRows = res.report.students.map((s, idx) => {
+            students.forEach((s, idx) => {
               const r = [idx + 1, s.nim, s.nama_mahasiswa];
-              res.report.tasks.forEach(t => {
-                const sc = s.taskScores[t.id_tugas];
+              tasks.forEach(t => {
+                const sc = s.taskScores ? s.taskScores[t.id_tugas] : null;
                 r.push(sc !== null && sc !== undefined ? sc : '-');
               });
-              r.push(s.averageScore);
-              r.push(s.finalScore);
-              return r;
+              r.push(s.averageScore > 0 ? s.averageScore : 0);
+              r.push(s.finalScore > 0 ? s.finalScore : 0);
+              rekapRows.push(r);
             });
 
-            const rekapData = [
-              ['REKAPITULASI PENILAIAN MAHASISWA'],
-              [`Kelas: ${res.classInfo.nama_kelas} | Mata Kuliah: ${res.classInfo.mata_kuliah} | Semester: ${res.classInfo.semester}`],
-              [],
-              rekapHeaders,
-              ...rekapRows
-            ];
+            const wsRekap = XLSX.utils.aoa_to_sheet(rekapRows);
+            XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekapitulasi Kelas');
 
-            const wsRekap = XLSX.utils.aoa_to_sheet(rekapData);
+            // Sheet 2 dst: Rincian Tiap Tugas
+            const taskDetails = exportData.taskDetails || [];
+            taskDetails.forEach((td, tIdx) => {
+              const tTask = td.task;
+              const tGrades = td.grades || [];
 
-            // Lebar kolom otomatis untuk Sheet 1
-            const rekapColWidths = [{ wch: 6 }, { wch: 16 }, { wch: 30 }];
-            res.report.tasks.forEach(() => rekapColWidths.push({ wch: 20 }));
-            rekapColWidths.push({ wch: 16 }, { wch: 22 });
-            wsRekap['!cols'] = rekapColWidths;
+              const rawSheetName = 'Tugas ' + (tIdx + 1) + ' - ' + (tTask.judul_tugas || 'Detail');
+              const safeSheetName = rawSheetName.replace(/[\\/*?:\[\]]/g, ' ').substring(0, 30);
 
-            XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekapitulasi Nilai');
+              const detailRows = [];
+              detailRows.push(['DETAIL PENILAIAN: ' + tTask.judul_tugas.toUpperCase()]);
+              detailRows.push(['Bobot: ' + (tTask.bobot_persentase || 0) + '% | Soal: ' + (tTask.task_file_ref || '-')]);
+              detailRows.push(['Rubrik Acuan: ' + (tTask.rubrik_text ? tTask.rubrik_text.replace(/\r?\n/g, ' ') : '-')]);
+              detailRows.push([]);
 
-            // ==========================================
-            // SHEET 2, 3, dst: DETAIL TIAP TUGAS
-            // ==========================================
-            if (res.taskDetails && res.taskDetails.length > 0) {
-              res.taskDetails.forEach((td, idx) => {
-                // Judul sheet Excel maksimal 31 karakter dan tanpa karakter khusus \/?*[]:
-                let rawTitle = `Tugas ${idx + 1} - ${td.task.judul_tugas}`;
-                let cleanSheetName = rawTitle.replace(/[\\/?*\[\]:]/g, ' ').trim().substring(0, 31);
+              detailRows.push(['No', 'NIM', 'Nama Mahasiswa', 'Berkas Jawaban', 'Nilai Total', 'Rincian Poin Soal', 'Catatan AI', 'Status', 'Waktu Penilaian']);
 
-                const taskDetailHeaders = [
-                  'No',
-                  'NIM',
-                  'Nama Mahasiswa',
-                  'Berkas Jawaban',
-                  'Nilai Total',
-                  'Rincian Skor Rubrik',
-                  'Catatan & Evaluasi AI',
-                  'Status Penilaian',
-                  'Waktu Penilaian'
-                ];
-
-                const taskDetailRows = td.grades.map(g => [
+              tGrades.forEach(g => {
+                detailRows.push([
                   g.no,
                   g.nim,
                   g.nama_mahasiswa,
@@ -1946,57 +2168,31 @@
                   g.status,
                   g.waktu_penilaian
                 ]);
-
-                const taskSheetData = [
-                  [`DETAIL PENILAIAN TUGAS: ${td.task.judul_tugas}`],
-                  [`Kelas: ${res.classInfo.nama_kelas} | Bobot Nilai: ${td.task.bobot_persentase}%`],
-                  [],
-                  taskDetailHeaders,
-                  ...taskDetailRows
-                ];
-
-                const wsTask = XLSX.utils.aoa_to_sheet(taskSheetData);
-
-                // Lebar kolom rapi untuk Sheet Detail Tugas
-                wsTask['!cols'] = [
-                  { wch: 6 },   // No
-                  { wch: 16 },  // NIM
-                  { wch: 30 },  // Nama
-                  { wch: 25 },  // File
-                  { wch: 12 },  // Nilai
-                  { wch: 45 },  // Rincian Rubrik
-                  { wch: 55 },  // Catatan AI
-                  { wch: 15 },  // Status
-                  { wch: 22 }   // Waktu
-                ];
-
-                XLSX.utils.book_append_sheet(wb, wsTask, cleanSheetName);
               });
-            }
 
-            // ==========================================
-            // TRIGGER DOWNLOAD FILE EXCEL (.XLSX)
-            // ==========================================
-            const cleanClassName = (res.classInfo.nama_kelas || 'Kelas').replace(/[\\/?*\[\]:]/g, '_').replace(/\s+/g, '_');
-            const fileName = `Rekap_Nilai_${cleanClassName}.xlsx`;
+              const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
+              XLSX.utils.book_append_sheet(wb, wsDetail, safeSheetName);
+            });
+
+            const cleanClassName = (classInfo.nama_kelas || 'Kelas').replace(/[\\/*?:\s]/g, '_');
+            const fileName = 'Rekap_Nilai_' + cleanClassName + '_' + new Date().toISOString().substring(0, 10) + '.xlsx';
+
             XLSX.writeFile(wb, fileName);
-
-            showGlobalAlert(`File Excel "${fileName}" berhasil diunduh!`, 'success');
+            showGlobalAlert('File Excel multi-sheet berhasil diunduh: ' + fileName, 'success');
           } catch (excelErr) {
-            console.error('Gagal membuat Excel:', excelErr);
-            showGlobalAlert('Gagal memproses file Excel: ' + excelErr.message, 'error');
+            alert('Gagal membuat file Excel: ' + excelErr.message);
           }
         })
         .withFailureHandler(function(err) {
           if (btn) btn.disabled = false;
           if (btnText) btnText.textContent = 'Download Excel';
-          showGlobalAlert('Gagal mengambil data ekspor: ' + err.message, 'error');
+          alert('Gagal mengambil data rekapitulasi: ' + err.message);
         })
         .apiGetClassFullExportData(appState.activeClassId);
     }
 
     // ==========================================
-    // MODALS HANDLING & ACTIONS
+    // MODAL HANDLERS
     // ==========================================
 
     function openModal(modalId) {
@@ -2007,13 +2203,79 @@
       document.getElementById(modalId).classList.add('hidden');
     }
 
-    // Kelas Modal
-    function openClassModal(classData) {
+    // 0. Mata Kuliah Modal
+    function openCourseModal(courseData = null) {
+      document.getElementById('courseModalTitle').textContent = courseData ? 'Edit Mata Kuliah' : 'Tambah Mata Kuliah Baru';
+      document.getElementById('modalCourseId').value = courseData ? courseData.id_mata_kuliah : '';
+      document.getElementById('modalCourseKode').value = courseData ? (courseData.kode_mk || '') : '';
+      document.getElementById('modalCourseName').value = courseData ? courseData.nama_mata_kuliah : '';
+      document.getElementById('modalCourseSemester').value = courseData ? (courseData.semester || '') : '';
+      openModal('courseModal');
+    }
+
+    function editCourse(courseId) {
+      const target = appState.courses.find(c => c.id_mata_kuliah === courseId);
+      if (target) openCourseModal(target);
+    }
+
+    function submitSaveCourse() {
+      const name = document.getElementById('modalCourseName').value.trim();
+      if (!name) return alert('Nama mata kuliah wajib diisi!');
+
+      const data = {
+        id_mata_kuliah: document.getElementById('modalCourseId').value,
+        kode_mk: document.getElementById('modalCourseKode').value.trim(),
+        nama_mata_kuliah: name,
+        semester: document.getElementById('modalCourseSemester').value.trim()
+      };
+
+      const btn = document.getElementById('btnSubmitCourse');
+      if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Simpan Mata Kuliah'; }
+          closeModal('courseModal');
+          showGlobalAlert('Mata kuliah berhasil disimpan!', 'success');
+          reloadAllData(res.id_mata_kuliah);
+        })
+        .withFailureHandler(function(err) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Simpan Mata Kuliah'; }
+          alert('Gagal menyimpan mata kuliah: ' + err.message);
+        })
+        .apiSaveCourse(data);
+    }
+
+    function confirmDeleteCourse(courseId, courseName) {
+      if (!confirm('Hapus Mata Kuliah "' + courseName + '"?\n\nPERINGATAN: Seluruh kelas, tugas, mahasiswa, dan nilai di bawah mata kuliah ini akan ikut terhapus!')) {
+        return;
+      }
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function(res) {
+          showLoading(false);
+          showGlobalAlert(res.message, 'success');
+          reloadAllData();
+        })
+        .withFailureHandler(function(err) {
+          showLoading(false);
+          showGlobalAlert('Gagal menghapus mata kuliah: ' + err.message, 'error');
+        })
+        .apiDeleteCourse(courseId);
+    }
+
+    // 1. Kelas Modal
+    function openClassModal(classData = null) {
       document.getElementById('classModalTitle').textContent = classData ? 'Edit Kelas' : 'Tambah Kelas Baru';
       document.getElementById('modalClassId').value = classData ? classData.id_kelas : '';
       document.getElementById('modalClassName').value = classData ? classData.nama_kelas : '';
-      document.getElementById('modalCourseName').value = classData ? classData.mata_kuliah : '';
-      document.getElementById('modalSemester').value = classData ? classData.semester : '';
+      document.getElementById('modalClassSemester').value = classData ? classData.semester : '';
+
+      const selectCourse = document.getElementById('modalClassCourseSelect');
+      if (selectCourse) {
+        selectCourse.value = classData ? classData.id_mata_kuliah : appState.activeCourseId;
+      }
+
       openModal('classModal');
     }
 
@@ -2023,25 +2285,29 @@
     }
 
     function submitSaveClass() {
+      const courseId = document.getElementById('modalClassCourseSelect').value;
+      const name = document.getElementById('modalClassName').value.trim();
+      if (!name) return alert('Nama kelas wajib diisi!');
+      if (!courseId) return alert('Pilih mata kuliah induk terlebih dahulu!');
+
       const data = {
         id_kelas: document.getElementById('modalClassId').value,
-        nama_kelas: document.getElementById('modalClassName').value.trim(),
-        mata_kuliah: document.getElementById('modalCourseName').value.trim(),
-        semester: document.getElementById('modalSemester').value.trim()
+        id_mata_kuliah: courseId,
+        nama_kelas: name,
+        semester: document.getElementById('modalClassSemester').value.trim()
       };
-      if (!data.nama_kelas) return alert('Nama kelas wajib diisi!');
 
       const btn = document.getElementById('btnSubmitClass');
       btn.disabled = true;
       btn.textContent = 'Menyimpan...';
 
       google.script.run
-        .withSuccessHandler(function(saved) {
+        .withSuccessHandler(function(res) {
           btn.disabled = false;
           btn.textContent = 'Simpan Kelas';
           closeModal('classModal');
           showGlobalAlert('Kelas berhasil disimpan!', 'success');
-          initApp();
+          reloadAllData(courseId, res.id_kelas);
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
@@ -2052,17 +2318,24 @@
     }
 
     function confirmDeleteClass(classId, className) {
-      if (confirm(`Yakin ingin menghapus kelas "${className}" beserta seluruh data mahasiswa dan tugas di dalamnya?`)) {
-        google.script.run
-          .withSuccessHandler(function() {
-            showGlobalAlert(`Kelas "${className}" berhasil dihapus.`, 'success');
-            initApp();
-          })
-          .apiDeleteClass(classId);
+      if (!confirm('Hapus kelas "' + className + '"?\nSeluruh data mahasiswa dan riwayat nilai kelas ini akan ikut terhapus.')) {
+        return;
       }
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function(res) {
+          showLoading(false);
+          showGlobalAlert(res.message, 'success');
+          reloadAllData(appState.activeCourseId);
+        })
+        .withFailureHandler(function(err) {
+          showLoading(false);
+          showGlobalAlert('Gagal menghapus kelas: ' + err.message, 'error');
+        })
+        .apiDeleteClass(classId);
     }
 
-    // Mahasiswa Modal
+    // 2. Mahasiswa Modal
     function openAddStudentModal() {
       if (!appState.activeClassId) return alert('Pilih kelas terlebih dahulu!');
       document.getElementById('modalStudentNim').value = '';
@@ -2076,12 +2349,15 @@
       if (!nim || !nama) return alert('NIM dan Nama Mahasiswa wajib diisi!');
 
       google.script.run
-        .withSuccessHandler(function() {
+        .withSuccessHandler(function(res) {
           closeModal('studentModal');
-          showGlobalAlert(`Mahasiswa ${nama} berhasil ditambahkan!`, 'success');
+          showGlobalAlert('Mahasiswa berhasil ditambahkan!', 'success');
           loadClassDetails(appState.activeClassId);
         })
-        .apiSaveStudent(appState.activeClassId, { nim, nama_mahasiswa: nama });
+        .withFailureHandler(function(err) {
+          alert('Gagal menyimpan mahasiswa: ' + err.message);
+        })
+        .apiSaveStudent(appState.activeClassId, { nim: nim, nama_mahasiswa: nama });
     }
 
     function openImportStudentsModal() {
@@ -2092,7 +2368,7 @@
 
     function submitImportStudents() {
       const rawText = document.getElementById('importTextarea').value;
-      if (!rawText.trim()) return alert('Tempelkan daftar mahasiswa terlebih dahulu!');
+      if (!rawText.trim()) return alert('Daftar mahasiswa masih kosong!');
 
       const btn = document.getElementById('btnSubmitImport');
       btn.disabled = true;
@@ -2115,19 +2391,21 @@
     }
 
     function confirmDeleteStudent(studentId, studentName) {
-      if (confirm(`Hapus mahasiswa "${studentName}" dari kelas ini?`)) {
-        google.script.run
-          .withSuccessHandler(function() {
-            showGlobalAlert(`Mahasiswa "${studentName}" berhasil dihapus.`, 'success');
-            loadClassDetails(appState.activeClassId);
-          })
-          .apiDeleteStudent(studentId);
-      }
+      if (!confirm('Hapus mahasiswa "' + studentName + '" dari kelas ini?')) return;
+      google.script.run
+        .withSuccessHandler(function(res) {
+          showGlobalAlert(res.message, 'success');
+          loadClassDetails(appState.activeClassId);
+        })
+        .withFailureHandler(function(err) {
+          showGlobalAlert('Gagal menghapus mahasiswa: ' + err.message, 'error');
+        })
+        .apiDeleteStudent(studentId);
     }
 
-    // Tugas Modal
+    // 3. Tugas Modal
     function openCreateTaskModal() {
-      if (!appState.activeClassId) return alert('Pilih kelas terlebih dahulu!');
+      if (appState.courses.length === 0) return alert('Buat mata kuliah terlebih dahulu sebelum membuat tugas!');
       document.getElementById('taskModalTitle').textContent = 'Buat Tugas Baru';
       document.getElementById('modalTaskId').value = '';
       document.getElementById('modalTaskTitle').value = '';
@@ -2141,43 +2419,62 @@
    - Ketepatan konsep, logika pemikiran, dan keakuratan jawaban.
 
 2. Soal 2 (Porsi: 40 Poin)
-   - Langkah penyelesaian lengkap, penalaran mendalam, dan hasil tepat.
+   - Struktur, kelengkapan kode/dokumen, implementasi teknis.
 
-3. Kerapian Format & Sistematika (Porsi: 25 Poin)
-   - Sistematika penulisan rapi, jelas, dan mudah dipahami.`;
-      
-      document.getElementById('verifyTaskAlert').className = 'hidden';
-      document.getElementById('verifyFolderAlert').className = 'hidden';
-      document.getElementById('autoExtractAlert').className = 'hidden';
+3. Kerapian & Format (Porsi: 25 Poin)
+   - Format penulisan, cover, identitas mahasiswa, dan kerapian berkas.`;
+
+      const courseSelect = document.getElementById('modalTaskCourseId');
+      if (courseSelect) courseSelect.value = appState.activeCourseId;
+
+      document.getElementById('verifyTaskAlert').classList.add('hidden');
+      document.getElementById('verifyFolderAlert').classList.add('hidden');
+      document.getElementById('autoExtractAlert').classList.add('hidden');
+
       openModal('taskModal');
     }
 
     function editTask(taskId) {
-      const t = appState.currentTasks.find(item => item.id_tugas === taskId);
-      if (!t) return;
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function(task) {
+          showLoading(false);
+          if (!task) return alert('Tugas tidak ditemukan!');
 
-      document.getElementById('taskModalTitle').textContent = 'Edit Tugas';
-      document.getElementById('modalTaskId').value = t.id_tugas;
-      document.getElementById('modalTaskTitle').value = t.judul_tugas;
-      document.getElementById('modalTaskDesc').value = t.deskripsi;
-      document.getElementById('modalTaskWeight').value = t.bobot_persentase || '0';
-      document.getElementById('modalTaskQuestionRef').value = t.task_file_ref || '';
-      document.getElementById('modalTaskFolderId').value = t.drive_folder_id || '';
-      document.getElementById('modalTaskRubric').value = t.rubrik_text || '';
-      
-      document.getElementById('verifyTaskAlert').className = 'hidden';
-      document.getElementById('verifyFolderAlert').className = 'hidden';
-      document.getElementById('autoExtractAlert').className = 'hidden';
-      openModal('taskModal');
+          document.getElementById('taskModalTitle').textContent = 'Edit Tugas Mata Kuliah';
+          document.getElementById('modalTaskId').value = task.id_tugas;
+          document.getElementById('modalTaskTitle').value = task.judul_tugas;
+          document.getElementById('modalTaskDesc').value = task.deskripsi || '';
+          document.getElementById('modalTaskWeight').value = task.bobot_persentase || 0;
+          document.getElementById('modalTaskQuestionRef').value = task.task_file_ref || '';
+          document.getElementById('modalTaskFolderId').value = task.drive_folder_id || '';
+          document.getElementById('modalTaskRubric').value = task.rubrik_text || '';
+
+          const courseSelect = document.getElementById('modalTaskCourseId');
+          if (courseSelect) courseSelect.value = task.id_mata_kuliah;
+
+          document.getElementById('verifyTaskAlert').classList.add('hidden');
+          document.getElementById('verifyFolderAlert').classList.add('hidden');
+          document.getElementById('autoExtractAlert').classList.add('hidden');
+
+          openModal('taskModal');
+        })
+        .withFailureHandler(function(err) {
+          showLoading(false);
+          alert('Gagal memuat tugas: ' + err.message);
+        })
+        .apiGetTaskById(taskId, appState.activeClassId);
     }
 
     function submitSaveTask() {
       const title = document.getElementById('modalTaskTitle').value.trim();
+      const courseId = document.getElementById('modalTaskCourseId').value;
       if (!title) return alert('Judul tugas wajib diisi!');
+      if (!courseId) return alert('Pilih mata kuliah terlebih dahulu!');
 
       const data = {
         id_tugas: document.getElementById('modalTaskId').value,
-        id_kelas: appState.activeClassId,
+        id_mata_kuliah: courseId,
         judul_tugas: title,
         deskripsi: document.getElementById('modalTaskDesc').value.trim(),
         bobot_persentase: Number(document.getElementById('modalTaskWeight').value) || 0,
@@ -2191,12 +2488,17 @@
       btn.textContent = 'Menyimpan...';
 
       google.script.run
-        .withSuccessHandler(function() {
+        .withSuccessHandler(function(res) {
           btn.disabled = false;
           btn.textContent = 'Simpan Tugas';
           closeModal('taskModal');
-          showGlobalAlert('Tugas berhasil disimpan!', 'success');
-          loadClassDetails(appState.activeClassId);
+          showGlobalAlert('Tugas berhasil disimpan untuk seluruh kelas pada mata kuliah ini!', 'success');
+          
+          if (appState.activeClassId) {
+            loadClassDetails(appState.activeClassId);
+          } else {
+            switchTaskCourse(courseId);
+          }
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
@@ -2207,247 +2509,320 @@
     }
 
     function confirmDeleteTask(taskId, taskTitle) {
-      if (confirm(`Yakin ingin menghapus tugas "${taskTitle}" beserta seluruh nilai mahasiswa di dalamnya?`)) {
-        google.script.run
-          .withSuccessHandler(function() {
-            showGlobalAlert(`Tugas "${taskTitle}" berhasil dihapus.`, 'success');
+      if (!confirm('Hapus tugas "' + taskTitle + '"?\nSeluruh riwayat nilai mahasiswa untuk tugas ini di seluruh kelas akan ikut terhapus.')) return;
+      google.script.run
+        .withSuccessHandler(function(res) {
+          showGlobalAlert(res.message, 'success');
+          if (appState.activeClassId) {
             loadClassDetails(appState.activeClassId);
-          })
-          .apiDeleteTask(taskId);
-      }
+          } else {
+            switchTaskCourse(appState.activeCourseId);
+          }
+        })
+        .withFailureHandler(function(err) {
+          showGlobalAlert('Gagal menghapus tugas: ' + err.message, 'error');
+        })
+        .apiDeleteTask(taskId);
     }
 
     function verifyTaskQuestion() {
-      const ref = document.getElementById('modalTaskQuestionRef').value;
+      const ref = document.getElementById('modalTaskQuestionRef').value.trim();
       const alertBox = document.getElementById('verifyTaskAlert');
-      alertBox.className = 'p-2 rounded-lg text-[11px] bg-slate-100 text-slate-700';
-      alertBox.textContent = 'Memeriksa berkas soal di Drive...';
+      const btn = document.getElementById('btnVerifyTask');
+
+      if (!ref) {
+        alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-amber-50 text-amber-700 border border-amber-200';
+        alertBox.textContent = 'Masukkan URL atau ID file soal di Google Drive terlebih dahulu.';
+        alertBox.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Mengecek...';
+      alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-slate-100 text-slate-600';
+      alertBox.textContent = 'Menghubungkan ke Google Drive...';
+      alertBox.classList.remove('hidden');
 
       google.script.run
         .withSuccessHandler(function(res) {
-          alertBox.className = res.success 
-            ? 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800' 
-            : 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800';
-          alertBox.textContent = res.message;
+          btn.disabled = false;
+          btn.textContent = 'Cek Soal';
+          if (res.success) {
+            alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium';
+            alertBox.textContent = '✓ ' + res.message;
+          } else {
+            alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium';
+            alertBox.textContent = '✗ ' + res.message;
+          }
         })
         .withFailureHandler(function(err) {
-          alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800';
-          alertBox.textContent = 'Gagal memeriksa soal: ' + err.message;
+          btn.disabled = false;
+          btn.textContent = 'Cek Soal';
+          alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium';
+          alertBox.textContent = 'Gagal verifikasi: ' + err.message;
         })
         .apiValidateTaskFile(ref);
     }
 
     function verifyDriveFolder() {
-      const folderId = document.getElementById('modalTaskFolderId').value;
+      const input = document.getElementById('modalTaskFolderId').value.trim();
       const alertBox = document.getElementById('verifyFolderAlert');
-      alertBox.className = 'p-2 rounded-lg text-[11px] bg-slate-100 text-slate-700';
-      alertBox.textContent = 'Memeriksa folder jawaban di Drive...';
+      const btn = document.getElementById('btnVerifyFolder');
+
+      if (!input) {
+        alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-amber-50 text-amber-700 border border-amber-200';
+        alertBox.textContent = 'Masukkan URL atau ID folder Google Drive terlebih dahulu.';
+        alertBox.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Mengecek...';
+      alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-slate-100 text-slate-600';
+      alertBox.textContent = 'Menghubungkan ke folder Drive...';
+      alertBox.classList.remove('hidden');
 
       google.script.run
         .withSuccessHandler(function(res) {
-          alertBox.className = res.success 
-            ? 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800' 
-            : 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800';
-          alertBox.textContent = res.message;
-          if (res.success && res.folderId) {
+          btn.disabled = false;
+          btn.textContent = 'Cek Folder';
+          if (res.success) {
+            alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium';
+            alertBox.textContent = '✓ ' + res.message;
             document.getElementById('modalTaskFolderId').value = res.folderId;
+          } else {
+            alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium';
+            alertBox.textContent = '✗ ' + res.message;
           }
         })
         .withFailureHandler(function(err) {
-          alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800';
-          alertBox.textContent = 'Gagal memeriksa folder: ' + err.message;
+          btn.disabled = false;
+          btn.textContent = 'Cek Folder';
+          alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium';
+          alertBox.textContent = 'Gagal verifikasi: ' + err.message;
         })
-        .apiValidateDriveFolder(folderId);
+        .apiValidateDriveFolder(input);
     }
 
     function autoExtractRubricInModal() {
-      const ref = document.getElementById('modalTaskQuestionRef').value;
+      const ref = document.getElementById('modalTaskQuestionRef').value.trim();
       const alertBox = document.getElementById('autoExtractAlert');
       const btn = document.getElementById('btnAutoExtract');
 
-      if (!ref) return alert('Isi berkas soal di Drive terlebih dahulu!');
+      if (!ref) {
+        alert('Masukkan URL / ID berkas soal tugas di Google Drive terlebih dahulu!');
+        return;
+      }
 
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner inline-block w-2.5 h-2.5 mr-1"></span> AI Menganalisis...';
-      alertBox.className = 'p-2 rounded-lg text-[11px] bg-blue-50 text-blue-700';
-      alertBox.textContent = 'Membaca dokumen soal dan mengekstrak porsi poin...';
+      btn.textContent = '🤖 Menganalisis...';
+      alertBox.className = 'p-2 rounded-lg text-[11px] bg-blue-50 text-blue-700 border border-blue-200 block';
+      alertBox.textContent = 'Gemini AI sedang membaca soal dan menyusun rubrik porsi poin...';
 
       google.script.run
         .withSuccessHandler(function(res) {
           btn.disabled = false;
-          btn.innerHTML = '🤖 Ekstrak dari Soal';
+          btn.textContent = '🤖 Ekstrak dari Soal';
           if (res.success) {
             document.getElementById('modalTaskRubric').value = res.rubricText;
-            alertBox.className = res.pointsFound 
-              ? 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800' 
-              : 'p-2 rounded-lg text-[11px] bg-amber-50 text-amber-800';
-            alertBox.textContent = res.pointsFound 
-              ? `✅ Poin berhasil diekstrak dari soal (Total: ${res.totalPoints} poin)!` 
-              : `ℹ️ Tidak ada bobot eksplisit di soal. AI menyarankan pembagian poin seimbang.`;
+            alertBox.className = 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium block';
+            alertBox.textContent = '✓ ' + res.message;
           } else {
-            alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800';
-            alertBox.textContent = res.message;
+            alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium block';
+            alertBox.textContent = '✗ ' + res.message;
           }
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
-          btn.innerHTML = '🤖 Ekstrak dari Soal';
-          alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800';
-          alertBox.textContent = 'Kesalahan: ' + err.message;
+          btn.textContent = '🤖 Ekstrak dari Soal';
+          alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium block';
+          alertBox.textContent = 'Gagal ekstrak: ' + err.message;
         })
         .apiExtractRubricFromTask(ref, appState.settings.modelName);
     }
 
-    // Detail Modal Nilai
+    // 4. Detail / Koreksi Manual Modal
     function openGradeDetailModal(nim) {
-      const g = appState.currentGrades.find(item => item.nim === nim);
-      if (!g) return;
+      const grade = appState.currentGrades.find(g => g.nim === nim);
+      if (!grade) return;
 
-      document.getElementById('detailModalStudentName').textContent = g.nama_mahasiswa;
-      document.getElementById('detailModalStudentNim').textContent = `NIM: ${g.nim} • Berkas: ${g.file_name || 'Tidak ada'}`;
-      document.getElementById('detailGradeTaskId').value = g.id_tugas;
-      document.getElementById('detailGradeClassId').value = g.id_kelas;
-      document.getElementById('detailGradeNim').value = g.nim;
-      document.getElementById('detailGradeNama').value = g.nama_mahasiswa;
-      document.getElementById('detailGradeTotalScore').value = g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '';
-      document.getElementById('detailGradeCriteria').value = g.rincian_poin || '';
-      document.getElementById('detailGradeFeedback').value = g.catatan_ai || '';
+      document.getElementById('detailGradeTaskId').value = appState.selectedGradingTaskId;
+      document.getElementById('detailGradeClassId').value = appState.activeClassId;
+      document.getElementById('detailGradeNim').value = grade.nim;
+      document.getElementById('detailGradeNama').value = grade.nama_mahasiswa;
 
-      // Tampilkan info penyebab kegagalan jika status Gagal
-      const failureAlert = document.getElementById('detailFailureAlert');
-      const isFailed = g.status && g.status.toLowerCase().startsWith('gagal');
+      document.getElementById('detailModalStudentName').textContent = grade.nama_mahasiswa;
+      document.getElementById('detailModalStudentNim').textContent = 'NIM: ' + grade.nim + (grade.file_name ? ' • Berkas: ' + grade.file_name : '');
+      document.getElementById('detailGradeTotalScore').value = grade.nilai_total !== null && grade.nilai_total !== undefined ? grade.nilai_total : '';
+      document.getElementById('detailGradeCriteria').value = grade.rincian_poin || '';
+      document.getElementById('detailGradeFeedback').value = grade.catatan_ai || '';
 
-      if (isFailed) {
-        failureAlert.classList.remove('hidden');
-        const cleanMsg = g.status.replace(/^Gagal:\s*/i, '');
-        document.getElementById('detailFailureReason').textContent = cleanMsg;
+      const failureBox = document.getElementById('detailFailureAlert');
+      const isFailed = grade.status && grade.status.toLowerCase().startsWith('gagal');
 
-        let advice = 'Periksa keberadaan berkas tugas mahasiswa di Google Drive atau ulangi penilaian.';
-        const lower = cleanMsg.toLowerCase();
-        if (lower.includes('tidak ditemukan')) {
-          advice = `Pastikan berkas jawaban mahasiswa di Google Drive memuat NIM "${g.nim}" atau nama mahasiswa pada nama file/subfolder.`;
-        } else if (lower.includes('kuota') || cleanMsg.includes('429')) {
-          advice = 'Batas kuota API tercapai. Tunggu 1-2 menit lalu klik tombol nilai kembali, atau gunakan model gemini-3.5-flash-lite.';
-        } else if (lower.includes('kunci api') || lower.includes('api key')) {
-          advice = 'Periksa kembali API Key Anda pada tab Pengaturan dan pastikan API Key aktif.';
-        } else if (lower.includes('besar') || lower.includes('ukuran') || lower.includes('20 mb')) {
-          advice = 'Ukuran berkas melebihi 20MB. Minta mahasiswa mengompres berkas atau mengunggah versi PDF ringkas.';
+      if (isFailed && failureBox) {
+        failureBox.classList.remove('hidden');
+        let cleanReason = grade.status.replace(/^Gagal:\s*/i, '');
+        let advice = 'Periksa apakah nama file atau isi berkas mahasiswa di Drive memuat NIM atau nama yang sesuai.';
+
+        if (grade.catatan_ai && grade.catatan_ai.includes('💡 Rekomendasi Solusi:')) {
+          const parts = grade.catatan_ai.split('💡 Rekomendasi Solusi:');
+          if (parts[1]) advice = parts[1].trim();
         }
+
+        document.getElementById('detailFailureReason').textContent = cleanReason;
         document.getElementById('detailFailureAdvice').textContent = '💡 Solusi: ' + advice;
-      } else {
-        failureAlert.classList.add('hidden');
+      } else if (failureBox) {
+        failureBox.classList.add('hidden');
       }
 
       openModal('gradeDetailModal');
     }
 
     function submitSaveManualGrade() {
+      const taskId = document.getElementById('detailGradeTaskId').value;
+      const classId = document.getElementById('detailGradeClassId').value;
+      const nim = document.getElementById('detailGradeNim').value;
+      const nama = document.getElementById('detailGradeNama').value;
       const scoreVal = document.getElementById('detailGradeTotalScore').value;
+
       const data = {
-        id_tugas: document.getElementById('detailGradeTaskId').value,
-        id_kelas: document.getElementById('detailGradeClassId').value,
-        nim: document.getElementById('detailGradeNim').value,
-        nama_mahasiswa: document.getElementById('detailGradeNama').value,
+        id_tugas: taskId,
+        id_kelas: classId,
+        nim: nim,
+        nama_mahasiswa: nama,
         nilai_total: scoreVal !== '' ? Number(scoreVal) : null,
-        rincian_poin: document.getElementById('detailGradeCriteria').value,
-        catatan_ai: document.getElementById('detailGradeFeedback').value,
-        status: 'Selesai',
+        rincian_poin: document.getElementById('detailGradeCriteria').value.trim(),
+        catatan_ai: document.getElementById('detailGradeFeedback').value.trim(),
+        status: scoreVal !== '' ? 'Selesai' : 'Belum Dinilai',
         waktu_penilaian: new Date().toLocaleString('id-ID')
       };
 
       google.script.run
-        .withSuccessHandler(function() {
+        .withSuccessHandler(function(res) {
           closeModal('gradeDetailModal');
-          showGlobalAlert(`Nilai mahasiswa ${data.nama_mahasiswa} berhasil disimpan manual!`, 'success');
-          loadGradingTable(data.id_tugas);
+          showGlobalAlert('Perubahan nilai mahasiswa berhasil disimpan!', 'success');
+          loadGradingTable(taskId);
+        })
+        .withFailureHandler(function(err) {
+          alert('Gagal menyimpan nilai: ' + err.message);
         })
         .apiSaveGradeManual(data);
     }
 
-    // Pengaturan
+    // ==========================================
+    // PENGATURAN & API KEY (TAB 6)
+    // ==========================================
+
     function toggleApiKeyInputVisibility() {
       const input = document.getElementById('inputApiKey');
       input.type = input.type === 'password' ? 'text' : 'password';
     }
 
     function testApiConnection() {
-      const apiKey = document.getElementById('inputApiKey').value;
+      const key = document.getElementById('inputApiKey').value.trim();
       const model = document.getElementById('selectModelName').value;
       const alertBox = document.getElementById('testApiAlert');
       const btn = document.getElementById('btnTestApi');
 
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner inline-block w-3 h-3 mr-1.5"></span> Menghubungkan...';
-      alertBox.className = 'p-3 rounded-xl text-xs bg-slate-100 text-slate-700 block';
-      alertBox.textContent = 'Menguji koneksi ke Gemini API...';
+      btn.textContent = 'Menguji Koneksi...';
+      alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-slate-100 text-slate-600 block';
+      alertBox.textContent = 'Menghubungkan ke Gemini API...';
 
       google.script.run
         .withSuccessHandler(function(res) {
           btn.disabled = false;
-          btn.innerHTML = '🔍 Uji Koneksi API Key';
-          alertBox.className = res.success 
-            ? 'p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 block' 
-            : 'p-3 rounded-xl text-xs bg-rose-50 text-rose-800 block';
-          alertBox.textContent = res.message;
+          btn.textContent = '🔍 Uji Koneksi API Key';
+          if (res.success) {
+            alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
+            alertBox.textContent = '✓ ' + res.message;
+          } else {
+            alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
+            alertBox.textContent = '✗ ' + res.message;
+          }
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
-          btn.innerHTML = '🔍 Uji Koneksi API Key';
-          alertBox.className = 'p-3 rounded-xl text-xs bg-rose-50 text-rose-800 block';
-          alertBox.textContent = 'Kesalahan: ' + err.message;
+          btn.textContent = '🔍 Uji Koneksi API Key';
+          alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
+          alertBox.textContent = 'Galat koneksi: ' + err.message;
         })
-        .apiTestConnection(apiKey, model);
+        .apiTestConnection(key, model);
     }
 
     function saveAppSettings() {
-      const data = {
-        apiKey: document.getElementById('inputApiKey').value,
-        modelName: document.getElementById('selectModelName').value,
-        activeClassId: appState.activeClassId
-      };
-      const alertBox = document.getElementById('saveSettingsAlert');
+      const key = document.getElementById('inputApiKey').value.trim();
+      const model = document.getElementById('selectModelName').value;
       const btn = document.getElementById('btnSaveSettings');
+      const alertBox = document.getElementById('saveSettingsAlert');
 
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner inline-block w-3 h-3 mr-2"></span> Menyimpan...';
+      btn.textContent = 'Menyimpan...';
+
+      const data = {
+        apiKey: key,
+        modelName: model,
+        activeCourseId: appState.activeCourseId,
+        activeClassId: appState.activeClassId
+      };
 
       google.script.run
         .withSuccessHandler(function(res) {
           btn.disabled = false;
-          btn.innerHTML = '💾 Simpan Pengaturan';
-          alertBox.className = res.success 
-            ? 'p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 block' 
-            : 'p-3 rounded-xl text-xs bg-rose-50 text-rose-800 block';
-          alertBox.textContent = res.message;
-          document.getElementById('badgeModelName').textContent = data.modelName;
-          setTimeout(() => alertBox.classList.add('hidden'), 4000);
+          btn.textContent = '💾 Simpan Pengaturan';
+          if (res.success) {
+            alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
+            alertBox.textContent = '✓ ' + res.message;
+            document.getElementById('badgeModelName').textContent = model;
+            appState.settings.modelName = model;
+          } else {
+            alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
+            alertBox.textContent = '✗ ' + res.message;
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = '💾 Simpan Pengaturan';
+          alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
+          alertBox.textContent = 'Gagal menyimpan: ' + err.message;
         })
         .apiSaveSettings(data);
     }
 
-    // Alert & Utility Helpers
     function showGlobalAlert(msg, type = 'info') {
       const banner = document.getElementById('globalAlert');
       const icon = document.getElementById('globalAlertIcon');
       const text = document.getElementById('globalAlertMsg');
 
-      banner.className = `mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm block ${
-        type === 'success' ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' :
-        type === 'error' ? 'bg-rose-50 text-rose-900 border border-rose-200' :
-        'bg-blue-50 text-blue-900 border border-blue-200'
-      }`;
-      icon.textContent = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+      if (!banner || !text) return;
       text.textContent = msg;
+
+      if (type === 'error') {
+        banner.className = 'mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm bg-rose-50 border border-rose-200 text-rose-800';
+        icon.textContent = '❌';
+      } else if (type === 'success') {
+        banner.className = 'mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm bg-emerald-50 border border-emerald-200 text-emerald-800';
+        icon.textContent = '✅';
+      } else {
+        banner.className = 'mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm bg-blue-50 border border-blue-200 text-blue-800';
+        icon.textContent = 'ℹ️';
+      }
+
+      banner.classList.remove('hidden');
+      setTimeout(function() {
+        if (!banner.classList.contains('hidden')) banner.classList.add('hidden');
+      }, 7000);
     }
 
     function hideGlobalAlert() {
-      document.getElementById('globalAlert').classList.add('hidden');
+      const banner = document.getElementById('globalAlert');
+      if (banner) banner.classList.add('hidden');
     }
 
     function showLoading(show) {
-      // Optional loading indicator overlay if needed
+      // Indikator loading halus jika diperlukan
     }
   </script>
-
 </body>
 </html>

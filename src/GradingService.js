@@ -14,11 +14,12 @@ const GradingService = {
   gradeStudent(task, student, settings, taskQuestionData) {
     const nim = student.nim.trim();
     const nama = student.nama_mahasiswa.trim();
+    const classId = student.id_kelas || task.id_kelas || '';
 
     // Catat status sedang diproses
     DatabaseService.saveGrade({
       id_tugas: task.id_tugas,
-      id_kelas: task.id_kelas,
+      id_kelas: classId,
       nim: nim,
       nama_mahasiswa: nama,
       file_name: '',
@@ -72,7 +73,7 @@ const GradingService = {
       // 5. Simpan nilai ke basis data
       const saved = DatabaseService.saveGrade({
         id_tugas: task.id_tugas,
-        id_kelas: task.id_kelas,
+        id_kelas: classId,
         nim: nim,
         nama_mahasiswa: nama,
         file_name: submissionResult.fileName || '',
@@ -97,7 +98,7 @@ const GradingService = {
       };
     } catch (err) {
       const rawErrMsg = err.message || 'Kesalahan penilaian tidak diketahui';
-      
+
       // Klasifikasi penyebab kegagalan agar jelas bagi dosen
       let categorizedReason = rawErrMsg;
       let advice = '';
@@ -105,7 +106,7 @@ const GradingService = {
       const lowerErr = rawErrMsg.toLowerCase();
       if (lowerErr.includes('tidak ditemukan')) {
         categorizedReason = `Berkas jawaban mahasiswa tidak ditemukan di Google Drive untuk NIM "${nim}" (${nama}).`;
-        advice = `Pastikan file jawaban mahasiswa di Google Drive memuat NIM "${nim}" atau nama pada nama berkas atau subfolder.`;
+        advice = `Pastikan file jawaban mahasiswa di Google Drive memuat NIM "${nim}" atau nama pada nama berkas atau cover dokumen.`;
       } else if (rawErrMsg.includes('429') || lowerErr.includes('quota') || lowerErr.includes('kuota') || lowerErr.includes('limit')) {
         categorizedReason = 'Batas kuota Gemini API tercapai (Rate Limit / Quota Exceeded).';
         advice = 'Tunggu 1-2 menit lalu coba nilai kembali mahasiswa ini, atau pastikan menggunakan model gemini-3.5-flash-lite.';
@@ -120,14 +121,14 @@ const GradingService = {
         advice = 'Ulangi penilaian untuk mahasiswa ini atau periksa kejelasan rubrik soal.';
       } else if (lowerErr.includes('folder')) {
         categorizedReason = 'Folder Google Drive tidak dapat diakses atau ID folder belum benar.';
-        advice = 'Buka tab Tugas, klik Edit pada tugas ini dan tekan "Cek Folder" untuk memverifikasi folder jawaban.';
+        advice = 'Buka tab Kelola Tugas, periksa kembali ID folder jawaban Google Drive.';
       }
 
       const fullFailureNote = `[PENILAIAN GAGAL]:\n${categorizedReason}` + (advice ? `\n\n💡 Rekomendasi Solusi:\n${advice}` : '');
 
       DatabaseService.saveGrade({
         id_tugas: task.id_tugas,
-        id_kelas: task.id_kelas,
+        id_kelas: classId,
         nim: nim,
         nama_mahasiswa: nama,
         file_name: '',
@@ -153,13 +154,15 @@ const GradingService = {
   },
 
   /**
-   * Menilai hanya mahasiswa yang dipilih (selected students)
+   * Menilai hanya mahasiswa yang dipilih (selected students) pada kelas tertentu
    * @param {string} taskId 
+   * @param {string} classId
    * @param {Array<string>} studentNims - Daftar NIM yang dipilih
    * @return {Object}
    */
-  gradeSelectedStudents(taskId, studentNims) {
-    const task = DatabaseService.getTaskById(taskId);
+  gradeSelectedStudents(taskId, classId, studentNims) {
+    if (!classId) throw new Error('ID Kelas belum ditentukan.');
+    const task = DatabaseService.getTaskById(taskId, classId);
     if (!task) throw new Error('Tugas tidak ditemukan.');
     if (!studentNims || studentNims.length === 0) {
       throw new Error('Pilih minimal satu mahasiswa yang ingin dinilai.');
@@ -173,7 +176,7 @@ const GradingService = {
       throw new Error('Folder Google Drive jawaban mahasiswa belum diisi pada tugas ini.');
     }
 
-    const students = DatabaseService.getStudentsByClass(task.id_kelas);
+    const students = DatabaseService.getStudentsByClass(classId);
     const selectedStudents = students.filter(s => studentNims.includes(s.nim));
 
     // Baca berkas soal sekali saja
@@ -207,14 +210,16 @@ const GradingService = {
   },
 
   /**
-   * Menilai seluruh mahasiswa untuk suatu tugas (batch dengan proteksi batas waktu)
+   * Menilai seluruh mahasiswa untuk suatu tugas pada kelas tertentu (batch dengan proteksi batas waktu)
    * @param {string} taskId 
+   * @param {string} classId
    * @param {boolean} onlyUnassessed - Jika true, hanya nilai yang belum selesai/gagal
    * @return {Object}
    */
-  gradeAllStudents(taskId, onlyUnassessed = true) {
+  gradeAllStudents(taskId, classId, onlyUnassessed = true) {
     const startTime = Date.now();
-    const task = DatabaseService.getTaskById(taskId);
+    if (!classId) throw new Error('ID Kelas belum ditentukan.');
+    const task = DatabaseService.getTaskById(taskId, classId);
     if (!task) throw new Error('Tugas tidak ditemukan.');
 
     const settings = getAppSettings();
@@ -225,7 +230,7 @@ const GradingService = {
       throw new Error('Folder Google Drive tempat jawaban mahasiswa belum diisi pada tugas ini.');
     }
 
-    const studentsWithGrades = DatabaseService.getGradesByTask(taskId);
+    const studentsWithGrades = DatabaseService.getGradesByTaskAndClass(taskId, classId);
     const maxExecutionMs = (settings.maxExecutionTimeSec || 300) * 1000;
 
     let taskQuestionData = null;
@@ -240,19 +245,18 @@ const GradingService = {
     let isTimeout = false;
 
     for (const student of studentsWithGrades) {
-      // Filter: jika sudah dinilai dan mode resume aktif
       if (onlyUnassessed && student.status && student.status.toLowerCase() === 'selesai') {
         skippedCount++;
         continue;
       }
 
-      // Checkpoint batas waktu GAS 6 menit
+      // Checkpoint batas waktu GAS 5 menit
       const elapsedTime = Date.now() - startTime;
       if (elapsedTime >= maxExecutionMs) {
         isTimeout = true;
         DatabaseService.saveGrade({
           id_tugas: task.id_tugas,
-          id_kelas: task.id_kelas,
+          id_kelas: classId,
           nim: student.nim,
           nama_mahasiswa: student.nama_mahasiswa,
           status: 'Tertunda (Batas Waktu)',
@@ -275,7 +279,7 @@ const GradingService = {
     }
 
     const summaryMessage = isTimeout
-      ? `Waktu eksekusi mendekati batas 6 menit. ${successCount} mahasiswa berhasil dinilai. Silakan klik "Mulai Penilaian" kembali untuk memproses sisa mahasiswa!`
+      ? `Waktu eksekusi mendekati batas 5 menit. ${successCount} mahasiswa berhasil dinilai. Silakan klik "Nilai Semua" kembali untuk melanjutkan sisa antrean!`
       : `Penilaian Selesai! Berhasil: ${successCount}, Gagal: ${failedCount}, Dilewati (Sudah Selesai): ${skippedCount}.`;
 
     return {
@@ -290,10 +294,13 @@ const GradingService = {
   },
 
   /**
-   * Mereset status baris penilaian yang gagal atau tertunda
+   * Mereset status baris penilaian yang gagal atau tertunda untuk kelas tertentu
+   * @param {string} taskId
+   * @param {string} classId
    */
-  resetFailedGrades(taskId) {
-    const grades = DatabaseService.getGradesByTask(taskId);
+  resetFailedGrades(taskId, classId) {
+    if (!classId) throw new Error('ID Kelas belum ditentukan.');
+    const grades = DatabaseService.getGradesByTaskAndClass(taskId, classId);
     let resetCount = 0;
 
     for (const g of grades) {
@@ -301,7 +308,7 @@ const GradingService = {
       if (statusText.startsWith('gagal') || statusText.includes('sedang') || statusText.includes('tertunda')) {
         DatabaseService.saveGrade({
           id_tugas: taskId,
-          id_kelas: g.id_kelas,
+          id_kelas: classId,
           nim: g.nim,
           nama_mahasiswa: g.nama_mahasiswa,
           status: 'Belum Dinilai',
