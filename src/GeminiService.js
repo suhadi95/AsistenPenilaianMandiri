@@ -369,5 +369,74 @@ INSTRUKSI PENILAIAN:
     } catch (parseError) {
       throw new Error('Gagal memproses JSON hasil penilaian Gemini: ' + parseError.message);
     }
+  },
+
+  /**
+   * Mengidentifikasi identitas mahasiswa (NIM dan Nama) dari isi dokumen multimodal
+   * @param {Object} filePayload - Payload berkas dari DriveService.processFileForGemini
+   * @param {string} apiKey - Gemini API Key
+   * @param {string} model - Nama model Gemini
+   * @return {Object|null} { nim: string, nama: string }
+   */
+  identifyStudentFromDocument(filePayload, apiKey, model) {
+    if (!apiKey) return null;
+    const selectedModel = model || 'gemini-3.5-flash-lite';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+
+    const parts = [];
+    parts.push({
+      text: 'Periksa dokumen tugas mahasiswa berikut ini secara seksama. Cari dan ekstrak identitas mahasiswa pembuat tugas yang biasanya tertera pada cover, judul, header, identitas penulis, atau bagian awal dokumen (NIM dan Nama Mahasiswa).'
+    });
+
+    if (filePayload.isTextOnly) {
+      const snippet = (filePayload.textContent || '').slice(0, 3000);
+      parts.push({ text: `=== KUTIPAN AWAL DOKUMEN ===\n${snippet}\n=== AKHIR KUTIPAN ===` });
+    } else if (filePayload.base64Data) {
+      parts.push({
+        inline_data: {
+          mime_type: filePayload.mimeType,
+          data: filePayload.base64Data
+        }
+      });
+    } else {
+      return null;
+    }
+
+    const payload = {
+      contents: [{ parts: parts }],
+      generationConfig: {
+        response_mime_type: 'application/json',
+        response_schema: {
+          type: 'OBJECT',
+          properties: {
+            nim: { type: 'STRING', description: 'Nomor Induk Mahasiswa jika tertera di dokumen, atau kosong jika tidak ada' },
+            nama: { type: 'STRING', description: 'Nama Mahasiswa jika tertera di dokumen, atau kosong jika tidak ada' }
+          },
+          required: ['nim', 'nama']
+        },
+        temperature: 0.1,
+        maxOutputTokens: 150
+      }
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    try {
+      const response = UrlFetchApp.fetch(url, options);
+      if (response.getResponseCode() !== 200) return null;
+      const resJson = JSON.parse(response.getContentText());
+      const candidate = resJson.candidates && resJson.candidates[0];
+      if (!candidate || !candidate.content || !candidate.content.parts || !candidate.content.parts[0]) return null;
+      const rawText = candidate.content.parts[0].text;
+      return JSON.parse(rawText);
+    } catch (e) {
+      console.warn('Gagal mengidentifikasi identitas mahasiswa via Gemini: ' + e.message);
+      return null;
+    }
   }
 };

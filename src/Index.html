@@ -492,6 +492,17 @@
             </select>
           </div>
 
+          <!-- Fitur Cerdas: Content-Based Matching Info -->
+          <div class="p-4 bg-blue-50/70 rounded-xl border border-blue-100 flex items-start gap-3">
+            <span class="text-xl">🔍</span>
+            <div class="text-xs">
+              <p class="font-bold text-blue-900">Pencocokan Cerdas Isi Dokumen (Aktif)</p>
+              <p class="text-slate-600 mt-1 leading-relaxed">
+                Jika berkas mahasiswa di Google Drive tidak memuat NIM/Nama pada nama filenya (misalnya <code>Tugas1.pdf</code> atau <code>Laporan.docx</code>), sistem secara otomatis memeriksa teks atau cover di dalam berkas (Google Docs, Word DOCX, PDF, dan Teks/Kode) untuk mencocokkan identitas mahasiswa.
+              </p>
+            </div>
+          </div>
+
           <!-- Test Connection Button -->
           <div>
             <button onclick="testApiConnection()" id="btnTestApi" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
@@ -1080,6 +1091,21 @@
       window.open(targetUrl, '_blank', 'noopener,noreferrer');
     }
 
+        function renderFileNameCell(fileName) {
+      if (!fileName) return '-';
+      const isContent = fileName.includes('[via isi]');
+      const cleanName = fileName.replace('[via isi]', '').trim();
+      if (isContent) {
+        return `<span class="cursor-pointer hover:text-blue-600 inline-flex items-center gap-1.5" onclick="openCurrentTaskFolder()" title="Berkas dicocokkan dari isi dokumen (NIM/Nama ditemukan di dalam berkas). Klik untuk buka folder Drive.">
+          <span class="truncate">${cleanName}</span>
+          <span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5"><span>🔍</span><span>Isi</span></span>
+        </span>`;
+      }
+      return `<span class="cursor-pointer hover:text-blue-600 inline-flex items-center gap-1" onclick="openCurrentTaskFolder()" title="Klik untuk membuka folder Google Drive">
+        <span class="truncate">${fileName}</span>
+      </span>`;
+    }
+
     function loadGradingTable(taskId) {
       if (typeof gradingQueue !== 'undefined' && gradingQueue.isRunning) {
         alert('Penilaian sedang berlangsung. Harap hentikan atau tunggu antrean selesai sebelum mengganti tugas.');
@@ -1161,7 +1187,7 @@
             </td>
             <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${g.nim}</td>
             <td class="px-4 py-2.5 font-medium text-slate-900">${g.nama_mahasiswa}</td>
-            <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[130px]" title="${g.file_name || '-'}">${g.file_name || '-'}</td>
+            <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[150px]" title="${g.file_name || '-'}">${renderFileNameCell(g.file_name)}</td>
             <td id="score-cell-${g.nim}" class="px-4 py-2.5 text-center font-bold text-sm ${isCompleted ? 'text-blue-700' : 'text-slate-400'}">${g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '-'}</td>
             <td id="points-cell-${g.nim}" class="px-4 py-2.5 text-slate-600 line-clamp-1 max-w-[200px]" title="${g.rincian_poin || g.status || '-'}">${pointsContent}</td>
             <td id="status-cell-${g.nim}" class="px-4 py-2.5 text-center">${statusBadge}</td>
@@ -1289,7 +1315,8 @@
           if (res.success) {
             gradingQueue.successCount++;
             updateStudentRowState(nim, 'success', res);
-            showProgressLog(`✅ NIM: ${nim} (${nama}) berhasil dinilai. Skor: ${res.score} (${res.fileName || 'Berkas Drive'})`);
+            const contentNote = (res.matchedBy === 'content' || (res.fileName && res.fileName.includes('[via isi]'))) ? ' 🔍 [Ditemukan via Isi Berkas]' : '';
+            showProgressLog(`✅ NIM: ${nim} (${nama}) berhasil dinilai. Skor: ${res.score} (${res.fileName || 'Berkas Drive'}${contentNote})`);
           } else {
             gradingQueue.failedCount++;
             updateStudentRowState(nim, 'failed', res);
@@ -1340,7 +1367,7 @@
           row.className = 'bg-emerald-50/40 hover:bg-emerald-50/70 border-l-4 border-l-emerald-500 transition';
         }
         if (fileCell && data.fileName) {
-          fileCell.textContent = data.fileName;
+          fileCell.innerHTML = renderFileNameCell(data.fileName);
           fileCell.title = data.fileName;
         }
         if (scoreCell) {

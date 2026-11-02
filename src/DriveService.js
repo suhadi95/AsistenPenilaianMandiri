@@ -116,9 +116,10 @@ const DriveService = {
    * @param {string} directLinkOrName - Opsional: URL/ID langsung atau nama file spesifik
    * @return {Object} Berkas yang ditemukan beserta konten multimodal
    */
-  getStudentSubmission(folderIdOrUrl, nim, nama, directLinkOrName) {
+  getStudentSubmission(folderIdOrUrl, nim, nama, directLinkOrName, options = {}) {
     try {
       let targetFile = null;
+      let matchedBy = 'filename';
 
       // 1. Cek apakah ada tautan langsung ke berkas Drive
       if (directLinkOrName && typeof directLinkOrName === 'string') {
@@ -133,6 +134,7 @@ const DriveService = {
       }
 
       // 2. Jika belum ditemukan, lakukan pencarian dalam folder Drive yang ditentukan
+      let folder = null;
       if (!targetFile) {
         const folderId = this.extractFolderId(folderIdOrUrl);
         if (!folderId) {
@@ -142,8 +144,24 @@ const DriveService = {
           };
         }
 
-        const folder = DriveApp.getFolderById(folderId);
+        folder = DriveApp.getFolderById(folderId);
         targetFile = this.searchFileInFolder(folder, nim, nama, directLinkOrName);
+      }
+
+      // 3. Pencarian Cadangan Cerdas: Berdasarkan Isi Dokumen (Content-Based Matching)
+      if (!targetFile && folder && options.checkFileContent !== false) {
+        targetFile = this.searchFileByContent(
+          folder,
+          nim,
+          nama,
+          options.allStudentNims || [],
+          options.apiKey || '',
+          options.modelName || '',
+          options.cache || null
+        );
+        if (targetFile) {
+          matchedBy = 'content';
+        }
       }
 
       if (!targetFile) {
@@ -153,8 +171,12 @@ const DriveService = {
         };
       }
 
-      // 3. Proses berkas menjadi payload multimodal
-      return this.processFileForGemini(targetFile);
+      // 4. Proses berkas menjadi payload multimodal
+      const processed = this.processFileForGemini(targetFile);
+      if (processed && processed.success) {
+        processed.matchedBy = matchedBy;
+      }
+      return processed;
 
     } catch (error) {
       return {
@@ -214,6 +236,189 @@ const DriveService = {
     }
 
     return candidateByName;
+  },
+
+  /**
+   * Ekstraksi teks dari berkas Word (.docx) melalui pembongkaran XML arsip zip
+   * @param {Blob} blob
+   * @return {string}
+   */
+  extractTextFromDocx(blob) {
+    try {
+      const unzipped = Utilities.unzip(blob);
+      for (const item of unzipped) {
+        if (item.getName() === 'word/document.xml') {
+          const xml = item.getDataAsString('UTF-8');
+          return xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+      }
+    } catch (e) {
+      console.warn('Gagal membaca struktur .docx XML: ' + e.message);
+    }
+    return '';
+  },
+
+  /**
+   * Ekstraksi teks cepat dari berkas Google Workspace, DOCX, dan file teks murni
+   * @param {File} file
+   * @return {string}
+   */
+  extractTextFromFile(file) {
+    try {
+      const mime = file.getMimeType();
+      const name = file.getName().toLowerCase();
+
+      // Google Docs
+      if (mime === MimeType.GOOGLE_DOCS) {
+        return DocumentApp.openById(file.getId()).getBody().getText();
+      }
+
+      // Google Sheets
+      if (mime === MimeType.GOOGLE_SHEETS) {
+        const ss = SpreadsheetApp.openById(file.getId());
+        const sheets = ss.getSheets();
+        let txt = '';
+        for (const s of sheets) {
+          const lastRow = Math.min(s.getLastRow(), 30);
+          const lastCol = Math.min(s.getLastColumn(), 15);
+          if (lastRow > 0 && lastCol > 0) {
+            txt += s.getRange(1, 1, lastRow, lastCol).getValues().map(r => r.join(' ')).join('\n') + ' ';
+          }
+        }
+        return txt;
+      }
+
+      // Google Slides
+      if (mime === MimeType.GOOGLE_SLIDES) {
+        const slides = SlidesApp.openById(file.getId()).getSlides();
+        let txt = '';
+        for (const slide of slides.slice(0, 5)) {
+          for (const shape of slide.getShapes()) {
+            txt += shape.getText().asString() + ' ';
+          }
+        }
+        return txt;
+      }
+
+      // Word .docx
+      if (mime.includes('wordprocessingml') || name.endsWith('.docx')) {
+        const docxText = this.extractTextFromDocx(file.getBlob());
+        if (docxText) return docxText;
+      }
+
+      // File Teks, Kode Sumber, HTML, Markdown
+      if (mime.startsWith('text/') || name.endsWith('.py') || name.endsWith('.js') || name.endsWith('.html') || name.endsWith('.txt') || name.endsWith('.md') || name.endsWith('.csv') || name.endsWith('.json')) {
+        return file.getBlob().getDataAsString('UTF-8');
+      }
+
+      // PDF - coba ambil string teks mentah jika uncompressed
+      if (mime === MimeType.PDF || name.endsWith('.pdf')) {
+        try {
+          const raw = file.getBlob().getDataAsString('UTF-8');
+          // Ambil cuplikan teks awal dokumen
+          return raw.slice(0, 50000);
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('Gagal membaca isi berkas ' + file.getName() + ': ' + err.message);
+    }
+    return '';
+  },
+
+  /**
+   * Mencari berkas berdasarkan isi dokumen (Content-Based Matching)
+   * Menyaring berkas tanpa nama yang memuat NIM atau Nama mahasiswa di halaman awal/cover
+   * @param {Folder} folder
+   * @param {string} nim
+   * @param {string} nama
+   * @param {Array<string>} allStudentNims - Daftar seluruh NIM untuk mencegah salah sasaran
+   * @param {string} apiKey
+   * @param {string} modelName
+   * @param {Object} cache
+   * @return {File|null}
+   */
+  searchFileByContent(folder, nim, nama, allStudentNims = [], apiKey = '', modelName = '', cache = null) {
+    const cleanNim = (nim || '').toString().trim().toLowerCase();
+    const sanitizedNim = cleanNim.replace(/[^0-9a-z]/g, '');
+    const cleanNama = (nama || '').toString().trim().toLowerCase();
+
+    // Himpunan NIM mahasiswa lain untuk memeriksa kepemilikan nama file
+    const otherNimsSanitized = allStudentNims
+      .map(n => String(n).trim().toLowerCase().replace(/[^0-9a-z]/g, ''))
+      .filter(n => n.length >= 4 && n !== sanitizedNim);
+
+    const files = folder.getFiles();
+    const candidateFiles = [];
+
+    // Filter berkas di folder: abaikan berkas yang nama filenya sudah jelas memuat NIM mahasiswa lain
+    while (files.hasNext()) {
+      const file = files.next();
+      const fileNameLower = file.getName().toLowerCase();
+      const sanitizedFileName = fileNameLower.replace(/[^0-9a-z]/g, '');
+
+      // Apakah nama file ini memuat NIM mahasiswa lain?
+      const isOtherStudentFile = otherNimsSanitized.some(otherNim => sanitizedFileName.includes(otherNim));
+      if (!isOtherStudentFile) {
+        candidateFiles.push(file);
+      }
+    }
+
+    if (candidateFiles.length === 0) return null;
+
+    // TIER 1: Pindai teks dokumen secara langsung (Cepat, Lokal & Bebas Kuota)
+    const geminiCandidates = [];
+
+    for (const file of candidateFiles) {
+      const extractedText = this.extractTextFromFile(file);
+      if (extractedText && extractedText.length > 10) {
+        const textLower = extractedText.toLowerCase();
+        const sanitizedText = textLower.replace(/[^0-9a-z]/g, '');
+
+        const nimMatched = cleanNim && (textLower.includes(cleanNim) || (sanitizedNim.length >= 4 && sanitizedText.includes(sanitizedNim)));
+        const namaMatched = cleanNama && cleanNama.length >= 5 && textLower.includes(cleanNama);
+
+        if (nimMatched || namaMatched) {
+          return file;
+        }
+      } else {
+        // Simpan berkas biner/PDF terkompresi yang tidak menghasilkan teks mentah
+        const mime = file.getMimeType();
+        const name = file.getName().toLowerCase();
+        if (mime === MimeType.PDF || name.endsWith('.pdf') || mime.startsWith('image/')) {
+          geminiCandidates.push(file);
+        }
+      }
+    }
+
+    // TIER 2: Pindai dokumen biner/PDF menggunakan AI Vision (Gemini 3.5 Flash Lite)
+    if (geminiCandidates.length > 0 && apiKey && typeof GeminiService !== 'undefined') {
+      for (const file of geminiCandidates) {
+        const fileId = file.getId();
+        let identified = cache ? cache[fileId] : null;
+
+        if (!identified) {
+          const payload = this.processFileForGemini(file);
+          if (payload && payload.success) {
+            identified = GeminiService.identifyStudentFromDocument(payload, apiKey, modelName);
+            if (cache) cache[fileId] = identified;
+          }
+        }
+
+        if (identified) {
+          const idNimClean = (identified.nim || '').toString().trim().toLowerCase().replace(/[^0-9a-z]/g, '');
+          const idNamaClean = (identified.nama || '').toString().trim().toLowerCase();
+
+          const nimMatched = sanitizedNim && idNimClean && (idNimClean === sanitizedNim || idNimClean.includes(sanitizedNim));
+          const namaMatched = cleanNama && idNamaClean && cleanNama.length >= 5 && idNamaClean.includes(cleanNama);
+
+          if (nimMatched || namaMatched) {
+            return file;
+          }
+        }
+      }
+    }
+
+    return null;
   },
 
   /**
