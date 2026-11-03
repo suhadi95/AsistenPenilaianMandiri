@@ -436,10 +436,12 @@ try {
             $taskId = trim($_POST['taskId'] ?? '');
             $classId = trim($_POST['classId'] ?? '');
             if (!$taskId || !$classId) throw new Exception("ID Tugas dan ID Kelas wajib disertakan.");
-            if (empty($_FILES['zipFile'])) throw new Exception("Berkas ZIP belum dipilih.");
+            
+            $uploaded = $_FILES['files'] ?? ($_FILES['zipFile'] ?? null);
+            if (!$uploaded) throw new Exception("Berkas tugas belum dipilih.");
 
-            $zipRes = FileService::extractSubmissionsZip($_FILES['zipFile']['tmp_name'], $taskId, $classId);
-            Helper::json($zipRes);
+            $res = FileService::handleSubmissionsUpload($taskId, $classId, $uploaded);
+            Helper::json($res);
             break;
 
         case 'validateTaskFile':
@@ -524,9 +526,14 @@ try {
                 ]);
             }, $students);
 
+            $submissionsDir = FileService::getSubmissionsDir($taskId, $classId);
+            $submissionFiles = is_dir($submissionsDir) ? array_diff(scandir($submissionsDir), ['.', '..']) : [];
+            $uploadedCount = count($submissionFiles);
+
             Helper::json([
-                'success' => true,
-                'grades'  => $result
+                'success'       => true,
+                'grades'        => $result,
+                'uploadedCount' => $uploadedCount
             ]);
             break;
 

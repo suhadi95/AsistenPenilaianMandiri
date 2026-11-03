@@ -32,10 +32,18 @@ const AppAPI = {
 
     try {
       const response = await fetch('api.php', options);
+      if (!response.ok) {
+        throw new Error(`Kesalahan Server (HTTP ${response.status})`);
+      }
       const json = await response.json();
 
-      if (!response.ok || json.success === false) {
-        throw new Error(json.message || `Kesalahan HTTP ${response.status}`);
+      // Untuk penilaian individual, kembalikan objek json langsung agar UI dapat memproses status kegagalan terstruktur
+      if (action === 'gradeSingleStudent') {
+        return json;
+      }
+
+      if (json.success === false) {
+        throw new Error(json.message || json.error || 'Terjadi kesalahan sistem.');
       }
 
       return json;
@@ -46,12 +54,19 @@ const AppAPI = {
   },
 
   // Helper File Upload
-  async uploadSubmissionsZip(taskId, classId, file) {
+  async uploadSubmissionsZip(taskId, classId, fileOrFiles) {
     const formData = new FormData();
     formData.append('action', 'uploadSubmissionsZip');
     formData.append('taskId', taskId);
     formData.append('classId', classId);
-    formData.append('zipFile', file);
+
+    if (fileOrFiles instanceof FileList || Array.isArray(fileOrFiles)) {
+      for (let i = 0; i < fileOrFiles.length; i++) {
+        formData.append('files[]', fileOrFiles[i]);
+      }
+    } else if (fileOrFiles) {
+      formData.append('files[]', fileOrFiles);
+    }
     return this.call('uploadSubmissionsZip', formData);
   },
 
@@ -135,14 +150,29 @@ async function dispatchGasApiMethod(methodName, args) {
 
     case 'apiGetGradesByTask':
       const gradesRes = await AppAPI.call('getGradesByTask', { taskId: args[0], classId: args[1] || '' });
-      return gradesRes.grades || [];
+      if (typeof window !== 'undefined' && window.appState) {
+        window.appState.uploadedSubmissionCount = gradesRes.uploadedCount ?? 0;
+      }
+      const gradesList = gradesRes.grades || [];
+      gradesList.uploadedCount = gradesRes.uploadedCount ?? 0;
+      return gradesList;
 
     case 'apiGradeSingleStudent':
-      return await AppAPI.call('gradeSingleStudent', {
-        taskId: args[0],
-        classId: args[1],
-        studentNim: args[2]
-      });
+      try {
+        return await AppAPI.call('gradeSingleStudent', {
+          taskId: args[0],
+          classId: args[1],
+          studentNim: args[2]
+        });
+      } catch (err) {
+        return {
+          success: false,
+          nim: args[2],
+          error: err.message,
+          status: 'Gagal: ' + err.message,
+          catatan_ai: '[ERROR JARINGAN/SERVER]:\n' + err.message
+        };
+      }
 
     case 'apiResetFailedGrades':
       return await AppAPI.call('resetFailedGrades', { taskId: args[0], classId: args[1] });

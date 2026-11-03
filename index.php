@@ -848,28 +848,29 @@ Database::initDatabase();
     </div>
   </div>
 
-  <!-- 6. MODAL UNGGAH ZIP TUGAS -->
+  <!-- 6. MODAL UNGGAH BERKAS TUGAS MAHASISWA -->
   <div id="uploadZipModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <div>
-          <h3 class="font-bold text-slate-900 text-base">Unggah Berkas ZIP Tugas</h3>
-          <p class="text-xs text-slate-400">Unggah 1 file ZIP berisi berkas tugas mahasiswa dari LMS</p>
+          <h3 class="font-bold text-slate-900 text-base">Unggah Berkas Tugas Mahasiswa</h3>
+          <p class="text-xs text-slate-400">Unggah ZIP atau pilih banyak file sekaligus</p>
         </div>
         <button onclick="closeModal('uploadZipModal')" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
 
       <div class="space-y-3 text-xs">
         <div class="p-3 bg-blue-50 text-blue-800 rounded-xl border border-blue-200">
-          <p class="font-semibold">💡 Ekstraksi Otomatis di Server</p>
+          <p class="font-semibold">💡 Cara Praktis dari Google Drive / LMS:</p>
           <p class="mt-1 text-[11px] leading-relaxed">
-            Sistem akan otomatis mengekstrak seluruh berkas di dalam ZIP ke folder tugas kelas ini, dan mencocokkan setiap berkas dengan NIM atau Nama mahasiswa secara otomatis saat penilaian.
+            Buka folder jawaban mahasiswa di <strong>Google Drive / Classroom</strong> &rarr; klik menu folder &rarr; pilih <strong>Download</strong> (Google akan membuat 1 file .ZIP otomatis). Unggah file ZIP tersebut ke sini atau pilih berkas tugas langsung.
           </p>
         </div>
 
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Pilih Berkas ZIP Tugas (.zip)</label>
-          <input type="file" id="inputZipFile" accept=".zip" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+          <label class="block font-semibold text-slate-700 mb-1">Pilih Berkas ZIP atau File Tugas (.zip, .pdf, .docx, dll)</label>
+          <input type="file" id="inputZipFile" accept=".zip,.pdf,.docx,.doc,.txt,.png,.jpg,.jpeg" multiple class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+          <p class="text-[10px] text-slate-400 mt-1">Dapat memilih 1 file .zip atau menandai banyak berkas sekaligus.</p>
         </div>
         <div id="uploadZipAlert" class="hidden p-2.5 rounded-xl text-xs font-medium"></div>
       </div>
@@ -877,7 +878,7 @@ Database::initDatabase();
       <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
         <button onclick="closeModal('uploadZipModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
         <button onclick="submitUploadZip()" id="btnSubmitZip" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-xs flex items-center gap-1.5">
-          <span>📤 Unggah & Ekstrak</span>
+          <span>📤 Unggah & Proses</span>
         </button>
       </div>
     </div>
@@ -1512,6 +1513,19 @@ Database::initDatabase();
         .withSuccessHandler(function(grades) {
           appState.currentGrades = grades || [];
           renderGradingTableRows(appState.currentGrades);
+
+          // Tampilkan status jumlah berkas tugas mahasiswa di server
+          const count = typeof appState.uploadedSubmissionCount !== 'undefined'
+            ? appState.uploadedSubmissionCount
+            : (grades.uploadedCount || 0);
+          const folderBadge = document.getElementById('taskInfoFolder');
+          if (folderBadge) {
+            if (count > 0) {
+              folderBadge.innerHTML = `<span class="text-emerald-600 font-bold">✓ ${count} Berkas di Server</span>`;
+            } else {
+              folderBadge.innerHTML = `<span class="text-amber-600 font-semibold cursor-pointer hover:underline" onclick="openUploadZipModal()" title="Klik untuk mengunggah berkas">⚠️ 0 Berkas (Upload ZIP)</span>`;
+            }
+          }
         })
         .withFailureHandler(function(err) {
           showGlobalAlert('Gagal memuat penilaian tugas: ' + err.message, 'error');
@@ -1622,6 +1636,11 @@ Database::initDatabase();
       }
       if (!appState.activeClassId) {
         return alert('Pilih kelas terlebih dahulu.');
+      }
+      if (typeof appState.uploadedSubmissionCount !== 'undefined' && appState.uploadedSubmissionCount === 0) {
+        showGlobalAlert('Belum ada berkas tugas mahasiswa yang diunggah ke server untuk kelas ini. Silakan klik "Upload ZIP Tugas" untuk mengunggah berkas jawaban mahasiswa.', 'warning');
+        openUploadZipModal();
+        return;
       }
 
       gradingQueue.isRunning = true;
@@ -2295,8 +2314,8 @@ Database::initDatabase();
 
     async function submitUploadZip() {
       const fileInput = document.getElementById('inputZipFile');
-      const file = fileInput.files[0];
-      if (!file) return alert('Pilih berkas ZIP tugas terlebih dahulu!');
+      const files = fileInput.files;
+      if (!files || files.length === 0) return alert('Pilih berkas tugas terlebih dahulu!');
 
       const taskId = appState.selectedGradingTaskId;
       const classId = appState.activeClassId;
@@ -2304,14 +2323,14 @@ Database::initDatabase();
       const alertBox = document.getElementById('uploadZipAlert');
 
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner inline-block w-3.5 h-3.5 border-2 border-white/50 border-t-white mr-1"></span> Mengunggah & Mengekstrak...';
+      btn.innerHTML = '<span class="spinner inline-block w-3.5 h-3.5 border-2 border-white/50 border-t-white mr-1"></span> Mengunggah & Memproses...';
       if (alertBox) {
         alertBox.className = 'p-2.5 rounded-xl text-xs bg-blue-50 text-blue-800 border border-blue-200 block';
-        alertBox.textContent = 'Sedang mengunggah berkas ZIP dan mengekstrak di server...';
+        alertBox.textContent = 'Sedang mengunggah dan memproses berkas di server...';
       }
 
       try {
-        const res = await AppAPI.uploadSubmissionsZip(taskId, classId, file);
+        const res = await AppAPI.uploadSubmissionsZip(taskId, classId, files);
         if (alertBox) {
           alertBox.className = 'p-2.5 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block';
           alertBox.textContent = '✓ ' + res.message;
@@ -2320,12 +2339,12 @@ Database::initDatabase();
         setTimeout(() => {
           closeModal('uploadZipModal');
           btn.disabled = false;
-          btn.innerHTML = '<span>📤 Unggah & Ekstrak</span>';
+          btn.innerHTML = '<span>📤 Unggah & Proses</span>';
           loadGradingTable(taskId);
         }, 1200);
       } catch (err) {
         btn.disabled = false;
-        btn.innerHTML = '<span>📤 Unggah & Ekstrak</span>';
+        btn.innerHTML = '<span>📤 Unggah & Proses</span>';
         if (alertBox) {
           alertBox.className = 'p-2.5 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block';
           alertBox.textContent = 'Gagal mengunggah: ' + err.message;

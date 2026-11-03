@@ -97,10 +97,15 @@ class FileService {
 
             // Jika entri berupa berkas (bukan folder)
             if (!str_ends_with($entryName, '/')) {
-                $baseFileName = basename($entryName);
+                $cleanEntry = trim(str_replace('\\', '/', $entryName), '/');
+                $parts = explode('/', $cleanEntry);
+                $baseFileName = end($parts);
                 if (empty($baseFileName) || str_starts_with($baseFileName, '.')) continue;
 
-                $cleanFileName = preg_replace('/[^a-zA-Z0-9_.-]/', '_', $baseFileName);
+                // Jika berkas berada di dalam subfolder (misal export dari LMS / Classroom: Nama_NIM/tugas.pdf)
+                // Gabungkan nama subfolder agar berkas tidak saling timpa dan NIM/nama tetap terbaca
+                $finalName = (count($parts) > 1) ? implode('_', $parts) : $baseFileName;
+                $cleanFileName = preg_replace('/[^a-zA-Z0-9_.-]/', '_', $finalName);
                 $destFilePath = "{$destDir}/{$cleanFileName}";
 
                 // Ambil stream dari zip dan simpan
@@ -121,6 +126,60 @@ class FileService {
             'extractedCount' => $extractedCount,
             'files'          => $extractedFiles,
             'message'        => "Berhasil mengekstrak {$extractedCount} berkas tugas ke dalam kelas."
+        ];
+    }
+
+    /**
+     * Memproses upload berkas tugas mahasiswa, mendukung berkas ZIP maupun berkas tunggal/jamak
+     */
+    public static function handleSubmissionsUpload(string $taskId, string $classId, array $files): array {
+        $destDir = self::getSubmissionsDir($taskId, $classId);
+        $totalProcessed = 0;
+        $fileNames = [];
+
+        // Normalisasi struktur $_FILES
+        $fileList = [];
+        if (isset($files['name']) && is_array($files['name'])) {
+            $count = count($files['name']);
+            for ($i = 0; $i < $count; $i++) {
+                if ($files['error'][$i] === UPLOAD_ERR_OK) {
+                    $fileList[] = [
+                        'name'     => $files['name'][$i],
+                        'tmp_name' => $files['tmp_name'][$i],
+                        'size'     => $files['size'][$i],
+                        'error'    => $files['error'][$i]
+                    ];
+                }
+            }
+        } elseif (isset($files['error']) && $files['error'] === UPLOAD_ERR_OK) {
+            $fileList[] = $files;
+        }
+
+        if (empty($fileList)) {
+            throw new Exception("Tidak ada berkas tugas valid yang berhasil diunggah.");
+        }
+
+        foreach ($fileList as $item) {
+            $ext = strtolower(pathinfo($item['name'], PATHINFO_EXTENSION));
+            if ($ext === 'zip') {
+                $zipRes = self::extractSubmissionsZip($item['tmp_name'], $taskId, $classId);
+                $totalProcessed += $zipRes['extractedCount'] ?? 0;
+                $fileNames = array_merge($fileNames, $zipRes['files'] ?? []);
+            } else {
+                $clean = preg_replace('/[^a-zA-Z0-9_.-]/', '_', basename($item['name']));
+                $target = "{$destDir}/{$clean}";
+                if (move_uploaded_file($item['tmp_name'], $target)) {
+                    $totalProcessed++;
+                    $fileNames[] = $clean;
+                }
+            }
+        }
+
+        return [
+            'success'        => true,
+            'extractedCount' => $totalProcessed,
+            'files'          => $fileNames,
+            'message'        => "Berhasil memproses {$totalProcessed} berkas tugas ke server."
         ];
     }
 

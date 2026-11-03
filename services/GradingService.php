@@ -164,7 +164,10 @@ class GradingService {
 
             if (str_contains($lowerErr, 'tidak ditemukan')) {
                 $categorizedReason = "Berkas tugas tidak ditemukan untuk NIM '{$nim}' ({$nama}).";
-                $advice = "Pastikan berkas tugas telah diunggah ke server (atau diekstrak dari ZIP) dengan nama berkas memuat NIM atau nama.";
+                $advice = "Pastikan berkas tugas telah diunggah ke server (klik tombol 'Upload ZIP Tugas') dengan nama berkas memuat NIM atau nama mahasiswa.";
+            } elseif (str_contains($lowerErr, 'belum ada berkas') || str_contains($lowerErr, 'belum dibuat')) {
+                $categorizedReason = "Belum ada berkas tugas mahasiswa yang diunggah ke server untuk kelas ini.";
+                $advice = "Silakan klik tombol ungu 'Upload ZIP Tugas' di bagian atas tabel untuk mengunggah 1 file ZIP berisi seluruh berkas jawaban tugas mahasiswa.";
             } elseif (str_contains($rawErrMsg, '429') || str_contains($lowerErr, 'quota') || str_contains($lowerErr, 'kuota') || str_contains($lowerErr, 'limit')) {
                 $categorizedReason = "Batas kuota Gemini API tercapai (Rate Limit / Quota Exceeded).";
                 $advice = "Tunggu 1 menit lalu coba ulangi penilaian, atau gunakan model gemini-3.5-flash-lite.";
@@ -193,6 +196,7 @@ class GradingService {
 
             return [
                 'success'         => false,
+                'message'         => $categorizedReason,
                 'nim'             => $nim,
                 'nama'            => $nama,
                 'error'           => $categorizedReason,
