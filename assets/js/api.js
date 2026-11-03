@@ -32,17 +32,24 @@ const AppAPI = {
 
     try {
       const response = await fetch('api.php', options);
-      if (!response.ok) {
-        throw new Error(`Kesalahan Server (HTTP ${response.status})`);
+      let json = null;
+      try {
+        json = await response.json();
+      } catch (parseErr) {
+        // Respons bukan JSON
       }
-      const json = await response.json();
+
+      if (!response.ok) {
+        const errorMsg = (json && (json.message || json.error)) || `Kesalahan Server (HTTP ${response.status})`;
+        throw new Error(errorMsg);
+      }
 
       // Untuk penilaian individual, kembalikan objek json langsung agar UI dapat memproses status kegagalan terstruktur
       if (action === 'gradeSingleStudent') {
         return json;
       }
 
-      if (json.success === false) {
+      if (json && json.success === false) {
         throw new Error(json.message || json.error || 'Terjadi kesalahan sistem.');
       }
 
@@ -90,8 +97,12 @@ const AppAPI = {
     return this.call('disconnectGoogleDrive');
   },
 
-  async syncTaskDriveFolder(taskId, classId) {
-    return this.call('syncTaskDriveFolder', { taskId, classId });
+  async syncTaskDriveFolder(taskId, classId, folderId = '') {
+    return this.call('syncTaskDriveFolder', { taskId, classId, folderId });
+  },
+
+  async testGoogleDriveConnection() {
+    return this.call('testGoogleDriveConnection');
   }
 };
 
@@ -245,6 +256,9 @@ async function dispatchGasApiMethod(methodName, args) {
 
     case 'apiSyncTaskDriveFolder':
       return await AppAPI.syncTaskDriveFolder(args[0], args[1]);
+
+    case 'apiTestGoogleDriveConnection':
+      return await AppAPI.testGoogleDriveConnection();
 
     default:
       return await AppAPI.call(methodName, { args });

@@ -652,6 +652,9 @@ Database::initDatabase();
             <button type="button" onclick="startGoogleOAuthFlow()" id="btnConnectGoogle" class="w-full sm:flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center justify-center gap-2">
               <span>🔗</span> <span>Hubungkan Akun Google Drive</span>
             </button>
+            <button type="button" onclick="testGoogleDriveAccess()" id="btnTestGoogleDrive" class="hidden w-full sm:w-auto px-4 py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
+              <span>🔍</span> <span>Uji Akses Drive</span>
+            </button>
             <button type="button" onclick="disconnectGoogleOAuth()" id="btnDisconnectGoogle" class="hidden w-full sm:w-auto px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
               <span>✕</span> <span>Putuskan Sambungan</span>
             </button>
@@ -3158,6 +3161,7 @@ Database::initDatabase();
       const badge = document.getElementById('googleOAuthStatusBadge');
       const btnConnect = document.getElementById('btnConnectGoogle');
       const btnDisconnect = document.getElementById('btnDisconnectGoogle');
+      const btnTestDrive = document.getElementById('btnTestGoogleDrive');
       const inputId = document.getElementById('inputGoogleClientId');
       const redirectUriText = document.getElementById('oauthRedirectUriText');
 
@@ -3174,13 +3178,53 @@ Database::initDatabase();
         }
         if (btnConnect) btnConnect.classList.add('hidden');
         if (btnDisconnect) btnDisconnect.classList.remove('hidden');
+        if (btnTestDrive) btnTestDrive.classList.remove('hidden');
       } else {
         if (badge) {
           badge.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Belum Terhubung</span>`;
         }
         if (btnConnect) btnConnect.classList.remove('hidden');
         if (btnDisconnect) btnDisconnect.classList.add('hidden');
+        if (btnTestDrive) btnTestDrive.classList.add('hidden');
       }
+    }
+
+    function testGoogleDriveAccess() {
+      const btn = document.getElementById('btnTestGoogleDrive');
+      const alertBox = document.getElementById('googleOAuthAlert');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner inline-block w-3 h-3 border-2 border-sky-600 border-t-white mr-1"></span> Menguji...';
+      }
+      if (alertBox) {
+        alertBox.className = 'p-3 rounded-xl text-xs bg-slate-100 text-slate-700 block';
+        alertBox.textContent = 'Menghubungi Google Drive API...';
+      }
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>🔍</span> <span>Uji Akses Drive</span>';
+          }
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
+            alertBox.textContent = '✓ ' + res.message;
+          }
+          showGlobalAlert(res.message, 'success');
+        })
+        .withFailureHandler(function(err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>🔍</span> <span>Uji Akses Drive</span>';
+          }
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
+            alertBox.textContent = '✗ ' + err.message;
+          }
+          showGlobalAlert(err.message, 'error');
+        })
+        .apiTestGoogleDriveConnection();
     }
 
     function saveGoogleOAuthSettings() {
@@ -3272,6 +3316,9 @@ Database::initDatabase();
       if (!taskId) return alert('Pilih tugas terlebih dahulu!');
       if (!classId) return alert('Pilih kelas terlebih dahulu!');
 
+      const task = appState.currentTasks.find(t => t.id_tugas === taskId);
+      const folderId = task ? (task.drive_folder_id || '') : '';
+
       const btn = document.getElementById('btnSyncDrive');
       const originalText = btn ? btn.innerHTML : '';
       if (btn) {
@@ -3286,7 +3333,7 @@ Database::initDatabase();
       }
 
       try {
-        const res = await AppAPI.syncTaskDriveFolder(taskId, classId);
+        const res = await AppAPI.syncTaskDriveFolder(taskId, classId, folderId);
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = originalText;

@@ -108,6 +108,45 @@ try {
             ]);
             break;
 
+        case 'testGoogleDriveConnection':
+            if (!GoogleDriveService::isConnected()) {
+                throw new Exception("Akun Google Drive belum terhubung. Silakan klik 'Hubungkan Akun Google Drive' terlebih dahulu.");
+            }
+            $email = Database::getSetting('GOOGLE_CONNECTED_EMAIL') ?: 'Akun Google';
+            $token = GoogleDriveService::getValidAccessToken();
+            $ch = curl_init("https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)");
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER     => ["Authorization: Bearer {$token}"],
+                CURLOPT_TIMEOUT        => 20,
+                CURLOPT_SSL_VERIFYPEER => true
+            ]);
+            $res = curl_exec($ch);
+            $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErr = curl_error($ch);
+            curl_close($ch);
+
+            if ($res === false || !empty($curlErr)) {
+                throw new Exception("Koneksi cURL gagal: {$curlErr}");
+            }
+
+            $json = json_decode($res, true);
+            if ($status !== 200) {
+                $msg = $json['error']['message'] ?? "HTTP {$status}";
+                if ($status === 403 && (str_contains(strtolower($msg), 'drive api') || str_contains(strtolower($msg), 'not been used') || str_contains(strtolower($msg), 'disabled'))) {
+                    $msg .= " -> Harap aktifkan 'Google Drive API' di Google Cloud Console pada menu APIs & Services > Enabled APIs & Services, lalu tunggu 1-2 menit.";
+                }
+                throw new Exception("Google Drive Error: {$msg}");
+            }
+
+            $userName = $json['user']['displayName'] ?? '';
+            $userMail = $json['user']['emailAddress'] ?? $email;
+            Helper::json([
+                'success' => true,
+                'message' => "Koneksi Google Drive API Berhasil & Aktif! Terhubung sebagai: {$userMail}" . ($userName ? " ({$userName})" : "")
+            ]);
+            break;
+
         case 'syncTaskDriveFolder':
             $taskId = trim($input['taskId'] ?? '');
             $classId = trim($input['classId'] ?? '');
@@ -121,11 +160,16 @@ try {
 
             // Cari folder ID
             $override = Database::fetchOne("SELECT drive_folder_id FROM class_task_folders WHERE id_tugas = ? AND id_kelas = ?", [$taskId, $classId]);
-            $task = Database::fetchOne("SELECT drive_folder_id FROM tasks WHERE id_tugas = ?", [$taskId]);
+            $task = Database::fetchOne("SELECT drive_folder_id, judul_tugas FROM tasks WHERE id_tugas = ?", [$taskId]);
             $folderId = (!empty($override['drive_folder_id'])) ? $override['drive_folder_id'] : ($task['drive_folder_id'] ?? '');
 
+            if (empty($folderId) && !empty($input['folderId'])) {
+                $folderId = trim($input['folderId']);
+            }
+
             if (empty($folderId)) {
-                throw new Exception("Folder Google Drive tempat tugas mahasiswa belum diisi pada tugas/kelas ini.");
+                $taskName = $task['judul_tugas'] ?? $taskId;
+                throw new Exception("Folder Google Drive tempat tugas mahasiswa belum diisi pada tugas '{$taskName}'. Silakan edit tugas di tab 'Kelola Tugas' dan isi link/ID folder.");
             }
 
             $syncRes = GoogleDriveService::syncDriveFolderToLocal($taskId, $classId, $folderId);
@@ -701,11 +745,11 @@ try {
             ], 400);
             break;
     }
-} catch (Exception $e) {
+} catch (Throwable $e) {
     Helper::json([
         'success' => false,
         'message' => $e->getMessage()
-    ], 500);
+    ]);
 }
 
 // ==========================================

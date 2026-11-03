@@ -246,21 +246,24 @@ class GoogleDriveService {
     public static function listFilesInFolder(string $folderId): array {
         $token = self::getValidAccessToken();
         if (!$token) {
-            throw new Exception("Akun Google belum terhubung atau token kedaluwarsa. Silakan hubungkan kembali di menu Pengaturan.");
+            throw new Exception("Akun Google belum terhubung atau token otorisasi kedaluwarsa. Silakan hubungkan kembali di tab Pengaturan.");
         }
 
         $cleanId = Helper::extractDriveFolderId($folderId);
         if (empty($cleanId)) {
-            throw new Exception("ID Folder Google Drive tidak valid.");
+            throw new Exception("ID Folder Google Drive tidak valid ('{$folderId}').");
         }
 
         $query = "'{$cleanId}' in parents and trashed = false";
         $fields = 'files(id, name, mimeType, size, modifiedTime)';
-        $url = self::DRIVE_API_URL . "/files?" . http_build_query([
-            'q'        => $query,
-            'fields'   => $fields,
-            'pageSize' => 1000
-        ]);
+        $params = [
+            'q'                         => $query,
+            'fields'                    => $fields,
+            'pageSize'                  => 1000,
+            'supportsAllDrives'         => 'true',
+            'includeItemsFromAllDrives' => 'true'
+        ];
+        $url = self::DRIVE_API_URL . "/files?" . http_build_query($params);
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -269,16 +272,28 @@ class GoogleDriveService {
                 "Authorization: Bearer {$token}",
                 "Accept: application/json"
             ],
-            CURLOPT_TIMEOUT        => 30
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_SSL_VERIFYPEER => true
         ]);
 
         $res = curl_exec($ch);
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
         curl_close($ch);
+
+        if ($res === false || !empty($curlErr)) {
+            throw new Exception("Gagal menghubungi Google Drive API: {$curlErr}");
+        }
 
         $json = json_decode($res, true);
         if ($status !== 200) {
             $msg = $json['error']['message'] ?? "Kesalahan HTTP {$status} saat membaca folder Drive.";
+            $userEmail = Database::getSetting('GOOGLE_CONNECTED_EMAIL') ?: 'akun Anda';
+            if ($status === 403 && (str_contains(strtolower($msg), 'drive api') || str_contains(strtolower($msg), 'not been used') || str_contains(strtolower($msg), 'disabled'))) {
+                $msg .= " (Harap aktifkan 'Google Drive API' di Google Cloud Console pada menu APIs & Services > Enabled APIs & Services lalu tunggu 1-2 menit).";
+            } elseif ($status === 404) {
+                $msg = "Folder tidak ditemukan di Google Drive atau akun {$userEmail} belum memiliki izin akses ke folder tersebut. ID Folder: {$cleanId}";
+            }
             throw new Exception("Google Drive Error: {$msg}");
         }
 
@@ -292,13 +307,22 @@ class GoogleDriveService {
         $token = self::getValidAccessToken();
         if (!$token) return false;
 
-        // Jika Google Docs, ekspor ke PDF
-        if ($mimeType === 'application/vnd.google-apps.document') {
-            $downloadUrl = self::DRIVE_API_URL . "/files/{$fileId}/export?mimeType=application/pdf";
-        } elseif ($mimeType === 'application/vnd.google-apps.spreadsheet') {
-            $downloadUrl = self::DRIVE_API_URL . "/files/{$fileId}/export?mimeType=application/pdf";
+        // Jika Google Docs atau Sheets, ekspor ke PDF
+        if ($mimeType === 'application/vnd.google-apps.document' || $mimeType === 'application/vnd.google-apps.spreadsheet') {
+            $downloadUrl = self::DRIVE_API_URL . "/files/{$fileId}/export?" . http_build_query([
+                'mimeType'          => 'application/pdf',
+                'supportsAllDrives' => 'true'
+            ]);
         } else {
-            $downloadUrl = self::DRIVE_API_URL . "/files/{$fileId}?alt=media";
+            $downloadUrl = self::DRIVE_API_URL . "/files/{$fileId}?" . http_build_query([
+                'alt'               => 'media',
+                'supportsAllDrives' => 'true'
+            ]);
+        }
+
+        $dir = dirname($targetPath);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
         }
 
         $fp = fopen($targetPath, 'w+');
@@ -309,7 +333,8 @@ class GoogleDriveService {
             CURLOPT_FILE           => $fp,
             CURLOPT_HTTPHEADER     => ["Authorization: Bearer {$token}"],
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT        => 90
+            CURLOPT_TIMEOUT        => 90,
+            CURLOPT_SSL_VERIFYPEER => true
         ]);
 
         curl_exec($ch);
@@ -329,17 +354,38 @@ class GoogleDriveService {
      * Sinkronisasi seluruh isi folder Google Drive ke folder server lokal
      */
     public static function syncDriveFolderToLocal(string $taskId, string $classId, string $folderId): array {
-        $files = self::listFilesInFolder($folderId);
+        $cleanFolderId = Helper::extractDriveFolderId($folderId);
+        if (empty($cleanFolderId)) {
+            throw new Exception("ID Folder Google Drive tidak valid ('{$folderId}').");
+        }
+
+        $files = self::listFilesInFolder($cleanFolderId);
+        if (empty($files)) {
+            return [
+                'success'      => true,
+                'totalInDrive' => 0,
+                'syncedCount'  => 0,
+                'skippedCount' => 0,
+                'files'        => [],
+                'message'      => "Folder Google Drive terhubung, namun saat ini belum ada berkas tugas mahasiswa di dalamnya."
+            ];
+        }
+
         $destDir = FileService::getSubmissionsDir($taskId, $classId);
+        if (!is_dir($destDir)) {
+            @mkdir($destDir, 0755, true);
+        }
 
         $syncedCount = 0;
         $skippedCount = 0;
         $syncedFiles = [];
 
         foreach ($files as $file) {
-            $name = $file['name'];
-            $fileId = $file['id'];
+            $name = $file['name'] ?? '';
+            $fileId = $file['id'] ?? '';
             $mimeType = $file['mimeType'] ?? '';
+
+            if (empty($fileId) || empty($name)) continue;
 
             // Abaikan subfolder
             if ($mimeType === 'application/vnd.google-apps.folder') {
@@ -370,7 +416,7 @@ class GoogleDriveService {
             'syncedCount'  => $syncedCount,
             'skippedCount' => $skippedCount,
             'files'        => $syncedFiles,
-            'message'      => "Berhasil menyinkronkan {$syncedCount} berkas langsung dari folder Google Drive!"
+            'message'      => "Berhasil menyinkronkan {$syncedCount} berkas langsung dari Google Drive!"
         ];
     }
 }
