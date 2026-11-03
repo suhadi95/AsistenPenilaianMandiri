@@ -130,8 +130,8 @@ Database::initDatabase();
             <!-- Profile Info & Role Badge -->
             <div class="flex items-center space-x-2 pl-2 sm:pl-3 border-l border-slate-800">
               <div class="text-right hidden sm:block">
-                <div id="headerUserName" class="text-xs font-semibold text-slate-200 truncate max-w-[130px]">Pengguna</div>
-                <div id="headerUserRole" class="text-[10px] text-blue-400 font-medium capitalize">Dosen</div>
+                <div id="headerUserName" class="text-xs font-semibold text-slate-200 truncate max-w-[130px]">-</div>
+                <div id="headerUserRole" class="text-[10px] text-slate-400 font-medium capitalize">-</div>
               </div>
               <button onclick="switchTab('tab-settings')" class="p-1.5 sm:p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Pengaturan Akun &amp; AI">
                 ⚙️
@@ -1226,10 +1226,11 @@ Database::initDatabase();
           // Perbarui informasi profil di header
           const nameEl = document.getElementById('headerUserName');
           const roleEl = document.getElementById('headerUserRole');
-          if (nameEl) nameEl.textContent = data.currentUser.nama_lengkap;
+          if (nameEl) nameEl.textContent = data.currentUser.nama || data.currentUser.nama_lengkap || 'Pengguna';
           if (roleEl) {
-            roleEl.textContent = data.currentUser.role === 'admin' ? 'Administrator' : 'Dosen';
-            roleEl.className = data.currentUser.role === 'admin' ? 'text-[10px] text-purple-400 font-bold uppercase tracking-wider' : 'text-[10px] text-blue-400 font-medium capitalize';
+            const isAdmin = data.currentUser.role === 'admin';
+            roleEl.textContent = isAdmin ? 'Administrator' : 'Dosen';
+            roleEl.className = isAdmin ? 'text-[10px] text-purple-400 font-bold uppercase tracking-wider' : 'text-[10px] text-blue-400 font-medium capitalize';
           }
 
           // Tab & Bagian Khusus Administrator
@@ -3517,6 +3518,17 @@ Database::initDatabase();
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '<span>Masuk ke Portal</span>';
+        }
+        if (res && res.user) {
+          appState.currentUser = res.user;
+          const nameEl = document.getElementById('headerUserName');
+          const roleEl = document.getElementById('headerUserRole');
+          if (nameEl) nameEl.textContent = res.user.nama || res.user.nama_lengkap;
+          if (roleEl) {
+            const isAdmin = res.user.role === 'admin';
+            roleEl.textContent = isAdmin ? 'Administrator' : 'Dosen';
+            roleEl.className = isAdmin ? 'text-[10px] text-purple-400 font-bold uppercase tracking-wider' : 'text-[10px] text-blue-400 font-medium capitalize';
+          }
         }
         initApp();
       } catch (err) {

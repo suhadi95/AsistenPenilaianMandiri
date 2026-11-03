@@ -286,6 +286,9 @@ class Database {
                 // Hubungkan semua mata kuliah yang belum berpemilik ke admin pertama
                 self::execute("UPDATE courses SET id_user = ? WHERE id_user IS NULL OR id_user = ''", [$adminId]);
             }
+
+            // Pastikan akun administrator utama selalu berstatus role 'admin'
+            self::execute("UPDATE users SET role = 'admin' WHERE LOWER(email) = 'suhadiparman@uinssc.ac.id'");
         } catch (Exception $e) {
             error_log("Admin seed error: " . $e->getMessage());
         }

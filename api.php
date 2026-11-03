@@ -1009,7 +1009,7 @@ function getSystemSettings(?array $user = null): array {
 }
 
 function getCoursesList(?array $user = null): array {
-    $sql = "SELECT c.*, u.nama_lengkap as dosen_nama, u.email as dosen_email 
+    $sql = "SELECT c.*, u.nama as dosen_nama, u.email as dosen_email 
             FROM courses c 
             LEFT JOIN users u ON c.id_user = u.id_user";
     $params = [];
