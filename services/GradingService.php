@@ -95,6 +95,39 @@ class GradingService {
             );
 
             if (!$submission['success']) {
+                $subMsg = $submission['message'] ?? '';
+                $lowerMsg = strtolower($subMsg);
+
+                // Jika berkas memang belum dikumpulkan oleh mahasiswa
+                if (str_contains($lowerMsg, 'tidak ditemukan') || str_contains($lowerMsg, 'belum ada berkas')) {
+                    $unsubmittedNote = "Mahasiswa belum mengumpulkan berkas tugas di folder Drive / server.";
+                    self::saveGrade([
+                        'id_tugas'        => $taskId,
+                        'id_kelas'        => $classId,
+                        'nim'             => $nim,
+                        'nama_mahasiswa'  => $nama,
+                        'file_name'       => '-',
+                        'nilai_total'     => null,
+                        'rincian_poin'    => '-',
+                        'catatan_ai'      => $unsubmittedNote,
+                        'status'          => 'Belum Mengumpulkan',
+                        'waktu_penilaian' => date('d/m/Y H:i:s')
+                    ]);
+
+                    return [
+                        'success'         => true,
+                        'isSubmitted'     => false,
+                        'nim'             => $nim,
+                        'nama'            => $nama,
+                        'score'           => '-',
+                        'fileName'        => '-',
+                        'rincian_poin'    => '-',
+                        'catatan_ai'      => $unsubmittedNote,
+                        'status'          => 'Belum Mengumpulkan',
+                        'waktu_penilaian' => date('d/m/Y H:i:s')
+                    ];
+                }
+
                 throw new Exception($submission['message']);
             }
 

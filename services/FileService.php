@@ -34,6 +34,19 @@ class FileService {
     }
 
     /**
+     * Mengambil path direktori berkas tugas bersama (seluruh kelas di bawah tugas ini)
+     */
+    public static function getSharedSubmissionsDir(string $taskId): string {
+        $base = self::getUploadDir();
+        $cleanTask = preg_replace('/[^a-zA-Z0-9_-]/', '', $taskId);
+        $dir = "{$base}/tasks/{$cleanTask}/shared";
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        return $dir;
+    }
+
+    /**
      * Mengambil path direktori berkas soal tugas
      */
     public static function getTaskQuestionsDir(string $taskId): string {
@@ -520,19 +533,28 @@ class FileService {
         string $apiKey = '',
         string $modelName = ''
     ): array {
-        $dir = self::getSubmissionsDir($taskId, $classId);
-        if (!is_dir($dir)) {
-            return [
-                'success' => false,
-                'message' => "Direktori berkas tugas belum dibuat untuk kelas ini. Silakan unggah tugas/ZIP terlebih dahulu."
-            ];
+        $classDir = self::getSubmissionsDir($taskId, $classId);
+        $sharedDir = self::getSharedSubmissionsDir($taskId);
+
+        $classFiles = is_dir($classDir) ? array_diff(scandir($classDir), ['.', '..']) : [];
+        $sharedFiles = is_dir($sharedDir) ? array_diff(scandir($sharedDir), ['.', '..']) : [];
+
+        // Gabungkan berkas: prioritaskan berkas yang ada di folder kelas
+        $allCandidates = [];
+        foreach ($classFiles as $f) {
+            $allCandidates[] = ['name' => $f, 'dir' => $classDir, 'isShared' => false];
+        }
+        foreach ($sharedFiles as $f) {
+            // Hindari duplikasi jika nama berkas sudah ada di folder kelas
+            if (!in_array($f, $classFiles, true)) {
+                $allCandidates[] = ['name' => $f, 'dir' => $sharedDir, 'isShared' => true];
+            }
         }
 
-        $files = array_diff(scandir($dir), ['.', '..']);
-        if (empty($files)) {
+        if (empty($allCandidates)) {
             return [
                 'success' => false,
-                'message' => "Belum ada berkas tugas yang diunggah di server untuk kelas ini."
+                'message' => "Belum ada berkas tugas yang diunggah di server untuk tugas ini. Silakan klik 'Sinkron Drive' atau 'Upload ZIP Tugas'."
             ];
         }
 
@@ -540,70 +562,116 @@ class FileService {
         $sanitizedNim = preg_replace('/[^0-9a-z]/', '', $cleanNim);
         $cleanNama = strtolower(trim($nama));
 
-        $targetFile = null;
+        $targetCandidate = null;
         $matchedBy = 'filename';
 
         // 1. Prioritas NIM pada nama berkas
-        foreach ($files as $file) {
-            $fileLower = strtolower($file);
+        foreach ($allCandidates as $cand) {
+            $fileLower = strtolower($cand['name']);
             $sanitizedFile = preg_replace('/[^0-9a-z]/', '', $fileLower);
 
             if (!empty($cleanNim) && (str_contains($fileLower, $cleanNim) || (strlen($sanitizedNim) >= 4 && str_contains($sanitizedFile, $sanitizedNim)))) {
-                $targetFile = "{$dir}/{$file}";
+                $targetCandidate = $cand;
                 break;
             }
         }
 
         // 2. Prioritas Nama pada nama berkas jika NIM tidak cocok
-        if (!$targetFile && !empty($cleanNama) && strlen($cleanNama) >= 4) {
-            foreach ($files as $file) {
-                $fileLower = strtolower($file);
+        if (!$targetCandidate && !empty($cleanNama) && strlen($cleanNama) >= 4) {
+            // Pecah nama menjadi kata kunci utama (abaikan kata gelar/pendek < 3 huruf)
+            $nameWords = array_filter(explode(' ', $cleanNama), fn($w) => strlen(trim($w)) >= 3);
+            foreach ($allCandidates as $cand) {
+                $fileLower = strtolower($cand['name']);
                 if (str_contains($fileLower, $cleanNama)) {
-                    $targetFile = "{$dir}/{$file}";
+                    $targetCandidate = $cand;
                     break;
+                }
+                // Jika mengandung minimal 2 kata nama berurutan
+                if (count($nameWords) >= 2) {
+                    $matchedWords = 0;
+                    foreach ($nameWords as $w) {
+                        if (str_contains($fileLower, $w)) $matchedWords++;
+                    }
+                    if ($matchedWords >= 2 && $matchedWords >= (count($nameWords) * 0.6)) {
+                        $targetCandidate = $cand;
+                        break;
+                    }
                 }
             }
         }
 
         // 3. Pencarian Berdasarkan Isi Dokumen (Content-Based Matching)
-        if (!$targetFile) {
-            foreach ($files as $file) {
-                $filePath = "{$dir}/{$file}";
+        // PENTING: Hanya periksa berkas anonim (berkas yang TIDAK memuat NIM mahasiswa lain)!
+        if (!$targetCandidate) {
+            $checkedAiCount = 0;
+
+            foreach ($allCandidates as $cand) {
+                $fileName = $cand['name'];
+                $filePath = "{$cand['dir']}/{$fileName}";
+                $fileLower = strtolower($fileName);
+
+                // Jika nama berkas memuat deretan angka 6 digit atau lebih dan BUKAN NIM target,
+                // maka berkas ini sudah pasti milik mahasiswa lain. LEWATI SEKETIKA!
+                if (preg_match('/\b\d{6,}\b/', $fileName, $digits)) {
+                    if (!empty($sanitizedNim) && !str_contains($digits[0], $sanitizedNim) && !str_contains($sanitizedNim, $digits[0])) {
+                        continue;
+                    }
+                }
+
                 $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
 
-                // Cek teks DOCX atau teks langsung
+                // Cek teks dokumen DOCX secara lokal (sangat cepat, 0 detik, tanpa API)
                 if ($ext === 'docx') {
                     $docText = strtolower(self::extractTextFromDocx($filePath));
                     if (!empty($cleanNim) && str_contains($docText, $cleanNim)) {
-                        $targetFile = $filePath;
+                        $targetCandidate = $cand;
                         $matchedBy = 'content';
                         break;
                     }
                 }
 
-                // Cek Gemini Vision jika PDF atau Gambar
-                if (in_array($ext, ['pdf', 'png', 'jpg', 'jpeg'], true) && !empty($apiKey)) {
-                    $payload = self::processFileForGemini($filePath);
-                    if ($payload['success']) {
-                        $identified = GeminiService::checkDocumentBelongsToStudent($payload, $cleanNim, $cleanNama, $apiKey, $modelName);
-                        if ($identified && !empty($identified['isMatch'])) {
-                            $targetFile = $filePath;
-                            $matchedBy = 'ai_vision';
-                            break;
+                // Cek Gemini Vision HANYA jika berkas benar-benar anonim dan dibatasi maksimal 1 berkas
+                if (in_array($ext, ['pdf', 'png', 'jpg', 'jpeg'], true) && !empty($apiKey) && $checkedAiCount < 1) {
+                    $checkedAiCount++;
+                    try {
+                        $payload = self::processFileForGemini($filePath);
+                        if (!empty($payload['success'])) {
+                            $identified = GeminiService::checkDocumentBelongsToStudent($payload, $cleanNim, $cleanNama, $apiKey, $modelName);
+                            if ($identified && !empty($identified['isMatch'])) {
+                                $targetCandidate = $cand;
+                                $matchedBy = 'ai_vision';
+                                break;
+                            }
                         }
+                    } catch (Throwable $e) {
+                        // Abaikan error pada AI vision agar tidak merusak flow
                     }
                 }
             }
         }
 
-        if (!$targetFile) {
+        if (!$targetCandidate) {
             return [
                 'success' => false,
                 'message' => "Berkas tugas tidak ditemukan untuk NIM '{$nim}' ({$nama})."
             ];
         }
 
-        $processed = self::processFileForGemini($targetFile);
+        $sourcePath = "{$targetCandidate['dir']}/{$targetCandidate['name']}";
+
+        // Jika berkas ditemukan di folder shared, salin otomatis ke folder kelas agar sinkron lokal
+        if ($targetCandidate['isShared']) {
+            if (!is_dir($classDir)) @mkdir($classDir, 0755, true);
+            $localClassPath = "{$classDir}/{$targetCandidate['name']}";
+            if (!file_exists($localClassPath)) {
+                @copy($sourcePath, $localClassPath);
+            }
+            $targetPath = $localClassPath;
+        } else {
+            $targetPath = $sourcePath;
+        }
+
+        $processed = self::processFileForGemini($targetPath);
         $processed['matchedBy'] = $matchedBy;
         return $processed;
     }

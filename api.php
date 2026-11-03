@@ -6,6 +6,8 @@
 // Error handling & header CORS / JSON
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
+@set_time_limit(180);
+@ini_set('memory_limit', '256M');
 
 require_once __DIR__ . '/core/Database.php';
 require_once __DIR__ . '/core/Helper.php';
@@ -308,17 +310,34 @@ try {
             $cur = UserService::requireAuth();
             $taskId = trim($input['taskId'] ?? '');
             $classId = trim($input['classId'] ?? '');
-            if (!$taskId || !$classId) {
-                throw new Exception("ID Tugas dan ID Kelas wajib disertakan.");
+            if (!$taskId) {
+                throw new Exception("ID Tugas wajib disertakan.");
             }
 
             if (!GoogleDriveService::isConnected($cur['id_user'])) {
                 throw new Exception("Akun Google Drive belum terhubung. Silakan hubungkan akun Google di menu Pengaturan.");
             }
 
-            // Cari folder ID
+            $task = Database::fetchOne("SELECT drive_folder_id, judul_tugas, id_mata_kuliah FROM tasks WHERE id_tugas = ?", [$taskId]);
+            if (!$task) {
+                throw new Exception("Tugas dengan ID '{$taskId}' tidak ditemukan.");
+            }
+
+            // Jika classId kosong, sinkronkan untuk seluruh kelas di mata kuliah ini
+            if (empty($classId)) {
+                $folderId = (!empty($input['folderId'])) ? trim($input['folderId']) : ($task['drive_folder_id'] ?? '');
+                if (empty($folderId)) {
+                    $taskName = $task['judul_tugas'] ?? $taskId;
+                    throw new Exception("Folder Google Drive belum diatur pada tugas '{$taskName}'. Silakan edit tugas di tab 'Kelola Tugas' dan isi link/ID folder Drive.");
+                }
+
+                $syncRes = GoogleDriveService::syncDriveFolderForTaskAllClasses($taskId, $task['id_mata_kuliah'], $folderId);
+                Helper::json($syncRes);
+                break;
+            }
+
+            // Jika classId ada, sinkronkan spesifik untuk kelas tersebut
             $override = Database::fetchOne("SELECT drive_folder_id FROM class_task_folders WHERE id_tugas = ? AND id_kelas = ?", [$taskId, $classId]);
-            $task = Database::fetchOne("SELECT drive_folder_id, judul_tugas FROM tasks WHERE id_tugas = ?", [$taskId]);
             $folderId = (!empty($override['drive_folder_id'])) ? $override['drive_folder_id'] : ($task['drive_folder_id'] ?? '');
 
             if (empty($folderId) && !empty($input['folderId'])) {
@@ -327,11 +346,68 @@ try {
 
             if (empty($folderId)) {
                 $taskName = $task['judul_tugas'] ?? $taskId;
-                throw new Exception("Folder Google Drive tempat tugas mahasiswa belum diisi pada tugas '{$taskName}'. Silakan edit tugas di tab 'Kelola Tugas' dan isi link/ID folder.");
+                throw new Exception("Folder Google Drive tempat tugas mahasiswa belum diisi pada tugas '{$taskName}'. Silakan edit tugas atau atur folder kelas.");
             }
 
             $syncRes = GoogleDriveService::syncDriveFolderToLocal($taskId, $classId, $folderId);
             Helper::json($syncRes);
+            break;
+
+        case 'getClassTaskFolder':
+            UserService::requireAuth();
+            $taskId = trim($input['taskId'] ?? '');
+            $classId = trim($input['classId'] ?? '');
+            if (!$taskId || !$classId) {
+                throw new Exception("ID Tugas dan ID Kelas wajib disertakan.");
+            }
+
+            $task = Database::fetchOne("SELECT drive_folder_id, judul_tugas FROM tasks WHERE id_tugas = ?", [$taskId]);
+            $override = Database::fetchOne("SELECT drive_folder_id FROM class_task_folders WHERE id_tugas = ? AND id_kelas = ?", [$taskId, $classId]);
+
+            $taskFolder = $task['drive_folder_id'] ?? '';
+            $classFolder = $override['drive_folder_id'] ?? '';
+            $activeFolder = !empty($classFolder) ? $classFolder : $taskFolder;
+
+            Helper::json([
+                'success'      => true,
+                'taskFolder'   => $taskFolder,
+                'classFolder'  => $classFolder,
+                'activeFolder' => $activeFolder,
+                'isOverridden' => !empty($classFolder)
+            ]);
+            break;
+
+        case 'saveClassTaskFolder':
+            UserService::requireAuth();
+            $taskId = trim($input['taskId'] ?? '');
+            $classId = trim($input['classId'] ?? '');
+            $folderId = trim($input['folderId'] ?? '');
+
+            if (!$taskId || !$classId) {
+                throw new Exception("ID Tugas dan ID Kelas wajib disertakan.");
+            }
+
+            if (empty($folderId)) {
+                Database::execute("DELETE FROM class_task_folders WHERE id_tugas = ? AND id_kelas = ?", [$taskId, $classId]);
+                Helper::json([
+                    'success'      => true,
+                    'isOverridden' => false,
+                    'message'      => 'Pengaturan folder khusus kelas dihapus. Kelas ini sekarang kembali menggunakan Folder Utama Tugas.'
+                ]);
+            } else {
+                $cleanId = Helper::extractDriveFolderId($folderId);
+                Database::execute("DELETE FROM class_task_folders WHERE id_tugas = ? AND id_kelas = ?", [$taskId, $classId]);
+                Database::execute(
+                    "INSERT INTO class_task_folders (id_tugas, id_kelas, drive_folder_id) VALUES (?, ?, ?)",
+                    [$taskId, $classId, $cleanId]
+                );
+                Helper::json([
+                    'success'      => true,
+                    'isOverridden' => true,
+                    'folderId'     => $cleanId,
+                    'message'      => 'Folder Google Drive khusus kelas berhasil disimpan!'
+                ]);
+            }
             break;
 
         case 'testConnection':

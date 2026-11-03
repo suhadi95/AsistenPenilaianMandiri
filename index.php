@@ -415,11 +415,14 @@ Database::initDatabase();
             <button type="button" onclick="syncCurrentTaskDriveFolder()" id="btnSyncDrive" class="bg-sky-50 border border-sky-200 hover:bg-sky-100 text-sky-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Sinkronkan berkas tugas langsung dari Google Drive (OAuth)">
               <span>🔄</span> <span>Sinkron Drive</span>
             </button>
+            <button type="button" onclick="openClassFolderOverrideModal()" id="btnClassFolderOverride" class="bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Atur Folder Google Drive khusus untuk kelas ini jika berbeda dari kelas lain">
+              <span>📁</span> <span>Folder Kelas</span>
+            </button>
             <button type="button" onclick="openUploadZipModal()" id="btnUploadZip" class="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Unggah 1 berkas ZIP berisi tugas seluruh mahasiswa">
               <span>📦</span> <span>Upload ZIP Tugas</span>
             </button>
             <button type="button" onclick="openCurrentTaskFolder()" id="btnOpenTaskFolder" class="bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Buka folder Google Drive tempat berkas jawaban mahasiswa tersimpan">
-              <span>📁</span> <span>Folder Drive</span> <span class="text-[10px] text-slate-400">↗</span>
+              <span>📁</span> <span>Buka Drive</span> <span class="text-[10px] text-slate-400">↗</span>
             </button>
             <button onclick="resetFailedGrades()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-3 py-2.5 rounded-xl transition flex items-center justify-center gap-1" title="Reset baris gagal">
               <span>🔄</span> <span>Reset Gagal</span>
@@ -438,7 +441,10 @@ Database::initDatabase();
             <p class="font-semibold text-blue-600 truncate mt-0.5" id="taskInfoQuestion">Ada</p>
           </div>
           <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <span class="text-slate-400 font-medium">Folder Jawaban Mahasiswa:</span>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-400 font-medium">Folder Jawaban Mahasiswa:</span>
+              <button type="button" onclick="openClassFolderOverrideModal()" class="text-[10px] text-blue-600 hover:underline font-semibold" title="Atur Folder Drive Khusus Kelas">Atur ⚙️</button>
+            </div>
             <p class="font-semibold text-slate-800 truncate mt-0.5" id="taskInfoFolder">Terhubung</p>
           </div>
         </div>
@@ -1169,6 +1175,55 @@ Database::initDatabase();
     </div>
   </div>
 
+  <!-- Modal Atur Folder Khusus Kelas -->
+  <div id="classFolderOverrideModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div>
+          <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+            <span>📁</span> <span>Atur Folder Drive Khusus Kelas</span>
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5" id="overrideModalSubTitle">Pilih folder Google Drive untuk pengumpulan tugas kelas ini</p>
+        </div>
+        <button onclick="closeModal('classFolderOverrideModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <div class="p-3 bg-blue-50/70 border border-blue-200/60 rounded-xl space-y-1">
+          <span class="font-semibold text-blue-900 flex items-center gap-1.5">
+            <span>ℹ️</span> <span>Folder Utama Tugas (Default):</span>
+          </span>
+          <p class="text-blue-800 break-all font-mono text-[11px]" id="overrideTaskMainFolderText">-</p>
+          <p class="text-[10px] text-blue-600">Secara bawaan, seluruh kelas di bawah mata kuliah ini menggunakan folder utama di atas.</p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">
+            Folder Google Drive Khusus Kelas Ini:
+          </label>
+          <input type="text" id="inputClassOverrideFolder" placeholder="Tautan / ID Folder Drive Khusus (Kosongkan jika mengikuti folder utama)" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono">
+          <p class="text-[10px] text-slate-400 mt-1">
+            💡 Isi jika kelas ini memiliki tautan folder Google Drive terpisah. Kosongkan jika kelas ini mengumpulkan di folder bersama yang sama dengan kelas lain.
+          </p>
+        </div>
+
+        <div id="overrideModalStatusBadge" class="hidden p-2.5 rounded-xl text-xs font-medium"></div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row justify-between gap-2 pt-2 border-t border-slate-100">
+        <button type="button" onclick="resetClassFolderOverride()" id="btnResetOverride" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium text-xs transition">
+          ↺ Gunakan Folder Utama
+        </button>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeModal('classFolderOverrideModal')" class="px-3.5 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
+          <button type="button" onclick="saveClassFolderOverride()" id="btnSaveOverride" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs flex items-center gap-1.5 shadow-sm">
+            <span>💾 Simpan</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- JAVASCRIPT LOGIC -->
   <script>
     // State Aplikasi
@@ -1741,8 +1796,19 @@ Database::initDatabase();
               <h3 class="font-bold text-slate-900 text-sm mt-2">${t.judul_tugas}</h3>
               <p class="text-xs text-slate-400 line-clamp-2 mt-1">${t.deskripsi || 'Tidak ada deskripsi.'}</p>
               
-              <div class="mt-2.5 inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[10px] font-medium px-2 py-0.5 rounded-md">
-                <span>📚</span> <span>Berlaku untuk seluruh kelas ${courseName}</span>
+              <div class="mt-2.5 flex flex-wrap gap-1.5 items-center">
+                <div class="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[10px] font-medium px-2 py-0.5 rounded-md">
+                  <span>📚</span> <span>Untuk seluruh kelas ${courseName}</span>
+                </div>
+                ${t.drive_folder_id ? `
+                  <div class="inline-flex items-center gap-1 bg-sky-50 text-sky-700 text-[10px] font-semibold px-2 py-0.5 rounded-md border border-sky-100" title="Folder Drive Tugas: ${t.drive_folder_id}">
+                    <span>📁</span> <span>Drive Terhubung</span>
+                  </div>
+                ` : `
+                  <div class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-medium px-2 py-0.5 rounded-md border border-amber-100">
+                    <span>⚠️</span> <span>Belum Ada Folder Drive</span>
+                  </div>
+                `}
               </div>
             </div>
 
@@ -1757,9 +1823,20 @@ Database::initDatabase();
                 </div>
               </div>
 
-              <button onclick="goToGradingTask('${t.id_tugas}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-xl text-xs shadow-sm transition">
-                🎓 Koreksi & Nilai Tugas Ini
-              </button>
+              ${t.drive_folder_id ? `
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" onclick="syncTaskDriveFromCard('${t.id_tugas}', this)" class="bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 font-semibold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs" title="Sinkronkan berkas tugas mahasiswa dari Google Drive untuk seluruh kelas di mata kuliah ini">
+                    <span>🔄</span> <span>Sinkron Drive</span>
+                  </button>
+                  <button onclick="goToGradingTask('${t.id_tugas}')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2.5 rounded-xl text-xs shadow-xs transition flex items-center justify-center gap-1.5">
+                    <span>🎓</span> <span>Nilai Tugas</span>
+                  </button>
+                </div>
+              ` : `
+                <button onclick="goToGradingTask('${t.id_tugas}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-xl text-xs shadow-sm transition flex items-center justify-center gap-1.5">
+                  <span>🎓</span> <span>Koreksi & Nilai Tugas Ini</span>
+                </button>
+              `}
             </div>
           </div>
         `;
@@ -1797,18 +1874,29 @@ Database::initDatabase();
       }
     }
 
-    function openCurrentTaskFolder() {
+    async function openCurrentTaskFolder() {
       const taskId = appState.selectedGradingTaskId;
+      const classId = appState.activeClassId;
       if (!taskId) {
         return alert('Pilih tugas terlebih dahulu pada menu dropdown.');
       }
       const task = appState.currentTasks.find(t => t.id_tugas === taskId);
-      if (!task || !task.drive_folder_id) {
+      let folderIdOrUrl = task ? (task.drive_folder_id || '') : '';
+
+      try {
+        if (classId) {
+          const folderInfo = await AppAPI.getClassTaskFolder(taskId, classId);
+          if (folderInfo && folderInfo.activeFolder) {
+            folderIdOrUrl = folderInfo.activeFolder;
+          }
+        }
+      } catch (e) {}
+
+      if (!folderIdOrUrl) {
         return alert('Folder Google Drive tempat berkas jawaban mahasiswa belum diatur untuk tugas ini.');
       }
 
-      const folderIdOrUrl = String(task.drive_folder_id).trim();
-      let targetUrl = folderIdOrUrl;
+      let targetUrl = String(folderIdOrUrl).trim();
       if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
         targetUrl = 'https://drive.google.com/drive/folders/' + folderIdOrUrl;
       }
@@ -1856,7 +1944,29 @@ Database::initDatabase();
         document.getElementById('gradingTaskInfo').classList.remove('hidden');
         document.getElementById('taskInfoWeight').textContent = (t => (t.bobot_persentase > 0 ? t.bobot_persentase + '%' : 'Rata-rata'))(task);
         document.getElementById('taskInfoQuestion').textContent = task.task_file_ref ? 'Tercatat di Drive' : 'Belum diisi';
-        document.getElementById('taskInfoFolder').textContent = task.drive_folder_id ? (task.has_class_folder_override ? 'Khusus Kelas' : 'Tercatat di Drive') : 'Belum diisi';
+        document.getElementById('taskInfoFolder').textContent = task.drive_folder_id ? 'Tercatat di Drive' : 'Belum diisi';
+      }
+
+      // Cek status folder drive khusus kelas
+      if (appState.activeClassId) {
+        AppAPI.getClassTaskFolder(taskId, appState.activeClassId)
+          .then(info => {
+            const btnOverride = document.getElementById('btnClassFolderOverride');
+            if (btnOverride) {
+              if (info && info.isOverridden) {
+                btnOverride.className = 'bg-purple-100 border border-purple-300 hover:bg-purple-200 text-purple-900 font-bold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer';
+                btnOverride.innerHTML = '<span>📁</span> <span>Folder Kelas (Khusus)</span>';
+              } else {
+                btnOverride.className = 'bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer';
+                btnOverride.innerHTML = '<span>📁</span> <span>Folder Kelas</span>';
+              }
+            }
+            const folderBadge = document.getElementById('taskInfoFolder');
+            if (folderBadge && info && info.isOverridden) {
+              folderBadge.title = 'Menggunakan Folder Khusus Kelas: ' + info.classFolder;
+            }
+          })
+          .catch(() => {});
       }
 
       const tbody = document.getElementById('gradingTableBody');
@@ -1888,6 +1998,13 @@ Database::initDatabase();
         })
         .apiGetGradesByTask(taskId, appState.activeClassId);
     }
+          }
+        })
+        .withFailureHandler(function(err) {
+          showGlobalAlert('Gagal memuat penilaian tugas: ' + err.message, 'error');
+        })
+        .apiGetGradesByTask(taskId, appState.activeClassId);
+    }
 
     function renderGradingTableRows(grades) {
       const tbody = document.getElementById('gradingTableBody');
@@ -1900,11 +2017,19 @@ Database::initDatabase();
         const isCompleted = g.status && g.status.toLowerCase() === 'selesai';
         const isFailed = g.status && g.status.toLowerCase().startsWith('gagal');
         const isGrading = g.status && g.status.toLowerCase().includes('sedang');
+        const isUnsubmitted = g.status && (g.status.toLowerCase().includes('belum mengumpulkan') || g.status.toLowerCase().includes('tidak mengumpulkan'));
 
         let statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">Belum Dinilai</span>';
         let pointsContent = g.rincian_poin || '-';
         if (isCompleted) {
           statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">✓ Selesai</span>';
+        } else if (isUnsubmitted) {
+          statusBadge = `
+            <button type="button" onclick="openGradeDetailModal('${g.nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 hover:bg-amber-200 text-amber-800 transition inline-flex items-center gap-1 border border-amber-200 cursor-pointer shadow-2xs" title="Mahasiswa belum mengumpulkan berkas tugas">
+              <span>⚠️ Belum Kumpul</span>
+            </button>
+          `;
+          pointsContent = `<span class="text-amber-700 text-[11px] italic font-medium">Belum mengumpulkan tugas</span>`;
         } else if (isFailed) {
           const cleanReason = (g.status || 'Gagal').replace(/^Gagal:\s*/i, '');
           statusBadge = `
@@ -1921,13 +2046,13 @@ Database::initDatabase();
         const isChecked = appState.selectedStudentNims.has(g.nim);
 
         return `
-          <tr id="row-student-${g.nim}" class="hover:bg-slate-50/80 transition ${isChecked ? 'bg-blue-50/40' : ''}">
+          <tr id="row-student-${g.nim}" class="hover:bg-slate-50/80 transition ${isChecked ? 'bg-blue-50/40' : ''} ${isUnsubmitted ? 'bg-amber-50/20' : ''}">
             <td class="px-4 py-2.5 text-center">
               <input type="checkbox" onchange="toggleStudentSelection('${g.nim}', this.checked)" ${isChecked ? 'checked' : ''} class="rounded text-blue-600 focus:ring-0 cursor-pointer">
             </td>
             <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${g.nim}</td>
             <td class="px-4 py-2.5 font-medium text-slate-900">${g.nama_mahasiswa}</td>
-            <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[150px]" title="${g.file_name || '-'}">${renderFileNameCell(g.file_name)}</td>
+            <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[150px]" title="${g.file_name || '-'}">${isUnsubmitted ? '<span class="text-slate-400 text-xs">-</span>' : renderFileNameCell(g.file_name)}</td>
             <td id="score-cell-${g.nim}" class="px-4 py-2.5 text-center font-bold text-sm ${isCompleted ? 'text-blue-700' : 'text-slate-400'}">${g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '-'}</td>
             <td id="points-cell-${g.nim}" class="px-4 py-2.5 text-slate-600 line-clamp-1 max-w-[200px]" title="${g.rincian_poin || g.status || '-'}">${pointsContent}</td>
             <td id="status-cell-${g.nim}" class="px-4 py-2.5 text-center">${statusBadge}</td>
@@ -2074,10 +2199,15 @@ Database::initDatabase();
           if (!gradingQueue.isRunning) return;
 
           if (res.success) {
-            gradingQueue.successCount++;
-            updateStudentRowState(nim, 'success', res);
-            const contentNote = (res.matchedBy === 'content' || (res.fileName && res.fileName.includes('[via isi]'))) ? ' 🔍 [Ditemukan via Isi Berkas]' : '';
-            showProgressLog('✅ NIM: ' + nim + ' (' + nama + ') berhasil dinilai. Skor: ' + res.score + ' (' + (res.fileName || 'Berkas Drive') + contentNote + ')');
+            if (res.status === 'Belum Mengumpulkan' || res.isSubmitted === false) {
+              updateStudentRowState(nim, 'unsubmitted', res);
+              showProgressLog('⚠️ NIM: ' + nim + ' (' + nama + ') belum mengumpulkan tugas (dilewati).');
+            } else {
+              gradingQueue.successCount++;
+              updateStudentRowState(nim, 'success', res);
+              const contentNote = (res.matchedBy === 'content' || (res.fileName && res.fileName.includes('[via isi]'))) ? ' 🔍 [Ditemukan via Isi Berkas]' : '';
+              showProgressLog('✅ NIM: ' + nim + ' (' + nama + ') berhasil dinilai. Skor: ' + res.score + ' (' + (res.fileName || 'Berkas Drive') + contentNote + ')');
+            }
           } else {
             gradingQueue.failedCount++;
             updateStudentRowState(nim, 'failed', res);
@@ -2087,7 +2217,7 @@ Database::initDatabase();
           gradingQueue.currentIndex++;
           updateGradingProgressUI();
 
-          setTimeout(processNextQueueItem, 600);
+          setTimeout(processNextQueueItem, 500);
         })
         .withFailureHandler(function(err) {
           if (!gradingQueue.isRunning) return;
@@ -2122,6 +2252,34 @@ Database::initDatabase();
       if (state === 'grading') {
         if (row) row.className = 'bg-amber-50/70 border-l-4 border-amber-400 transition';
         if (statusCell) statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 animate-pulse">⏳ Menilai...</span>';
+      } else if (state === 'unsubmitted' || (data && (data.status === 'Belum Mengumpulkan' || data.isSubmitted === false))) {
+        if (row) row.className = 'bg-amber-50/20 transition';
+        if (scoreCell) {
+          scoreCell.textContent = '-';
+          scoreCell.className = 'px-4 py-2.5 text-center font-bold text-sm text-slate-400';
+        }
+        if (pointsCell) {
+          pointsCell.innerHTML = '<span class="text-amber-700 text-[11px] italic font-medium">Belum mengumpulkan tugas</span>';
+        }
+        if (fileCell) {
+          fileCell.innerHTML = '<span class="text-slate-400 text-xs">-</span>';
+        }
+        if (statusCell) {
+          statusCell.innerHTML = `
+            <button type="button" onclick="openGradeDetailModal('${nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 hover:bg-amber-200 text-amber-800 transition inline-flex items-center gap-1 border border-amber-200 cursor-pointer shadow-2xs" title="Mahasiswa belum mengumpulkan berkas tugas">
+              <span>⚠️ Belum Kumpul</span>
+            </button>
+          `;
+        }
+
+        const idx = appState.currentGrades.findIndex(g => g.nim === nim);
+        if (idx !== -1) {
+          appState.currentGrades[idx].nilai_total = null;
+          appState.currentGrades[idx].rincian_poin = '-';
+          appState.currentGrades[idx].catatan_ai = data ? (data.catatan_ai || 'Mahasiswa belum mengumpulkan berkas tugas di folder Drive/server.') : 'Mahasiswa belum mengumpulkan berkas tugas di folder Drive/server.';
+          appState.currentGrades[idx].file_name = '-';
+          appState.currentGrades[idx].status = 'Belum Mengumpulkan';
+        }
       } else if (state === 'success' && data) {
         if (row) row.className = 'bg-emerald-50/60 transition';
         if (scoreCell) {
@@ -3856,9 +4014,6 @@ Database::initDatabase();
       if (!taskId) return alert('Pilih tugas terlebih dahulu!');
       if (!classId) return alert('Pilih kelas terlebih dahulu!');
 
-      const task = appState.currentTasks.find(t => t.id_tugas === taskId);
-      const folderId = task ? (task.drive_folder_id || '') : '';
-
       const btn = document.getElementById('btnSyncDrive');
       const originalText = btn ? btn.innerHTML : '';
       if (btn) {
@@ -3869,11 +4024,11 @@ Database::initDatabase();
       if (isAuto) {
         showProgressLog('🔄 Menyinkronkan berkas tugas mahasiswa langsung dari folder Google Drive...');
       } else {
-        showGlobalAlert('Sedang menyinkronkan berkas dari Google Drive ke server...', 'info');
+        showGlobalAlert('Sedang menyinkronkan berkas tugas dari Google Drive ke server...', 'info');
       }
 
       try {
-        const res = await AppAPI.syncTaskDriveFolder(taskId, classId, folderId);
+        const res = await AppAPI.syncTaskDriveFolder(taskId, classId, '');
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = originalText;
@@ -3896,6 +4051,106 @@ Database::initDatabase();
         }
         throw err;
       }
+    }
+
+    async function syncTaskDriveFromCard(taskId, btnEl) {
+      if (!taskId) return;
+      const task = appState.currentTasks.find(t => t.id_tugas === taskId);
+      const taskTitle = task ? task.judul_tugas : 'Tugas';
+      const originalHtml = btnEl ? btnEl.innerHTML : '';
+
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<span class="spinner inline-block w-3 h-3 border-2 border-sky-600 border-t-white mr-1"></span> Menyinkronkan...';
+      }
+      showGlobalAlert(`Sedang menyinkronkan berkas tugas "${taskTitle}" dari Google Drive untuk seluruh kelas...`, 'info');
+
+      try {
+        const res = await AppAPI.syncTaskDriveFolder(taskId, '');
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.innerHTML = originalHtml;
+        }
+        showGlobalAlert(res.message, 'success');
+        if (appState.activeCourseId) {
+          loadCourseTasks(appState.activeCourseId);
+        }
+        if (appState.selectedGradingTaskId === taskId) {
+          loadGradingTable(taskId);
+        }
+      } catch (err) {
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.innerHTML = originalHtml;
+        }
+        showGlobalAlert('Gagal menyinkronkan tugas dari Drive: ' + err.message, 'error');
+      }
+    }
+
+    async function openClassFolderOverrideModal() {
+      const taskId = appState.selectedGradingTaskId;
+      const classId = appState.activeClassId;
+
+      if (!taskId) return alert('Pilih tugas terlebih dahulu pada menu dropdown!');
+      if (!classId) return alert('Pilih kelas terlebih dahulu!');
+
+      const task = appState.currentTasks.find(t => t.id_tugas === taskId);
+      const activeClass = appState.classes.find(c => c.id_kelas === classId);
+      const taskTitle = task ? task.judul_tugas : 'Tugas';
+      const className = activeClass ? activeClass.nama_kelas : 'Kelas';
+
+      document.getElementById('overrideModalSubTitle').textContent = `Tugas: "${taskTitle}" — Kelas: "${className}"`;
+      document.getElementById('overrideTaskMainFolderText').textContent = (task && task.drive_folder_id) ? task.drive_folder_id : '(Belum diatur pada Kelola Tugas)';
+
+      const input = document.getElementById('inputClassOverrideFolder');
+      const statusBadge = document.getElementById('overrideModalStatusBadge');
+      if (statusBadge) statusBadge.classList.add('hidden');
+
+      try {
+        const info = await AppAPI.getClassTaskFolder(taskId, classId);
+        if (input) input.value = info.classFolder || '';
+        openModal('classFolderOverrideModal');
+      } catch (err) {
+        if (input) input.value = '';
+        openModal('classFolderOverrideModal');
+      }
+    }
+
+    async function saveClassFolderOverride() {
+      const taskId = appState.selectedGradingTaskId;
+      const classId = appState.activeClassId;
+      const input = document.getElementById('inputClassOverrideFolder');
+      const val = input ? input.value.trim() : '';
+
+      const btn = document.getElementById('btnSaveOverride');
+      const originalText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner inline-block w-3 h-3 border-2 border-white mr-1"></span> Menyimpan...';
+      }
+
+      try {
+        const res = await AppAPI.saveClassTaskFolder(taskId, classId, val);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+        closeModal('classFolderOverrideModal');
+        showGlobalAlert(res.message, 'success');
+        loadGradingTable(taskId);
+      } catch (err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+        alert('Gagal menyimpan folder kelas: ' + err.message);
+      }
+    }
+
+    async function resetClassFolderOverride() {
+      const input = document.getElementById('inputClassOverrideFolder');
+      if (input) input.value = '';
+      await saveClassFolderOverride();
     }
 
     function confirmResetDatabase() {

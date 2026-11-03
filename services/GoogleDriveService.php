@@ -433,9 +433,12 @@ class GoogleDriveService {
     }
 
     /**
-     * Sinkronisasi seluruh isi folder Google Drive ke folder server lokal
+     * Sinkronisasi seluruh isi folder Google Drive ke folder server lokal untuk kelas tertentu
      */
     public static function syncDriveFolderToLocal(string $taskId, string $classId, string $folderId): array {
+        @set_time_limit(180);
+        @ini_set('memory_limit', '256M');
+
         $cleanFolderId = Helper::extractDriveFolderId($folderId);
         if (empty($cleanFolderId)) {
             throw new Exception("ID Folder Google Drive tidak valid ('{$folderId}').");
@@ -466,6 +469,7 @@ class GoogleDriveService {
             $name = $file['name'] ?? '';
             $fileId = $file['id'] ?? '';
             $mimeType = $file['mimeType'] ?? '';
+            $driveSize = isset($file['size']) ? (int)$file['size'] : null;
 
             if (empty($fileId) || empty($name)) continue;
 
@@ -483,6 +487,15 @@ class GoogleDriveService {
 
             $targetPath = "{$destDir}/{$cleanName}";
 
+            // Jika berkas sudah ada secara lokal dengan ukuran yang valid, lewati download ulang
+            if (file_exists($targetPath) && filesize($targetPath) > 0) {
+                if ($driveSize === null || filesize($targetPath) === $driveSize) {
+                    $syncedCount++;
+                    $syncedFiles[] = $cleanName;
+                    continue;
+                }
+            }
+
             // Unduh berkas
             if (self::downloadFile($fileId, $targetPath, $mimeType)) {
                 $syncedCount++;
@@ -499,6 +512,105 @@ class GoogleDriveService {
             'skippedCount' => $skippedCount,
             'files'        => $syncedFiles,
             'message'      => "Berhasil menyinkronkan {$syncedCount} berkas langsung dari Google Drive!"
+        ];
+    }
+
+    /**
+     * Sinkronisasi seluruh isi folder Google Drive tugas utama dan mendistribusikannya ke seluruh kelas
+     */
+    public static function syncDriveFolderForTaskAllClasses(string $taskId, string $courseId, string $folderId): array {
+        @set_time_limit(180);
+        @ini_set('memory_limit', '256M');
+
+        $cleanFolderId = Helper::extractDriveFolderId($folderId);
+        if (empty($cleanFolderId)) {
+            throw new Exception("ID Folder Google Drive tugas belum diisi atau tidak valid.");
+        }
+
+        $files = self::listFilesInFolder($cleanFolderId);
+        if (empty($files)) {
+            return [
+                'success'      => true,
+                'totalInDrive' => 0,
+                'syncedCount'  => 0,
+                'files'        => [],
+                'message'      => "Folder Google Drive terhubung, namun saat ini belum ada berkas tugas mahasiswa di dalamnya."
+            ];
+        }
+
+        // Simpan ke direktori bersama (shared)
+        $sharedDir = FileService::getSharedSubmissionsDir($taskId);
+        if (!is_dir($sharedDir)) {
+            @mkdir($sharedDir, 0755, true);
+        }
+
+        $syncedCount = 0;
+        $syncedFiles = [];
+
+        foreach ($files as $file) {
+            $name = $file['name'] ?? '';
+            $fileId = $file['id'] ?? '';
+            $mimeType = $file['mimeType'] ?? '';
+            $driveSize = isset($file['size']) ? (int)$file['size'] : null;
+
+            if (empty($fileId) || empty($name)) continue;
+            if ($mimeType === 'application/vnd.google-apps.folder') continue;
+
+            $cleanName = preg_replace('/[^a-zA-Z0-9_.-]/', '_', $name);
+            if ($mimeType === 'application/vnd.google-apps.document') {
+                $cleanName = preg_replace('/\.docx?$/i', '', $cleanName) . '.pdf';
+            }
+
+            $targetPath = "{$sharedDir}/{$cleanName}";
+
+            if (file_exists($targetPath) && filesize($targetPath) > 0) {
+                if ($driveSize === null || filesize($targetPath) === $driveSize) {
+                    $syncedCount++;
+                    $syncedFiles[] = $cleanName;
+                    continue;
+                }
+            }
+
+            if (self::downloadFile($fileId, $targetPath, $mimeType)) {
+                $syncedCount++;
+                $syncedFiles[] = $cleanName;
+            }
+        }
+
+        // Ambil kelas-kelas di bawah mata kuliah ini
+        $classes = Database::fetchAll("SELECT id_kelas, nama_kelas FROM classes WHERE id_mata_kuliah = ?", [$courseId]);
+        $updatedClasses = [];
+
+        foreach ($classes as $c) {
+            $cId = $c['id_kelas'];
+            // Cek apakah kelas ini punya folder khusus sendiri
+            $override = Database::fetchOne("SELECT drive_folder_id FROM class_task_folders WHERE id_tugas = ? AND id_kelas = ?", [$taskId, $cId]);
+            if (!empty($override['drive_folder_id']) && trim($override['drive_folder_id']) !== $cleanFolderId) {
+                continue; // Jangan timpa kelas yang punya folder terpisah
+            }
+
+            $cDir = FileService::getSubmissionsDir($taskId, $cId);
+            if (!is_dir($cDir)) @mkdir($cDir, 0755, true);
+
+            foreach ($syncedFiles as $sf) {
+                $src = "{$sharedDir}/{$sf}";
+                $dst = "{$cDir}/{$sf}";
+                if (file_exists($src) && (!file_exists($dst) || filesize($src) !== filesize($dst))) {
+                    @copy($src, $dst);
+                }
+            }
+            $updatedClasses[] = $c['nama_kelas'];
+        }
+
+        $classListText = !empty($updatedClasses) ? implode(', ', $updatedClasses) : 'seluruh kelas';
+
+        return [
+            'success'        => true,
+            'totalInDrive'   => count($files),
+            'syncedCount'    => $syncedCount,
+            'files'          => $syncedFiles,
+            'updatedClasses' => $updatedClasses,
+            'message'        => "Berhasil menyinkronkan {$syncedCount} berkas dari Google Drive untuk kelas: {$classListText}!"
         ];
     }
 }

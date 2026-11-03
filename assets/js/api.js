@@ -97,8 +97,16 @@ const AppAPI = {
     return this.call('disconnectGoogleDrive');
   },
 
-  async syncTaskDriveFolder(taskId, classId, folderId = '') {
+  async syncTaskDriveFolder(taskId, classId = '', folderId = '') {
     return this.call('syncTaskDriveFolder', { taskId, classId, folderId });
+  },
+
+  async getClassTaskFolder(taskId, classId) {
+    return this.call('getClassTaskFolder', { taskId, classId });
+  },
+
+  async saveClassTaskFolder(taskId, classId, folderId) {
+    return this.call('saveClassTaskFolder', { taskId, classId, folderId });
   },
 
   async testGoogleDriveConnection() {
@@ -319,7 +327,13 @@ async function dispatchGasApiMethod(methodName, args) {
       return await AppAPI.disconnectGoogleDrive();
 
     case 'apiSyncTaskDriveFolder':
-      return await AppAPI.syncTaskDriveFolder(args[0], args[1]);
+      return await AppAPI.syncTaskDriveFolder(args[0], args[1] || '', args[2] || '');
+
+    case 'apiGetClassTaskFolder':
+      return await AppAPI.getClassTaskFolder(args[0], args[1]);
+
+    case 'apiSaveClassTaskFolder':
+      return await AppAPI.saveClassTaskFolder(args[0], args[1], args[2] || '');
 
     case 'apiTestGoogleDriveConnection':
       return await AppAPI.testGoogleDriveConnection();
