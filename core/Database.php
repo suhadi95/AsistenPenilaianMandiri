@@ -169,6 +169,9 @@ class Database {
             }
         }
 
+        // Jalankan migrasi skema tabel jika diperlukan
+        self::runMigrations();
+
         // Pastikan ada data contoh default
         self::seedDefaultData();
 
@@ -177,6 +180,115 @@ class Database {
             'driver'  => $driver,
             'message' => 'Basis data siap digunakan.'
         ];
+    }
+
+    /**
+     * Menjalankan migrasi skema multi-user & relasi pengguna
+     */
+    public static function runMigrations(): void {
+        $pdo = self::getConnection();
+        $config = self::loadConfig();
+        $driver = strtolower($config['db_driver'] ?? 'sqlite');
+
+        // 1. Buat tabel users jika belum ada
+        $userTableExists = false;
+        try {
+            if ($driver === 'mysql') {
+                $check = $pdo->query("SHOW TABLES LIKE 'users'")->fetch();
+                $userTableExists = !empty($check);
+            } else {
+                $check = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")->fetch();
+                $userTableExists = !empty($check);
+            }
+        } catch (Exception $e) {
+            $userTableExists = false;
+        }
+
+        if (!$userTableExists) {
+            $userSql = "CREATE TABLE IF NOT EXISTS users (
+                id_user VARCHAR(64) PRIMARY KEY,
+                nama VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                role VARCHAR(32) DEFAULT 'dosen',
+                status VARCHAR(32) DEFAULT 'active',
+                gemini_api_key TEXT NULL,
+                model_name VARCHAR(64) DEFAULT 'gemini-3.5-flash-lite',
+                google_access_token TEXT NULL,
+                google_refresh_token TEXT NULL,
+                google_token_expires_at INT DEFAULT 0,
+                google_connected_email VARCHAR(255) NULL,
+                last_login_at DATETIME NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )";
+            $pdo->exec($userSql);
+        }
+
+        // 2. Pastikan kolom id_user ada di courses
+        try {
+            if ($driver === 'mysql') {
+                $colCheck = $pdo->query("SHOW COLUMNS FROM courses LIKE 'id_user'")->fetch();
+                if (empty($colCheck)) {
+                    $pdo->exec("ALTER TABLE courses ADD COLUMN id_user VARCHAR(64) NULL AFTER id_mata_kuliah");
+                }
+            } else {
+                $cols = $pdo->query("PRAGMA table_info(courses)")->fetchAll();
+                $hasIdUser = false;
+                foreach ($cols as $col) {
+                    if ($col['name'] === 'id_user') {
+                        $hasIdUser = true;
+                        break;
+                    }
+                }
+                if (!$hasIdUser) {
+                    $pdo->exec("ALTER TABLE courses ADD COLUMN id_user VARCHAR(64) NULL");
+                }
+            }
+        } catch (Exception $e) {
+            // Kolom mungkin sudah ada
+        }
+
+        // 3. Pastikan ada akun Admin default dan migrasikan data eksisting
+        try {
+            $userCount = self::fetchOne("SELECT COUNT(*) as count FROM users");
+            if (!$userCount || (int)$userCount['count'] === 0) {
+                $adminId = 'USR-' . strtoupper(substr(uniqid(), -6));
+                
+                // Ambil data token dan email yang sudah tersimpan di settings
+                $connectedEmail = self::getSetting('GOOGLE_CONNECTED_EMAIL') ?: 'suhadiparman@uinssc.ac.id';
+                $geminiKey = self::getSetting('GEMINI_API_KEY') ?: '';
+                $modelName = self::getSetting('MODEL_NAME') ?: 'gemini-3.5-flash-lite';
+                $googleAccessToken = self::getSetting('GOOGLE_ACCESS_TOKEN') ?: null;
+                $googleRefreshToken = self::getSetting('GOOGLE_REFRESH_TOKEN') ?: null;
+                $googleTokenExpires = (int)(self::getSetting('GOOGLE_TOKEN_EXPIRES_AT') ?: 0);
+
+                $adminPasswordHash = password_hash('admin123', PASSWORD_DEFAULT);
+
+                self::execute(
+                    "INSERT INTO users (id_user, nama, email, password_hash, role, status, gemini_api_key, model_name, google_access_token, google_refresh_token, google_token_expires_at, google_connected_email, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        $adminId,
+                        'Suhadi Parman',
+                        $connectedEmail,
+                        $adminPasswordHash,
+                        'admin',
+                        'active',
+                        $geminiKey,
+                        $modelName,
+                        $googleAccessToken,
+                        $googleRefreshToken,
+                        $googleTokenExpires,
+                        $connectedEmail,
+                        date('Y-m-d H:i:s')
+                    ]
+                );
+
+                // Hubungkan semua mata kuliah yang belum berpemilik ke admin pertama
+                self::execute("UPDATE courses SET id_user = ? WHERE id_user IS NULL OR id_user = ''", [$adminId]);
+            }
+        } catch (Exception $e) {
+            error_log("Admin seed error: " . $e->getMessage());
+        }
     }
 
     /**

@@ -54,74 +54,130 @@ Database::initDatabase();
     .table-scroll-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   </style>
 </head>
-<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+<body class="text-slate-800 antialiased min-h-screen flex flex-col bg-slate-50">
 
-  <!-- TOP NAVBAR -->
-  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-14 sm:h-16 gap-2">
-        
-        <!-- Logo & Brand -->
-        <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
-          <div class="bg-blue-600 text-white p-1.5 sm:p-2 rounded-xl text-lg sm:text-xl shadow-lg shadow-blue-500/30">🎓</div>
-          <div>
-            <h1 class="font-bold text-sm sm:text-base tracking-tight leading-none text-white">Asisten Penilaian</h1>
-            <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5 hidden xs:block">Portal Akademik</p>
-          </div>
+  <!-- ======================================================== -->
+  <!-- LOGIN SCREEN (Ditampilkan jika belum autentikasi)        -->
+  <!-- ======================================================== -->
+  <div id="loginScreenContainer" class="hidden min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4">
+    <div class="max-w-md w-full bg-slate-800 border border-slate-700/80 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
+      <div class="text-center space-y-2">
+        <div class="inline-flex bg-blue-600 text-white p-3 rounded-2xl text-2xl shadow-lg shadow-blue-500/30">🎓</div>
+        <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Asisten Penilaian Mandiri</h2>
+        <p class="text-xs text-slate-400">Portal Evaluasi Akademik &amp; Penilaian AI Multimodal</p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Alamat Email Kampus</label>
+          <input type="email" id="loginEmail" required placeholder="nama@kampus.ac.id" class="w-full text-sm px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-blue-500 text-white placeholder-slate-500 transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Kata Sandi (Password)</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full text-sm px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-blue-500 text-white placeholder-slate-500 transition">
         </div>
 
-        <!-- Selector Kelas Aktif -->
-        <div class="flex items-center space-x-1.5 bg-slate-800/90 border border-slate-700/80 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl max-w-[140px] xs:max-w-[185px] sm:max-w-xs shrink min-w-0">
-          <span class="text-xs text-slate-400 font-medium hidden md:inline shrink-0">Kelas:</span>
-          <select id="headerClassSelect" onchange="switchActiveClass(this.value)" class="bg-transparent text-xs sm:text-sm font-semibold text-white focus:outline-none cursor-pointer truncate w-full">
-            <option value="" class="bg-slate-800 text-slate-300">-- Pilih Kelas --</option>
-          </select>
-        </div>
+        <div id="loginAlert" class="hidden p-3 rounded-xl text-xs font-medium"></div>
 
-        <!-- Right Quick Info & Actions -->
-        <div class="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
-          <div id="aiModelBadge" class="hidden lg:flex items-center space-x-1.5 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs px-2.5 py-1 rounded-full font-medium">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span id="badgeModelName">gemini-3.5-flash-lite</span>
+        <button type="submit" id="btnLoginSubmit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-3 rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2">
+          <span>Masuk ke Portal</span>
+        </button>
+      </form>
+
+      <div class="pt-4 border-t border-slate-700/60 text-center space-y-1">
+        <p class="text-[11px] text-slate-400">
+          Akun Dosen didaftarkan oleh Administrator sistem institusi.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MAIN APP WRAPPER (Ditampilkan setelah login)             -->
+  <!-- ======================================================== -->
+  <div id="appWrapper" class="flex-1 flex flex-col">
+
+    <!-- TOP NAVBAR -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-14 sm:h-16 gap-2">
+          
+          <!-- Logo & Brand -->
+          <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
+            <div class="bg-blue-600 text-white p-1.5 sm:p-2 rounded-xl text-lg sm:text-xl shadow-lg shadow-blue-500/30">🎓</div>
+            <div>
+              <h1 class="font-bold text-sm sm:text-base tracking-tight leading-none text-white">Asisten Penilaian</h1>
+              <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5 hidden xs:block">Portal Akademik</p>
+            </div>
           </div>
 
-          <button onclick="switchTab('tab-settings')" class="p-1.5 sm:p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Pengaturan API">
-            ⚙️
+          <!-- Selector Kelas Aktif -->
+          <div class="flex items-center space-x-1.5 bg-slate-800/90 border border-slate-700/80 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl max-w-[140px] xs:max-w-[185px] sm:max-w-xs shrink min-w-0">
+            <span class="text-xs text-slate-400 font-medium hidden md:inline shrink-0">Kelas:</span>
+            <select id="headerClassSelect" onchange="switchActiveClass(this.value)" class="bg-transparent text-xs sm:text-sm font-semibold text-white focus:outline-none cursor-pointer truncate w-full">
+              <option value="" class="bg-slate-800 text-slate-300">-- Pilih Kelas --</option>
+            </select>
+          </div>
+
+          <!-- Right Quick Info & Actions -->
+          <div class="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
+            <div id="aiModelBadge" class="hidden lg:flex items-center space-x-1.5 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs px-2.5 py-1 rounded-full font-medium">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="badgeModelName">gemini-3.5-flash-lite</span>
+            </div>
+
+            <!-- Profile Info & Role Badge -->
+            <div class="flex items-center space-x-2 pl-2 sm:pl-3 border-l border-slate-800">
+              <div class="text-right hidden sm:block">
+                <div id="headerUserName" class="text-xs font-semibold text-slate-200 truncate max-w-[130px]">Pengguna</div>
+                <div id="headerUserRole" class="text-[10px] text-blue-400 font-medium capitalize">Dosen</div>
+              </div>
+              <button onclick="switchTab('tab-settings')" class="p-1.5 sm:p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Pengaturan Akun &amp; AI">
+                ⚙️
+              </button>
+              <button onclick="handleLogout()" class="p-1.5 sm:p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition" title="Keluar (Logout)">
+                🚪
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="bg-white border-b border-slate-200 sticky top-14 sm:top-16 z-30 shadow-xs">
+      <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+        <div class="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar py-2 text-xs sm:text-sm font-medium">
+          <button onclick="switchTab('tab-dashboard')" id="nav-tab-dashboard" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap active text-blue-600 bg-blue-50 font-semibold shrink-0">
+            🏠 <span class="hidden xs:inline">Dashboard</span><span class="xs:hidden">Dash</span>
+          </button>
+          <button onclick="switchTab('tab-classes')" id="nav-tab-classes" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
+            👥 <span class="hidden sm:inline">Kelola </span>MK & Kelas
+          </button>
+          <button onclick="switchTab('tab-tasks')" id="nav-tab-tasks" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
+            📝 <span class="hidden sm:inline">Kelola </span>Tugas
+          </button>
+          <button onclick="switchTab('tab-grading')" id="nav-tab-grading" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
+            🎓 Penilaian
+          </button>
+          <button onclick="switchTab('tab-reports')" id="nav-tab-reports" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
+            📊 Rekapitulasi
+          </button>
+          <!-- Tab Khusus Admin: Kelola Pengguna -->
+          <button onclick="switchTab('tab-users')" id="nav-tab-users" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 hidden">
+            👨‍💼 Kelola Pengguna
+          </button>
+          <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
+            ⚙️ Pengaturan
           </button>
         </div>
-
       </div>
-    </div>
-  </header>
+    </nav>
 
-  <!-- NAVIGATION TABS -->
-  <nav class="bg-white border-b border-slate-200 sticky top-14 sm:top-16 z-30 shadow-xs">
-    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-      <div class="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar py-2 text-xs sm:text-sm font-medium">
-        <button onclick="switchTab('tab-dashboard')" id="nav-tab-dashboard" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap active text-blue-600 bg-blue-50 font-semibold shrink-0">
-          🏠 <span class="hidden xs:inline">Dashboard</span><span class="xs:hidden">Dash</span>
-        </button>
-        <button onclick="switchTab('tab-classes')" id="nav-tab-classes" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-          👥 <span class="hidden sm:inline">Kelola </span>MK & Kelas
-        </button>
-        <button onclick="switchTab('tab-tasks')" id="nav-tab-tasks" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-          📝 <span class="hidden sm:inline">Kelola </span>Tugas
-        </button>
-        <button onclick="switchTab('tab-grading')" id="nav-tab-grading" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-          🎓 Penilaian
-        </button>
-        <button onclick="switchTab('tab-reports')" id="nav-tab-reports" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-          📊 Rekapitulasi
-        </button>
-        <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-          ⚙️ Pengaturan
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <!-- MAIN CONTAINER -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
 
     <!-- GLOBAL NOTIFICATION BANNER -->
     <div id="globalAlert" class="hidden mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm">
@@ -515,26 +571,111 @@ Database::initDatabase();
     </section>
 
     <!-- ======================================================== -->
-    <!-- TAB 6: PENGATURAN                                        -->
+    <!-- TAB 6: KELOLA PENGGUNA (ADMIN ONLY)                      -->
+    <!-- ======================================================== -->
+    <section id="tab-users" class="tab-content space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <span>👨‍💼</span> <span>Manajemen Pengguna &amp; Dosen</span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Kelola akun pengajar, hak akses peran sistem, dan status aktivasi</p>
+          </div>
+          <button onclick="openCreateUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 shrink-0">
+            <span>+</span> <span>Tambah Pengguna Baru</span>
+          </button>
+        </div>
+
+        <div id="usersAlert" class="hidden p-3 rounded-xl text-xs font-medium"></div>
+
+        <!-- Users Table -->
+        <div class="table-scroll-container border border-slate-200 rounded-xl overflow-hidden">
+          <table class="w-full text-xs text-left">
+            <thead class="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
+              <tr>
+                <th class="p-3">Nama Lengkap &amp; Email</th>
+                <th class="p-3">Peran (Role)</th>
+                <th class="p-3">Status</th>
+                <th class="p-3">Google Drive</th>
+                <th class="p-3">Gemini API Key</th>
+                <th class="p-3">Terdaftar</th>
+                <th class="p-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="7" class="p-6 text-center text-slate-400">Memuat data pengguna...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 7: PENGATURAN                                        -->
     <!-- ======================================================== -->
     <section id="tab-settings" class="tab-content space-y-6 max-w-2xl mx-auto">
       
+      <!-- 1. KARTU PROFIL PENGGUNA -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span>👤</span> <span>Profil Akun Saya</span>
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Perbarui nama tampilan dan kata sandi akun Anda</p>
+        </div>
+
+        <div class="space-y-3.5 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Nama Lengkap &amp; Gelar</label>
+            <input type="text" id="myProfileNama" placeholder="Nama Lengkap" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Alamat Email</label>
+            <input type="email" id="myProfileEmail" placeholder="nama@kampus.ac.id" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Ubah Kata Sandi Baru</label>
+              <input type="password" id="myProfilePassword" placeholder="Kosongkan jika tidak diubah" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Konfirmasi Kata Sandi Baru</label>
+              <input type="password" id="myProfilePasswordConfirm" placeholder="Ulangi sandi baru" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+            </div>
+          </div>
+
+          <div id="profileAlert" class="hidden p-3 rounded-xl text-xs font-medium"></div>
+
+          <div class="pt-2">
+            <button onclick="saveMyProfile()" id="btnSaveProfile" class="w-full sm:w-auto px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition">
+              Simpan Perubahan Profil
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. KARTU PENGATURAN GEMINI AI (BYOK - PER PENGGUNA) -->
       <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
         <div>
-          <h2 class="text-lg font-bold text-slate-900">Pengaturan Konfigurasi AI & Sistem</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Konfigurasi Gemini API Key dan model multimodal yang digunakan</p>
+          <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span>🤖</span> <span>Pengaturan AI Gemini Saya</span>
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Konfigurasi Gemini API Key pribadi Anda (Bring Your Own Key) untuk evaluasi tugas mahasiswa</p>
         </div>
 
         <div class="space-y-4">
           <!-- API Key Input -->
           <div>
-            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Gemini API Key</label>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Gemini API Key Pribadi</label>
             <div class="flex gap-2">
-              <input type="password" id="inputApiKey" placeholder="AIzaSy... / AQ.Ab8..." class="flex-1 text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+              <input type="password" id="inputApiKey" placeholder="AIzaSy... / AQ.Ab8..." class="flex-1 text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono">
               <button type="button" onclick="toggleApiKeyInputVisibility()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-medium">👁️</button>
             </div>
             <p class="text-xs text-slate-400 mt-1.5">
-              API key disimpan secara aman di UserProperties Anda. Dapatkan di <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 underline">Google AI Studio</a>.
+              API key tersimpan aman di profil akun Anda. Dapatkan kuota gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 underline font-medium">Google AI Studio</a>.
             </p>
           </div>
 
@@ -572,48 +713,66 @@ Database::initDatabase();
           <!-- Save Settings -->
           <div class="pt-4 border-t border-slate-100">
             <button onclick="saveAppSettings()" id="btnSaveSettings" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
-              💾 Simpan Pengaturan
+              💾 Simpan Pengaturan AI
             </button>
             <div id="saveSettingsAlert" class="hidden mt-2 p-3 rounded-xl text-xs"></div>
-          </div>
-
-          <!-- Zona Pemeliharaan & Reset Database -->
-          <div class="pt-5 border-t border-slate-200 space-y-3">
-            <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider text-rose-600 flex items-center gap-1.5">
-              <span>⚠️</span> Pemeliharaan & Reset Basis Data
-            </h4>
-            <div class="p-3 bg-rose-50/80 border border-rose-200 rounded-xl text-xs text-rose-900 leading-relaxed">
-              Jika tabel atau struktur data lama bermasalah, Anda dapat mengosongkan seluruh database dan menginisialisasi ulang dengan struktur baru yang bersih dan teratur.
-            </div>
-            <button onclick="confirmResetDatabase()" id="btnResetDatabase" class="w-full bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 font-bold text-xs py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-2">
-              🗑️ Reset / Mulai Bersih Database
-            </button>
-            <div id="resetDbAlert" class="hidden mt-2 p-3 rounded-xl text-xs font-medium"></div>
           </div>
         </div>
       </div>
 
-      <!-- KARTU INTEGRASI GOOGLE DRIVE (OAUTH 2.0) -->
+      <!-- 3. KARTU INTEGRASI GOOGLE DRIVE PENGGUNA (1-KLIK) -->
       <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <span>📁</span> Integrasi Akun Google Drive (OAuth 2.0)
+              <span>📁</span> <span>Google Drive Saya</span>
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Hubungkan akun Google Drive agar sistem dapat menyinkronkan berkas tugas secara otomatis seperti di GAS</p>
+            <p class="text-xs text-slate-500 mt-0.5">Hubungkan akun Google Drive Anda dengan 1-klik untuk menyinkronkan berkas tugas mahasiswa langsung dari folder Drive Anda</p>
           </div>
           <div id="googleOAuthStatusBadge">
             <span class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">Memeriksa status...</span>
           </div>
         </div>
 
+        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 leading-relaxed">
+          💡 <strong>Praktis &amp; Aman:</strong> Anda cukup menekan tombol di bawah dan memilih akun Google kampus Anda. Sistem tidak memerlukan konfigurasi teknis apa pun dari Anda.
+        </div>
+
+        <div id="googleOAuthAlert" class="hidden p-3 rounded-xl text-xs"></div>
+
+        <!-- Tombol Aksi OAuth Pengguna -->
+        <div class="flex flex-col sm:flex-row items-center gap-2 pt-2">
+          <button type="button" onclick="startGoogleOAuthFlow()" id="btnConnectGoogle" class="w-full sm:flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center justify-center gap-2">
+            <span>🔗</span> <span>Hubungkan Google Drive Saya</span>
+          </button>
+          <button type="button" onclick="testGoogleDriveAccess()" id="btnTestGoogleDrive" class="hidden w-full sm:w-auto px-4 py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
+            <span>🔍</span> <span>Uji Akses Drive</span>
+          </button>
+          <button type="button" onclick="disconnectGoogleOAuth()" id="btnDisconnectGoogle" class="hidden w-full sm:w-auto px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
+            <span>✕</span> <span>Putuskan Sambungan</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. KARTU ADMIN: KREDENSIAL GLOBAL GOOGLE OAUTH INSTITUSI (KHUSUS ADMIN) -->
+      <div id="adminGlobalOAuthConfig" class="hidden bg-white p-6 rounded-2xl border border-indigo-200/80 shadow-sm space-y-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-indigo-950 flex items-center gap-2">
+              <span>🏢</span> <span>Kredensial Global Google OAuth (Khusus Admin)</span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Konfigurasi pusat Client ID &amp; Secret agar seluruh dosen dapat menghubungkan Google Drive dengan 1-klik</p>
+          </div>
+          <span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">Admin Only</span>
+        </div>
+
         <!-- Panduan Singkat Google Cloud Console -->
         <div class="p-4 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-2 text-xs">
           <p class="font-bold text-indigo-950 flex items-center gap-1.5">
-            <span>💡</span> Cara Membuat OAuth Client ID di Google Cloud Console:
+            <span>💡</span> Cara Menyiapkan OAuth Client ID Institusi di Google Cloud:
           </p>
           <ol class="list-decimal list-inside space-y-1 text-slate-600 text-[11px] leading-relaxed">
-            <li>Buka <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-blue-600 font-semibold underline">Google Cloud Console &gt; Credentials</a> (gunakan project yang sama dengan Gemini API Key).</li>
+            <li>Buka <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-blue-600 font-semibold underline">Google Cloud Console &gt; Credentials</a>.</li>
             <li>Pastikan <strong>Google Drive API</strong> sudah diaktifkan di menu <em>Enabled APIs &amp; Services</em>.</li>
             <li>Klik <strong>+ Create Credentials &gt; OAuth client ID</strong>, pilih Application type: <strong>Web application</strong>.</li>
             <li>Tambahkan <strong>Authorized redirect URIs</strong> persis seperti tautan di bawah ini:</li>
@@ -629,46 +788,100 @@ Database::initDatabase();
         <div class="space-y-4">
           <!-- Google Client ID -->
           <div>
-            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Google OAuth Client ID</label>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Global Google OAuth Client ID</label>
             <input type="text" id="inputGoogleClientId" placeholder="Contoh: 123456789-abc.apps.googleusercontent.com" class="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono">
           </div>
 
           <!-- Google Client Secret -->
           <div>
-            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Google OAuth Client Secret</label>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Global Google OAuth Client Secret</label>
             <div class="flex gap-2">
               <input type="password" id="inputGoogleClientSecret" placeholder="GOCSPX-..." class="flex-1 text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono">
               <button type="button" onclick="toggleClientSecretVisibility()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-medium">👁️</button>
             </div>
           </div>
 
-          <div id="googleOAuthAlert" class="hidden p-3 rounded-xl text-xs"></div>
+          <div id="adminOAuthAlert" class="hidden p-3 rounded-xl text-xs font-medium"></div>
 
-          <!-- Tombol Aksi OAuth -->
-          <div class="flex flex-col sm:flex-row items-center gap-2 pt-2">
-            <button type="button" onclick="saveGoogleOAuthSettings()" id="btnSaveOAuth" class="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
-              💾 Simpan Kredensial
-            </button>
-            <button type="button" onclick="startGoogleOAuthFlow()" id="btnConnectGoogle" class="w-full sm:flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center justify-center gap-2">
-              <span>🔗</span> <span>Hubungkan Akun Google Drive</span>
-            </button>
-            <button type="button" onclick="testGoogleDriveAccess()" id="btnTestGoogleDrive" class="hidden w-full sm:w-auto px-4 py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
-              <span>🔍</span> <span>Uji Akses Drive</span>
-            </button>
-            <button type="button" onclick="disconnectGoogleOAuth()" id="btnDisconnectGoogle" class="hidden w-full sm:w-auto px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
-              <span>✕</span> <span>Putuskan Sambungan</span>
+          <div class="pt-2">
+            <button type="button" onclick="saveAdminGlobalOAuth()" id="btnSaveAdminOAuth" class="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center justify-center gap-1.5">
+              💾 Simpan Kredensial Global Institusi
             </button>
           </div>
         </div>
       </div>
 
+      <!-- 5. KARTU ADMIN: ZONA PEMELIHARAAN & RESET DATABASE (KHUSUS ADMIN) -->
+      <div id="adminResetDbSection" class="hidden bg-white p-6 rounded-2xl border border-rose-200 shadow-sm space-y-4">
+        <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider text-rose-600 flex items-center gap-1.5">
+          <span>⚠️</span> Pemeliharaan &amp; Reset Basis Data (Khusus Admin)
+        </h4>
+        <div class="p-3 bg-rose-50/80 border border-rose-200 rounded-xl text-xs text-rose-900 leading-relaxed">
+          Jika basis data lama bermasalah, Administrator dapat mengosongkan dan menginisialisasi ulang database dengan struktur baru yang bersih.
+        </div>
+        <button onclick="confirmResetDatabase()" id="btnResetDatabase" class="w-full bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 font-bold text-xs py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-2">
+          🗑️ Reset / Mulai Bersih Database
+        </button>
+        <div id="resetDbAlert" class="hidden mt-2 p-3 rounded-xl text-xs font-medium"></div>
+      </div>
+
     </section>
 
   </main>
+  </div> <!-- end #appWrapper -->
 
   <!-- ======================================================== -->
   <!-- MODAL DIALOGS                                            -->
   <!-- ======================================================== -->
+
+  <!-- MODAL TAMBAH/EDIT PENGGUNA (ADMIN ONLY) -->
+  <div id="userModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-slate-900 text-base" id="userModalTitle">Tambah Pengguna Baru</h3>
+        <button onclick="closeModal('userModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <input type="hidden" id="modalUserId">
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nama Lengkap &amp; Gelar</label>
+          <input type="text" id="modalUserNama" placeholder="Contoh: Dr. Budi Santoso, M.Kom" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Alamat Email (Login)</label>
+          <input type="email" id="modalUserEmail" placeholder="Contoh: budi@kampus.ac.id" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Kata Sandi (Password)</label>
+          <input type="password" id="modalUserPassword" placeholder="Minimal 6 karakter (kosongkan jika tidak diubah)" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Peran (Role)</label>
+            <select id="modalUserRole" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-semibold">
+              <option value="dosen">Dosen</option>
+              <option value="admin">Administrator</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Status Akun</label>
+            <select id="modalUserStatus" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-semibold">
+              <option value="aktif">Aktif</option>
+              <option value="nonaktif">Nonaktif</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="userModalAlert" class="hidden p-2 rounded-lg text-xs font-medium"></div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeModal('userModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
+        <button onclick="submitSaveUser()" id="btnSubmitUser" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-xs">Simpan Pengguna</button>
+      </div>
+    </div>
+  </div>
 
   <!-- 0. MODAL TAMBAH/EDIT MATA KULIAH -->
   <div id="courseModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -960,6 +1173,7 @@ Database::initDatabase();
   <script>
     // State Aplikasi
     let appState = {
+      currentUser: null,
       courses: [],
       classes: [],
       activeCourseId: '',
@@ -990,6 +1204,54 @@ Database::initDatabase();
       showLoading(true);
       google.script.run
         .withSuccessHandler(function(data) {
+          showLoading(false);
+
+          // Cek autentikasi sesi pengguna
+          if (!data.authenticated || !data.currentUser) {
+            appState.currentUser = null;
+            const loginScreen = document.getElementById('loginScreenContainer');
+            const appWrap = document.getElementById('appWrapper');
+            if (loginScreen) loginScreen.classList.remove('hidden');
+            if (appWrap) appWrap.classList.add('hidden');
+            return;
+          }
+
+          // Pengguna telah login
+          appState.currentUser = data.currentUser;
+          const loginScreen = document.getElementById('loginScreenContainer');
+          const appWrap = document.getElementById('appWrapper');
+          if (loginScreen) loginScreen.classList.add('hidden');
+          if (appWrap) appWrap.classList.remove('hidden');
+
+          // Perbarui informasi profil di header
+          const nameEl = document.getElementById('headerUserName');
+          const roleEl = document.getElementById('headerUserRole');
+          if (nameEl) nameEl.textContent = data.currentUser.nama_lengkap;
+          if (roleEl) {
+            roleEl.textContent = data.currentUser.role === 'admin' ? 'Administrator' : 'Dosen';
+            roleEl.className = data.currentUser.role === 'admin' ? 'text-[10px] text-purple-400 font-bold uppercase tracking-wider' : 'text-[10px] text-blue-400 font-medium capitalize';
+          }
+
+          // Tab & Bagian Khusus Administrator
+          const navUsers = document.getElementById('nav-tab-users');
+          const adminOAuth = document.getElementById('adminGlobalOAuthConfig');
+          const adminReset = document.getElementById('adminResetDbSection');
+          if (data.currentUser.role === 'admin') {
+            if (navUsers) navUsers.classList.remove('hidden');
+            if (adminOAuth) adminOAuth.classList.remove('hidden');
+            if (adminReset) adminReset.classList.remove('hidden');
+          } else {
+            if (navUsers) navUsers.classList.add('hidden');
+            if (adminOAuth) adminOAuth.classList.add('hidden');
+            if (adminReset) adminReset.classList.add('hidden');
+          }
+
+          // Nilai awal formulir profil di pengaturan
+          const profNama = document.getElementById('myProfileNama');
+          const profEmail = document.getElementById('myProfileEmail');
+          if (profNama) profNama.value = data.currentUser.nama_lengkap || '';
+          if (profEmail) profEmail.value = data.currentUser.email || '';
+
           appState.courses = data.courses || [];
           appState.classes = data.classes || [];
           appState.settings = data.settings || {};
@@ -1009,10 +1271,12 @@ Database::initDatabase();
           const currentUrl = window.location.href;
           if (currentUrl.includes('oauth=connected')) {
             showGlobalAlert('🎉 Akun Google Drive berhasil terhubung! Anda sekarang dapat menyinkronkan tugas langsung dari Google Drive.', 'success');
-            switchTab('settings');
+            window.history.replaceState({}, document.title, window.location.pathname);
+            switchTab('tab-settings');
           } else if (currentUrl.includes('oauth=failed')) {
-            showGlobalAlert('Gagal menghubungkan Google Drive. Periksa kembali Client ID dan Client Secret Anda.', 'error');
-            switchTab('settings');
+            showGlobalAlert('Gagal menghubungkan Google Drive. Periksa kembali izin akun Google Anda.', 'error');
+            window.history.replaceState({}, document.title, window.location.pathname);
+            switchTab('tab-settings');
           }
 
           // Inisialisasi activeCourseId dan activeClassId
@@ -1065,12 +1329,15 @@ Database::initDatabase();
         activeBtn.classList.add('active', 'text-blue-600', 'bg-blue-50', 'font-semibold');
         activeBtn.classList.remove('text-slate-600');
       }
-      document.getElementById(tabId).classList.add('active');
+      const targetSection = document.getElementById(tabId);
+      if (targetSection) targetSection.classList.add('active');
 
       if (tabId === 'tab-reports' && appState.activeClassId) {
         loadClassReport(appState.activeClassId);
       } else if (tabId === 'tab-tasks' && appState.activeCourseId) {
         switchTaskCourse(appState.activeCourseId);
+      } else if (tabId === 'tab-users') {
+        loadAdminUsers();
       }
     }
 
@@ -3227,68 +3494,329 @@ Database::initDatabase();
         .apiTestGoogleDriveConnection();
     }
 
-    function saveGoogleOAuthSettings() {
-      const clientId = (document.getElementById('inputGoogleClientId')?.value || '').trim();
-      const clientSecret = (document.getElementById('inputGoogleClientSecret')?.value || '').trim();
-      const alertBox = document.getElementById('googleOAuthAlert');
-      const btn = document.getElementById('btnSaveOAuth');
+    // ==========================================
+    // AUTENTIKASI & MANAJEMEN SESI PENGGUNA
+    // ==========================================
+    async function handleLoginSubmit(e) {
+      if (e) e.preventDefault();
+      const email = (document.getElementById('loginEmail')?.value || '').trim();
+      const password = document.getElementById('loginPassword')?.value || '';
+      const alertBox = document.getElementById('loginAlert');
+      const btn = document.getElementById('btnLoginSubmit');
+
+      if (!email || !password) return;
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner inline-block w-4 h-4 mr-2"></span> Memeriksa kredensial...';
+      }
+      if (alertBox) alertBox.className = 'hidden';
+
+      try {
+        const res = await AppAPI.login(email, password);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>Masuk ke Portal</span>';
+        }
+        initApp();
+      } catch (err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>Masuk ke Portal</span>';
+        }
+        if (alertBox) {
+          alertBox.className = 'p-3 rounded-xl text-xs bg-rose-900/60 border border-rose-500/50 text-rose-200 block font-medium';
+          alertBox.textContent = err.message || 'Email atau kata sandi tidak cocok.';
+        }
+      }
+    }
+
+    async function handleLogout() {
+      if (!confirm('Apakah Anda yakin ingin keluar dari sistem?')) return;
+      try {
+        await AppAPI.logout();
+      } catch (err) {
+        console.error(err);
+      }
+      appState.currentUser = null;
+      document.getElementById('appWrapper')?.classList.add('hidden');
+      document.getElementById('loginScreenContainer')?.classList.remove('hidden');
+      const passInp = document.getElementById('loginPassword');
+      if (passInp) passInp.value = '';
+    }
+
+    async function saveMyProfile() {
+      const nama = (document.getElementById('myProfileNama')?.value || '').trim();
+      const email = (document.getElementById('myProfileEmail')?.value || '').trim();
+      const pass = document.getElementById('myProfilePassword')?.value || '';
+      const passConf = document.getElementById('myProfilePasswordConfirm')?.value || '';
+      const alertBox = document.getElementById('profileAlert');
+      const btn = document.getElementById('btnSaveProfile');
+
+      if (!nama || !email) {
+        return alert('Nama lengkap dan email tidak boleh kosong.');
+      }
+      if (pass && pass !== passConf) {
+        if (alertBox) {
+          alertBox.className = 'p-3 rounded-xl text-xs bg-rose-50 border border-rose-200 text-rose-800 block';
+          alertBox.textContent = 'Konfirmasi kata sandi baru tidak cocok.';
+        }
+        return;
+      }
 
       if (btn) btn.disabled = true;
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (btn) btn.disabled = false;
-          if (alertBox) {
-            alertBox.className = 'p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
-            alertBox.textContent = '✓ Kredensial Google OAuth berhasil disimpan.';
-            setTimeout(() => alertBox.classList.add('hidden'), 4000);
-          }
-          showGlobalAlert('Kredensial Google OAuth berhasil disimpan.', 'success');
-        })
-        .withFailureHandler(function(err) {
-          if (btn) btn.disabled = false;
-          if (alertBox) {
-            alertBox.className = 'p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
-            alertBox.textContent = 'Gagal menyimpan: ' + err.message;
-          }
-        })
-        .apiSaveSettings({
-          googleClientId: clientId,
-          googleClientSecret: clientSecret
+      try {
+        const res = await AppAPI.updateOwnProfile({
+          nama_lengkap: nama,
+          email: email,
+          password: pass || undefined
         });
+        if (btn) btn.disabled = false;
+        appState.currentUser = res.user;
+        const nameEl = document.getElementById('headerUserName');
+        if (nameEl) nameEl.textContent = res.user.nama_lengkap;
+        const pass1 = document.getElementById('myProfilePassword');
+        const pass2 = document.getElementById('myProfilePasswordConfirm');
+        if (pass1) pass1.value = '';
+        if (pass2) pass2.value = '';
+
+        if (alertBox) {
+          alertBox.className = 'p-3 rounded-xl text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 block font-medium';
+          alertBox.textContent = '✓ Profil Anda berhasil diperbarui.';
+          setTimeout(() => alertBox.classList.add('hidden'), 4000);
+        }
+        showGlobalAlert('Profil berhasil diperbarui.', 'success');
+      } catch (err) {
+        if (btn) btn.disabled = false;
+        if (alertBox) {
+          alertBox.className = 'p-3 rounded-xl text-xs bg-rose-50 border border-rose-200 text-rose-800 block';
+          alertBox.textContent = err.message;
+        }
+      }
+    }
+
+    // ==========================================
+    // KREDENSIAL GLOBAL & DRIVE OAUTH (1-KLIK)
+    // ==========================================
+    async function saveAdminGlobalOAuth() {
+      const clientId = (document.getElementById('inputGoogleClientId')?.value || '').trim();
+      const clientSecret = (document.getElementById('inputGoogleClientSecret')?.value || '').trim();
+      const alertBox = document.getElementById('adminOAuthAlert');
+      const btn = document.getElementById('btnSaveAdminOAuth');
+
+      if (!clientId) {
+        return alert('Google Client ID institusi wajib diisi.');
+      }
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await AppAPI.adminSaveGlobalOAuth(clientId, clientSecret);
+        if (btn) btn.disabled = false;
+        if (alertBox) {
+          alertBox.className = 'p-3 rounded-xl text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 block font-medium';
+          alertBox.textContent = '✓ ' + (res.message || 'Kredensial Global Google OAuth berhasil disimpan.');
+          setTimeout(() => alertBox.classList.add('hidden'), 4000);
+        }
+        showGlobalAlert('Kredensial Global Google OAuth berhasil disimpan.', 'success');
+      } catch (err) {
+        if (btn) btn.disabled = false;
+        if (alertBox) {
+          alertBox.className = 'p-3 rounded-xl text-xs bg-rose-50 border border-rose-200 text-rose-800 block font-medium';
+          alertBox.textContent = err.message;
+        }
+      }
     }
 
     function startGoogleOAuthFlow() {
-      const clientId = (document.getElementById('inputGoogleClientId')?.value || '').trim();
-      const clientSecret = (document.getElementById('inputGoogleClientSecret')?.value || '').trim();
-
-      if (!clientId) {
-        return alert('Harap isi Google OAuth Client ID terlebih dahulu!');
+      const btn = document.getElementById('btnConnectGoogle');
+      const origText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner inline-block w-3 h-3 mr-1.5"></span> Menghubungi Google...';
       }
 
-      // Simpan kredensial terlebih dahulu agar siap dipakai callback
       google.script.run
-        .withSuccessHandler(function() {
-          google.script.run
-            .withSuccessHandler(function(res) {
-              if (res.authUrl) {
-                window.location.href = res.authUrl;
-              } else {
-                alert('Gagal menghasilkan URL otorisasi Google.');
-              }
-            })
-            .withFailureHandler(function(err) {
-              alert('Gagal memulai otorisasi: ' + err.message);
-            })
-            .apiGetGoogleAuthUrl();
+        .withSuccessHandler(function(res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+          }
+          if (res.authUrl) {
+            window.location.href = res.authUrl;
+          } else {
+            alert('Gagal menghasilkan URL otorisasi Google.');
+          }
         })
         .withFailureHandler(function(err) {
-          alert('Gagal menyimpan kredensial: ' + err.message);
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+          }
+          alert('Gagal memulai otorisasi Google: ' + err.message);
         })
-        .apiSaveSettings({
-          googleClientId: clientId,
-          googleClientSecret: clientSecret
-        });
+        .apiGetGoogleAuthUrl();
+    }
+
+    // ==========================================
+    // ADMIN ONLY: MANAJEMEN PENGGUNA
+    // ==========================================
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    async function loadAdminUsers() {
+      const tbody = document.getElementById('usersTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Memuat data pengguna...</td></tr>';
+
+      try {
+        const res = await AppAPI.adminGetUsers();
+        const users = res.users || [];
+        if (users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Belum ada pengguna terdaftar.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = users.map(u => {
+          const isMe = appState.currentUser && appState.currentUser.id_user === u.id_user;
+          const roleBadge = u.role === 'admin'
+            ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">Administrator</span>'
+            : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">Dosen</span>';
+          
+          const statusBadge = u.status === 'aktif'
+            ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">Aktif</span>'
+            : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700">Nonaktif</span>';
+
+          const driveBadge = u.hasDriveConnected
+            ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 truncate max-w-[150px] inline-block" title="' + (u.google_connected_email || '') + '">✓ ' + (u.google_connected_email || 'Terhubung') + '</span>'
+            : '<span class="text-slate-400 text-[11px]">- Belum -</span>';
+
+          const geminiBadge = u.hasApiKey
+            ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">✓ Siap (' + (u.model_name || 'flash-lite') + ')</span>'
+            : '<span class="text-slate-400 text-[11px]">- Kosong -</span>';
+
+          const userJson = encodeURIComponent(JSON.stringify(u));
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-3">
+                <div class="font-bold text-slate-900">${escapeHtml(u.nama_lengkap || '')} ${isMe ? '<span class="text-[10px] text-blue-600 font-semibold">(Anda)</span>' : ''}</div>
+                <div class="text-[11px] text-slate-400">${escapeHtml(u.email || '')}</div>
+              </td>
+              <td class="p-3">${roleBadge}</td>
+              <td class="p-3">${statusBadge}</td>
+              <td class="p-3">${driveBadge}</td>
+              <td class="p-3">${geminiBadge}</td>
+              <td class="p-3 text-slate-500 text-[11px]">${u.created_at || '-'}</td>
+              <td class="p-3 text-right space-x-1 whitespace-nowrap">
+                <button onclick="openEditUserModal('${userJson}')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition">
+                  ✏️ Edit
+                </button>
+                ${!isMe ? `
+                <button onclick="confirmDeleteUser('${u.id_user}', '${escapeHtml(u.nama_lengkap || '')}')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold transition">
+                  🗑️
+                </button>` : ''}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-rose-600">Gagal memuat pengguna: ${err.message}</td></tr>`;
+      }
+    }
+
+    function openCreateUserModal() {
+      document.getElementById('userModalTitle').textContent = 'Tambah Pengguna Baru';
+      document.getElementById('modalUserId').value = '';
+      document.getElementById('modalUserNama').value = '';
+      document.getElementById('modalUserEmail').value = '';
+      document.getElementById('modalUserPassword').value = '';
+      document.getElementById('modalUserRole').value = 'dosen';
+      document.getElementById('modalUserStatus').value = 'aktif';
+      document.getElementById('userModalAlert').className = 'hidden';
+      openModal('userModal');
+    }
+
+    function openEditUserModal(userJsonEncoded) {
+      const u = JSON.parse(decodeURIComponent(userJsonEncoded));
+      document.getElementById('userModalTitle').textContent = 'Edit Pengguna: ' + u.nama_lengkap;
+      document.getElementById('modalUserId').value = u.id_user;
+      document.getElementById('modalUserNama').value = u.nama_lengkap || '';
+      document.getElementById('modalUserEmail').value = u.email || '';
+      document.getElementById('modalUserPassword').value = '';
+      document.getElementById('modalUserRole').value = u.role || 'dosen';
+      document.getElementById('modalUserStatus').value = u.status || 'aktif';
+      document.getElementById('userModalAlert').className = 'hidden';
+      openModal('userModal');
+    }
+
+    async function submitSaveUser() {
+      const id = (document.getElementById('modalUserId')?.value || '').trim();
+      const nama = (document.getElementById('modalUserNama')?.value || '').trim();
+      const email = (document.getElementById('modalUserEmail')?.value || '').trim();
+      const pass = document.getElementById('modalUserPassword')?.value || '';
+      const role = document.getElementById('modalUserRole')?.value || 'dosen';
+      const status = document.getElementById('modalUserStatus')?.value || 'aktif';
+      const alertBox = document.getElementById('userModalAlert');
+      const btn = document.getElementById('btnSubmitUser');
+
+      if (!nama || !email) {
+        if (alertBox) {
+          alertBox.className = 'p-2 rounded-lg text-xs bg-rose-50 border border-rose-200 text-rose-800 block';
+          alertBox.textContent = 'Nama lengkap dan email wajib diisi.';
+        }
+        return;
+      }
+
+      if (!id && !pass) {
+        if (alertBox) {
+          alertBox.className = 'p-2 rounded-lg text-xs bg-rose-50 border border-rose-200 text-rose-800 block';
+          alertBox.textContent = 'Password wajib diisi untuk pengguna baru.';
+        }
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      try {
+        const payload = {
+          id_user: id || undefined,
+          nama_lengkap: nama,
+          email: email,
+          role: role,
+          status: status
+        };
+        if (pass) payload.password = pass;
+
+        const res = await AppAPI.adminSaveUser(payload);
+        if (btn) btn.disabled = false;
+        closeModal('userModal');
+        showGlobalAlert(res.message, 'success');
+        loadAdminUsers();
+      } catch (err) {
+        if (btn) btn.disabled = false;
+        if (alertBox) {
+          alertBox.className = 'p-2 rounded-lg text-xs bg-rose-50 border border-rose-200 text-rose-800 block';
+          alertBox.textContent = err.message;
+        }
+      }
+    }
+
+    async function confirmDeleteUser(id_user, nama) {
+      if (!confirm(`Hapus pengguna "${nama}"?\n\nPerhatian: Seluruh data mata kuliah, kelas, dan tugas milik dosen ini akan tetap berada di database namun tidak dapat diakses lagi oleh pengguna ini.`)) return;
+
+      try {
+        const res = await AppAPI.adminDeleteUser(id_user);
+        showGlobalAlert(res.message, 'success');
+        loadAdminUsers();
+      } catch (err) {
+        showGlobalAlert('Gagal menghapus pengguna: ' + err.message, 'error');
+      }
     }
 
     function disconnectGoogleOAuth() {

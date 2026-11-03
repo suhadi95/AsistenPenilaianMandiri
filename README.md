@@ -28,7 +28,13 @@ Aplikasi ini merupakan transformasi penuh dari versi Google Apps Script (GAS) te
    - Proses penilaian batch dilakukan per-mahasiswa secara asinkron (*AJAX continuous queue*) dilengkapi bilah progres (*progress bar*), log waktu nyata (*real-time log*), tombol jeda/hentikan, dan nada notifikasi selesai.
    - Bebas dari resiko PHP execution timeout di shared hosting.
 
-5. **Ekspor & Rekapitulasi Nilai Lengkap**:
+5. **Arsitektur Multi-User SaaS & Role-Based Access Control (RBAC)**:
+   - **Peran Administrator**: Mengelola pengguna/dosen (tambah, edit, nonaktifkan, reset password), memantau pemakaian, dan mengonfigurasi kredensial global Google OAuth sekali untuk seluruh institusi.
+   - **Peran Dosen / Pengajar**: Memiliki ruang kerja mandiri (mata kuliah, kelas, mahasiswa, tugas, dan nilai terisolasi).
+   - **Bring Your Own Key (BYOK)**: Dosen menggunakan Gemini API Key masing-masing (kuota gratis dari Google AI Studio) sehingga beban biaya dan batas kuota (*rate limit*) terdistribusi secara independen dan aman.
+   - **1-Klik Hubungkan Google Drive**: Dosen cukup menekan tombol "Hubungkan Google Drive Saya" dan login akun Google kampus tanpa perlu membuka Google Cloud Console.
+
+6. **Ekspor & Rekapitulasi Nilai Lengkap**:
    - Rekapitulasi nilai per kelas dengan perhitungan nilai akhir terbobot otomatis berdasarkan persentase tugas.
    - Ekspor laporan multi-sheet langsung ke format **Excel (.xlsx)** (Sheet 1: Rekap Nilai Kelas, Sheet 2 dst: Rincian Poin & Ulasan tiap tugas) serta opsi salin satu-klik untuk SIAKAD.
 
@@ -58,20 +64,24 @@ AsistenPenilaianMandiri/
 ├── config.example.php         # Template konfigurasi basis data & Gemini
 ├── config.php                 # Berkas konfigurasi aktif
 ├── core/
-│   ├── Database.php           # PDO Database Wrapper (MySQL & SQLite)
+│   ├── Database.php           # PDO Database Wrapper (MySQL & SQLite) + Auto Migration
 │   └── Helper.php             # Utilitas unik ID, sanitasi, dan JSON helper
 ├── services/
+│   ├── UserService.php        # Manajemen Pengguna, Sesi Login, & Otorisasi RBAC
+│   ├── GoogleDriveService.php # Integrasi Google OAuth 2.0 & Google Drive API v3
 │   ├── GeminiService.php      # Integrasi Gemini 3.5 Flash-Lite (cURL & Multimodal)
 │   ├── FileService.php        # Ekstraksi ZIP, parsing DOCX/PDF, & pencocokan file
 │   └── GradingService.php     # Orkestrasi penilaian per mahasiswa & batch
 ├── uploads/                   # Direktori penyimpanan aman berkas tugas & soal
 │   ├── .htaccess              # Mencegah eksekusi skrip berbahaya
 │   └── .gitkeep
+├── .cpanel.yml                # Skrip deployment otomatis cPanel Git Version Control
 ├── .htaccess                  # Konfigurasi Apache / LiteSpeed (keamanan & UTF-8)
 ├── .gitignore                 # Berkas kredensial & runtime yang diabaikan
 ├── database.sql               # Skema DDL tabel database
 ├── install.php                # Web installer & migrator satu-klik
-├── index.php                  # Antarmuka web utama (Single Page Application)
+├── index.php                  # Antarmuka web utama (Single Page Application & SaaS)
+├── oauth_callback.php         # Handler callback Google OAuth 2.0
 └── api.php                    # REST API Gateway & endpoint handler
 ```
 

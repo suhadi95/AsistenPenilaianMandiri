@@ -30,15 +30,27 @@ class GoogleDriveService {
     }
 
     /**
+     * Mengambil ID Pengguna yang menjadi target operasi token
+     */
+    public static function getTargetUserId(?string $userId = null): ?string {
+        if (!empty($userId)) return $userId;
+        if (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['user_id'])) {
+            return $_SESSION['user_id'];
+        }
+        return null;
+    }
+
+    /**
      * Membuat tautan otorisasi Google OAuth 2.0
      */
-    public static function getAuthUrl(?string $redirectUri = null): string {
+    public static function getAuthUrl(?string $redirectUri = null, ?string $userId = null): string {
         $clientId = Database::getSetting('GOOGLE_CLIENT_ID') ?: '';
         if (empty($clientId)) {
-            throw new Exception("Google Client ID belum diisi di menu Pengaturan.");
+            throw new Exception("Google Client ID belum dikonfigurasi oleh Administrator di Pengaturan Sistem.");
         }
 
         $uri = $redirectUri ?: self::getRedirectUri();
+        $targetUser = self::getTargetUserId($userId);
 
         $params = [
             'client_id'              => $clientId,
@@ -50,21 +62,26 @@ class GoogleDriveService {
             'include_granted_scopes' => 'true'
         ];
 
+        if (!empty($targetUser)) {
+            $params['state'] = $targetUser;
+        }
+
         return self::OAUTH_AUTH_URL . '?' . http_build_query($params);
     }
 
     /**
      * Menukarkan authorization code dengan access_token & refresh_token
      */
-    public static function exchangeCode(string $code, ?string $redirectUri = null): array {
+    public static function exchangeCode(string $code, ?string $redirectUri = null, ?string $userId = null): array {
         $clientId = Database::getSetting('GOOGLE_CLIENT_ID') ?: '';
         $clientSecret = Database::getSetting('GOOGLE_CLIENT_SECRET') ?: '';
 
         if (empty($clientId) || empty($clientSecret)) {
-            throw new Exception("Google Client ID atau Client Secret belum diisi.");
+            throw new Exception("Google Client ID atau Client Secret sistem belum diatur oleh Administrator.");
         }
 
         $uri = $redirectUri ?: self::getRedirectUri();
+        $targetUser = self::getTargetUserId($userId);
 
         $body = [
             'code'          => $code,
@@ -93,16 +110,32 @@ class GoogleDriveService {
             throw new Exception("Google OAuth Error: {$msg}");
         }
 
-        // Simpan token ke database
-        Database::saveSetting('GOOGLE_ACCESS_TOKEN', $json['access_token']);
-        if (!empty($json['refresh_token'])) {
-            Database::saveSetting('GOOGLE_REFRESH_TOKEN', $json['refresh_token']);
-        }
-        $expiresAt = time() + ($json['expires_in'] ?? 3600);
-        Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', (string)$expiresAt);
-
         // Ambil email akun Google terhubung
         $userEmail = self::fetchConnectedEmail($json['access_token']);
+        $expiresAt = time() + ($json['expires_in'] ?? 3600);
+        $refreshToken = $json['refresh_token'] ?? null;
+
+        // Simpan token khusus ke profil pengguna aktif
+        if (!empty($targetUser)) {
+            if (!empty($refreshToken)) {
+                Database::execute(
+                    "UPDATE users SET google_access_token = ?, google_refresh_token = ?, google_token_expires_at = ?, google_connected_email = ? WHERE id_user = ?",
+                    [$json['access_token'], $refreshToken, $expiresAt, $userEmail, $targetUser]
+                );
+            } else {
+                Database::execute(
+                    "UPDATE users SET google_access_token = ?, google_token_expires_at = ?, google_connected_email = ? WHERE id_user = ?",
+                    [$json['access_token'], $expiresAt, $userEmail, $targetUser]
+                );
+            }
+        }
+
+        // Simpan juga ke settings sebagai fallback global
+        Database::saveSetting('GOOGLE_ACCESS_TOKEN', $json['access_token']);
+        if (!empty($refreshToken)) {
+            Database::saveSetting('GOOGLE_REFRESH_TOKEN', $refreshToken);
+        }
+        Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', (string)$expiresAt);
         if ($userEmail) {
             Database::saveSetting('GOOGLE_CONNECTED_EMAIL', $userEmail);
         }
@@ -140,10 +173,28 @@ class GoogleDriveService {
     /**
      * Memperoleh Access Token yang valid (auto-refresh jika kedaluwarsa)
      */
-    public static function getValidAccessToken(): ?string {
-        $token = Database::getSetting('GOOGLE_ACCESS_TOKEN');
-        $expiresAt = (int)(Database::getSetting('GOOGLE_TOKEN_EXPIRES_AT') ?: 0);
-        $refreshToken = Database::getSetting('GOOGLE_REFRESH_TOKEN');
+    public static function getValidAccessToken(?string $userId = null): ?string {
+        $targetUser = self::getTargetUserId($userId);
+        $token = null;
+        $expiresAt = 0;
+        $refreshToken = null;
+
+        // 1. Cek di profil pengguna
+        if (!empty($targetUser)) {
+            $u = Database::fetchOne("SELECT google_access_token, google_token_expires_at, google_refresh_token FROM users WHERE id_user = ?", [$targetUser]);
+            if ($u) {
+                $token = $u['google_access_token'] ?: null;
+                $expiresAt = (int)($u['google_token_expires_at'] ?: 0);
+                $refreshToken = $u['google_refresh_token'] ?: null;
+            }
+        }
+
+        // 2. Fallback ke settings global
+        if (empty($token) && empty($refreshToken)) {
+            $token = Database::getSetting('GOOGLE_ACCESS_TOKEN');
+            $expiresAt = (int)(Database::getSetting('GOOGLE_TOKEN_EXPIRES_AT') ?: 0);
+            $refreshToken = Database::getSetting('GOOGLE_REFRESH_TOKEN');
+        }
 
         if (empty($token) && empty($refreshToken)) {
             return null;
@@ -156,7 +207,7 @@ class GoogleDriveService {
 
         // Segarkan token menggunakan refresh_token
         if (!empty($refreshToken)) {
-            return self::refreshAccessToken($refreshToken);
+            return self::refreshAccessToken($refreshToken, $targetUser);
         }
 
         return null;
@@ -165,7 +216,7 @@ class GoogleDriveService {
     /**
      * Memperbarui Access Token dari Refresh Token
      */
-    private static function refreshAccessToken(string $refreshToken): ?string {
+    private static function refreshAccessToken(string $refreshToken, ?string $userId = null): ?string {
         $clientId = Database::getSetting('GOOGLE_CLIENT_ID');
         $clientSecret = Database::getSetting('GOOGLE_CLIENT_SECRET');
 
@@ -195,10 +246,19 @@ class GoogleDriveService {
 
         $json = json_decode($res, true);
         if ($status === 200 && !empty($json['access_token'])) {
-            Database::saveSetting('GOOGLE_ACCESS_TOKEN', $json['access_token']);
+            $newAccess = $json['access_token'];
             $expiresAt = time() + ($json['expires_in'] ?? 3600);
+
+            if (!empty($userId)) {
+                Database::execute(
+                    "UPDATE users SET google_access_token = ?, google_token_expires_at = ? WHERE id_user = ?",
+                    [$newAccess, $expiresAt, $userId]
+                );
+            }
+
+            Database::saveSetting('GOOGLE_ACCESS_TOKEN', $newAccess);
             Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', (string)$expiresAt);
-            return $json['access_token'];
+            return $newAccess;
         }
 
         return null;
@@ -207,27 +267,49 @@ class GoogleDriveService {
     /**
      * Memeriksa apakah Google Drive terhubung
      */
-    public static function isConnected(): bool {
-        return !empty(self::getValidAccessToken());
+    public static function isConnected(?string $userId = null): bool {
+        return !empty(self::getValidAccessToken($userId));
     }
 
     /**
-     * Memutuskan integrasi Google Drive (hapus token)
+     * Memutuskan integrasi Google Drive (hapus token pengguna aktif)
      */
-    public static function disconnect(): bool {
-        Database::saveSetting('GOOGLE_ACCESS_TOKEN', '');
-        Database::saveSetting('GOOGLE_REFRESH_TOKEN', '');
-        Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', '0');
-        Database::saveSetting('GOOGLE_CONNECTED_EMAIL', '');
+    public static function disconnect(?string $userId = null): bool {
+        $targetUser = self::getTargetUserId($userId);
+        if (!empty($targetUser)) {
+            Database::execute(
+                "UPDATE users SET google_access_token = NULL, google_refresh_token = NULL, google_token_expires_at = 0, google_connected_email = NULL WHERE id_user = ?",
+                [$targetUser]
+            );
+        }
+
+        // Jika tidak ada user spesifik, hapus global
+        if (empty($targetUser)) {
+            Database::saveSetting('GOOGLE_ACCESS_TOKEN', '');
+            Database::saveSetting('GOOGLE_REFRESH_TOKEN', '');
+            Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', '0');
+            Database::saveSetting('GOOGLE_CONNECTED_EMAIL', '');
+        }
+
         return true;
     }
 
     /**
      * Mengambil ringkasan status integrasi OAuth
      */
-    public static function getOAuthStatus(): array {
-        $connected = self::isConnected();
-        $email = Database::getSetting('GOOGLE_CONNECTED_EMAIL') ?: '';
+    public static function getOAuthStatus(?string $userId = null): array {
+        $targetUser = self::getTargetUserId($userId);
+        $connected = self::isConnected($targetUser);
+        $email = '';
+
+        if (!empty($targetUser)) {
+            $u = Database::fetchOne("SELECT google_connected_email FROM users WHERE id_user = ?", [$targetUser]);
+            $email = $u['google_connected_email'] ?? '';
+        }
+        if (empty($email)) {
+            $email = Database::getSetting('GOOGLE_CONNECTED_EMAIL') ?: '';
+        }
+
         $clientId = Database::getSetting('GOOGLE_CLIENT_ID') ?: '';
         $hasSecret = !empty(Database::getSetting('GOOGLE_CLIENT_SECRET'));
 

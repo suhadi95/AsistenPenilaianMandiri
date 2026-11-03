@@ -3,8 +3,26 @@
 -- Kompatibel dengan MySQL 5.7+ / MariaDB 10.2+ & SQLite
 -- ==========================================================
 
+CREATE TABLE IF NOT EXISTS users (
+    id_user VARCHAR(64) PRIMARY KEY,
+    nama VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(32) DEFAULT 'dosen',
+    status VARCHAR(32) DEFAULT 'active',
+    gemini_api_key TEXT NULL,
+    model_name VARCHAR(64) DEFAULT 'gemini-3.5-flash-lite',
+    google_access_token TEXT NULL,
+    google_refresh_token TEXT NULL,
+    google_token_expires_at INT DEFAULT 0,
+    google_connected_email VARCHAR(255) NULL,
+    last_login_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS courses (
     id_mata_kuliah VARCHAR(64) PRIMARY KEY,
+    id_user VARCHAR(64) NULL,
     kode_mk VARCHAR(32) DEFAULT '',
     nama_mata_kuliah VARCHAR(255) NOT NULL,
     semester VARCHAR(64) DEFAULT '',
@@ -76,3 +94,4 @@ CREATE INDEX idx_tasks_course ON tasks(id_mata_kuliah);
 CREATE INDEX idx_grades_task_class ON grades(id_tugas, id_kelas);
 CREATE INDEX idx_grades_nim ON grades(nim);
 CREATE INDEX idx_class_folders ON class_task_folders(id_tugas, id_kelas);
+CREATE INDEX idx_courses_user ON courses(id_user);

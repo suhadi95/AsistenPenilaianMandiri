@@ -1,6 +1,6 @@
 <?php
 /**
- * @fileoverview API Gateway & RESTful Dispatcher untuk Asisten Penilaian Mandiri
+ * @fileoverview API Gateway & RESTful Dispatcher untuk Asisten Penilaian Mandiri (Multi-User SaaS)
  */
 
 // Error handling & header CORS / JSON
@@ -13,8 +13,10 @@ require_once __DIR__ . '/services/GeminiService.php';
 require_once __DIR__ . '/services/FileService.php';
 require_once __DIR__ . '/services/GradingService.php';
 require_once __DIR__ . '/services/GoogleDriveService.php';
+require_once __DIR__ . '/services/UserService.php';
 
-// Pastikan database terinisialisasi
+// Pastikan sesi & database terinisialisasi
+UserService::startSession();
 Database::initDatabase();
 
 // Parsing input: dukung JSON body, POST multipart, atau GET query
@@ -36,48 +38,197 @@ if (str_contains($contentType, 'application/json')) {
 try {
     switch ($action) {
         // ==========================================
-        // SISTEM & PENGATURAN
+        // AUTENTIKASI & MANAJEMEN SESI PENGGUNA
         // ==========================================
-        case 'getInitialData':
-            $settings = getSystemSettings();
-            $courses = getCoursesList();
-            $classes = getClassesList();
-
+        case 'login':
+            $email = trim($input['email'] ?? '');
+            $password = trim($input['password'] ?? '');
+            if (empty($email) || empty($password)) {
+                throw new Exception("Email dan password wajib diisi.");
+            }
+            $loggedUser = UserService::login($email, $password);
             Helper::json([
-                'success'  => true,
-                'settings' => $settings,
-                'courses'  => $courses,
-                'classes'  => $classes
+                'success' => true,
+                'message' => "Selamat datang kembali, {$loggedUser['nama_lengkap']}!",
+                'user'    => UserService::sanitizeUser($loggedUser)
             ]);
             break;
 
+        case 'logout':
+            UserService::logout();
+            Helper::json([
+                'success' => true,
+                'message' => 'Anda telah berhasil keluar (logout).'
+            ]);
+            break;
+
+        case 'checkAuth':
+            $cur = UserService::getCurrentUser();
+            Helper::json([
+                'success'       => true,
+                'authenticated' => !empty($cur),
+                'user'          => $cur ? UserService::sanitizeUser($cur) : null
+            ]);
+            break;
+
+        case 'updateOwnProfile':
+            $user = UserService::requireAuth();
+            $updated = UserService::updateOwnProfile($user['id_user'], $input);
+            Helper::json([
+                'success' => true,
+                'message' => 'Profil berhasil diperbarui.',
+                'user'    => $updated
+            ]);
+            break;
+
+        case 'updateOwnAiSettings':
+            $user = UserService::requireAuth();
+            $apiKey = trim($input['apiKey'] ?? $input['gemini_api_key'] ?? '');
+            $modelName = trim($input['modelName'] ?? $input['model_name'] ?? '');
+            $updated = UserService::updateOwnAiSettings($user['id_user'], $apiKey, $modelName);
+            Helper::json([
+                'success' => true,
+                'message' => 'Pengaturan AI & Model berhasil diperbarui.',
+                'user'    => $updated
+            ]);
+            break;
+
+        // ==========================================
+        // ADMIN ONLY: MANAJEMEN PENGGUNA & GLOBAL
+        // ==========================================
+        case 'adminGetUsers':
+            UserService::requireAdmin();
+            $users = UserService::getAllUsers();
+            Helper::json([
+                'success' => true,
+                'users'   => $users
+            ]);
+            break;
+
+        case 'adminSaveUser':
+            UserService::requireAdmin();
+            $userData = $input['userData'] ?? $input;
+            $savedUser = null;
+            if (!empty($userData['id_user'])) {
+                $savedUser = UserService::updateUser($userData['id_user'], $userData);
+                $msg = "Data pengguna '{$savedUser['nama_lengkap']}' berhasil diperbarui.";
+            } else {
+                $savedUser = UserService::createUser($userData);
+                $msg = "Pengguna baru '{$savedUser['nama_lengkap']}' berhasil ditambahkan.";
+            }
+            Helper::json([
+                'success' => true,
+                'message' => $msg,
+                'user'    => $savedUser
+            ]);
+            break;
+
+        case 'adminDeleteUser':
+            UserService::requireAdmin();
+            $targetId = trim($input['id_user'] ?? $input['id'] ?? '');
+            if (!$targetId) throw new Exception("ID Pengguna wajib disertakan.");
+            UserService::deleteUser($targetId);
+            Helper::json([
+                'success' => true,
+                'message' => 'Pengguna berhasil dihapus.'
+            ]);
+            break;
+
+        case 'adminSaveGlobalOAuth':
+            UserService::requireAdmin();
+            $clientId = trim($input['clientId'] ?? '');
+            $clientSecret = trim($input['clientSecret'] ?? '');
+            if (!empty($clientId)) {
+                saveSetting('GOOGLE_CLIENT_ID', $clientId);
+            }
+            if (!empty($clientSecret) && !str_contains($clientSecret, '****')) {
+                saveSetting('GOOGLE_CLIENT_SECRET', $clientSecret);
+            }
+            Helper::json([
+                'success' => true,
+                'message' => 'Kredensial Global Google OAuth berhasil disimpan.'
+            ]);
+            break;
+
+        // ==========================================
+        // SISTEM & PENGATURAN
+        // ==========================================
+        case 'getInitialData':
+            $cur = UserService::getCurrentUser();
+            if (!$cur) {
+                Helper::json([
+                    'success'       => true,
+                    'authenticated' => false,
+                    'currentUser'   => null,
+                    'settings'      => [
+                        'availableModels' => Database::loadConfig()['gemini']['available_models'] ?? []
+                    ],
+                    'courses'       => [],
+                    'classes'       => []
+                ]);
+            } else {
+                $settings = getSystemSettings($cur);
+                $courses = getCoursesList($cur);
+                $classes = getClassesList(null, $cur);
+
+                Helper::json([
+                    'success'       => true,
+                    'authenticated' => true,
+                    'currentUser'   => UserService::sanitizeUser($cur),
+                    'settings'      => $settings,
+                    'courses'       => $courses,
+                    'classes'       => $classes
+                ]);
+            }
+            break;
+
         case 'getSettings':
+            $cur = UserService::getCurrentUser();
             Helper::json([
                 'success'  => true,
-                'settings' => getSystemSettings()
+                'settings' => getSystemSettings($cur)
             ]);
             break;
 
         case 'saveSettings':
+            $user = UserService::requireAuth();
             $data = $input['data'] ?? $input;
-            if (!empty($data['apiKey']) && !str_contains($data['apiKey'], '****')) {
-                saveSetting('GEMINI_API_KEY', trim($data['apiKey']));
+
+            // 1. Pengaturan AI Pengguna Aktif (BYOK)
+            $userApiKey = null;
+            $userModel = null;
+            if (isset($data['apiKey']) && !str_contains($data['apiKey'], '****')) {
+                $userApiKey = trim($data['apiKey']);
             }
             if (!empty($data['modelName'])) {
-                saveSetting('MODEL_NAME', trim($data['modelName']));
+                $userModel = trim($data['modelName']);
             }
+            if ($userApiKey !== null || $userModel !== null) {
+                UserService::updateOwnAiSettings(
+                    $user['id_user'],
+                    $userApiKey ?? $user['gemini_api_key'] ?? '',
+                    $userModel ?? $user['model_name'] ?? 'gemini-3.5-flash-lite'
+                );
+            }
+
+            // 2. Preferensi Kursus / Kelas Aktif
             if (isset($data['activeCourseId'])) {
                 saveSetting('ACTIVE_COURSE_ID', trim($data['activeCourseId']));
             }
             if (isset($data['activeClassId'])) {
                 saveSetting('ACTIVE_CLASS_ID', trim($data['activeClassId']));
             }
-            if (isset($data['googleClientId'])) {
-                saveSetting('GOOGLE_CLIENT_ID', trim($data['googleClientId']));
+
+            // 3. Admin Only: Konfigurasi Global OAuth Client
+            if ($user['role'] === 'admin') {
+                if (isset($data['googleClientId'])) {
+                    saveSetting('GOOGLE_CLIENT_ID', trim($data['googleClientId']));
+                }
+                if (!empty($data['googleClientSecret']) && !str_contains($data['googleClientSecret'], '****')) {
+                    saveSetting('GOOGLE_CLIENT_SECRET', trim($data['googleClientSecret']));
+                }
             }
-            if (!empty($data['googleClientSecret']) && !str_contains($data['googleClientSecret'], '****')) {
-                saveSetting('GOOGLE_CLIENT_SECRET', trim($data['googleClientSecret']));
-            }
+
             Helper::json([
                 'success' => true,
                 'message' => 'Pengaturan berhasil disimpan!'
@@ -85,15 +236,19 @@ try {
             break;
 
         case 'getGoogleOAuthStatus':
+            $cur = UserService::getCurrentUser();
+            $userId = $cur ? $cur['id_user'] : null;
             Helper::json([
                 'success' => true,
-                'status'  => GoogleDriveService::getOAuthStatus()
+                'status'  => GoogleDriveService::getOAuthStatus($userId)
             ]);
             break;
 
         case 'getGoogleAuthUrl':
+            $cur = UserService::getCurrentUser();
+            $userId = $cur ? $cur['id_user'] : null;
             $redirectUri = trim($input['redirectUri'] ?? '');
-            $url = GoogleDriveService::getAuthUrl($redirectUri ?: null);
+            $url = GoogleDriveService::getAuthUrl($redirectUri ?: null, $userId);
             Helper::json([
                 'success' => true,
                 'authUrl' => $url
@@ -101,7 +256,9 @@ try {
             break;
 
         case 'disconnectGoogleDrive':
-            GoogleDriveService::disconnect();
+            $cur = UserService::getCurrentUser();
+            $userId = $cur ? $cur['id_user'] : null;
+            GoogleDriveService::disconnect($userId);
             Helper::json([
                 'success' => true,
                 'message' => 'Integrasi Google Drive berhasil diputuskan.'
@@ -109,11 +266,11 @@ try {
             break;
 
         case 'testGoogleDriveConnection':
-            if (!GoogleDriveService::isConnected()) {
-                throw new Exception("Akun Google Drive belum terhubung. Silakan klik 'Hubungkan Akun Google Drive' terlebih dahulu.");
+            $cur = UserService::requireAuth();
+            if (!GoogleDriveService::isConnected($cur['id_user'])) {
+                throw new Exception("Akun Google Drive belum terhubung. Silakan klik 'Hubungkan Google Drive Saya' terlebih dahulu.");
             }
-            $email = Database::getSetting('GOOGLE_CONNECTED_EMAIL') ?: 'Akun Google';
-            $token = GoogleDriveService::getValidAccessToken();
+            $token = GoogleDriveService::getValidAccessToken($cur['id_user']);
             $ch = curl_init("https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)");
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
@@ -140,7 +297,7 @@ try {
             }
 
             $userName = $json['user']['displayName'] ?? '';
-            $userMail = $json['user']['emailAddress'] ?? $email;
+            $userMail = $json['user']['emailAddress'] ?? ($cur['google_connected_email'] ?? 'Google Drive');
             Helper::json([
                 'success' => true,
                 'message' => "Koneksi Google Drive API Berhasil & Aktif! Terhubung sebagai: {$userMail}" . ($userName ? " ({$userName})" : "")
@@ -148,13 +305,14 @@ try {
             break;
 
         case 'syncTaskDriveFolder':
+            $cur = UserService::requireAuth();
             $taskId = trim($input['taskId'] ?? '');
             $classId = trim($input['classId'] ?? '');
             if (!$taskId || !$classId) {
                 throw new Exception("ID Tugas dan ID Kelas wajib disertakan.");
             }
 
-            if (!GoogleDriveService::isConnected()) {
+            if (!GoogleDriveService::isConnected($cur['id_user'])) {
                 throw new Exception("Akun Google Drive belum terhubung. Silakan hubungkan akun Google di menu Pengaturan.");
             }
 
@@ -177,17 +335,23 @@ try {
             break;
 
         case 'testConnection':
+            $cur = UserService::getCurrentUser();
             $key = $input['apiKey'] ?? '';
             if (empty($key) || str_contains($key, '****')) {
-                $saved = getSetting('GEMINI_API_KEY');
-                $key = $saved ?: '';
+                if ($cur && !empty($cur['gemini_api_key'])) {
+                    $key = $cur['gemini_api_key'];
+                } else {
+                    $saved = getSetting('GEMINI_API_KEY');
+                    $key = $saved ?: '';
+                }
             }
-            $model = $input['model'] ?? 'gemini-3.5-flash-lite';
+            $model = $input['model'] ?? ($cur['model_name'] ?? 'gemini-3.5-flash-lite');
             $testRes = GeminiService::testConnection($key, $model);
             Helper::json($testRes);
             break;
 
         case 'resetDatabase':
+            UserService::requireAdmin();
             $resetRes = Database::resetDatabase();
             Helper::json($resetRes);
             break;
@@ -196,29 +360,34 @@ try {
         // KELOLA MATA KULIAH (COURSES)
         // ==========================================
         case 'getCourses':
+            $cur = UserService::requireAuth();
             Helper::json([
                 'success' => true,
-                'courses' => getCoursesList()
+                'courses' => getCoursesList($cur)
             ]);
             break;
 
         case 'saveCourse':
+            $user = UserService::requireAuth();
             $data = $input['data'] ?? $input;
             $courseId = !empty($data['id_mata_kuliah']) ? trim($data['id_mata_kuliah']) : Helper::generateId('MK');
             $kodeMk = trim($data['kode_mk'] ?? '');
             $namaMk = trim($data['nama_mata_kuliah'] ?? 'Mata Kuliah Baru');
             $semester = trim($data['semester'] ?? '');
 
-            $existing = Database::fetchOne("SELECT id_mata_kuliah FROM courses WHERE id_mata_kuliah = ?", [$courseId]);
+            $existing = Database::fetchOne("SELECT id_mata_kuliah, id_user FROM courses WHERE id_mata_kuliah = ?", [$courseId]);
             if ($existing) {
+                if ($user['role'] !== 'admin' && !empty($existing['id_user']) && $existing['id_user'] !== $user['id_user']) {
+                    throw new Exception("Anda tidak memiliki hak akses untuk mengubah mata kuliah ini.");
+                }
                 Database::execute(
                     "UPDATE courses SET kode_mk = ?, nama_mata_kuliah = ?, semester = ? WHERE id_mata_kuliah = ?",
                     [$kodeMk, $namaMk, $semester, $courseId]
                 );
             } else {
                 Database::execute(
-                    "INSERT INTO courses (id_mata_kuliah, kode_mk, nama_mata_kuliah, semester, created_at) VALUES (?, ?, ?, ?, ?)",
-                    [$courseId, $kodeMk, $namaMk, $semester, date('Y-m-d H:i:s')]
+                    "INSERT INTO courses (id_mata_kuliah, id_user, kode_mk, nama_mata_kuliah, semester, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    [$courseId, $user['id_user'], $kodeMk, $namaMk, $semester, date('Y-m-d H:i:s')]
                 );
             }
 
@@ -234,8 +403,16 @@ try {
             break;
 
         case 'deleteCourse':
+            $user = UserService::requireAuth();
             $courseId = trim($input['courseId'] ?? $input['id'] ?? '');
             if (!$courseId) throw new Exception("ID Mata Kuliah tidak valid.");
+
+            $course = Database::fetchOne("SELECT id_mata_kuliah, id_user FROM courses WHERE id_mata_kuliah = ?", [$courseId]);
+            if (!$course) throw new Exception("Mata kuliah tidak ditemukan.");
+
+            if ($user['role'] !== 'admin' && !empty($course['id_user']) && $course['id_user'] !== $user['id_user']) {
+                throw new Exception("Anda tidak memiliki hak akses untuk menghapus mata kuliah ini.");
+            }
 
             // Hapus mahasiswa & nilai pada kelas-kelas mata kuliah ini
             $classes = Database::fetchAll("SELECT id_kelas FROM classes WHERE id_mata_kuliah = ?", [$courseId]);
@@ -258,20 +435,22 @@ try {
         // KELOLA KELAS (CLASSES)
         // ==========================================
         case 'getClasses':
+            $cur = UserService::requireAuth();
             $courseId = $input['courseId'] ?? null;
             Helper::json([
                 'success' => true,
-                'classes' => getClassesList($courseId)
+                'classes' => getClassesList($courseId, $cur)
             ]);
             break;
 
         case 'saveClass':
+            $user = UserService::requireAuth();
             $data = $input['data'] ?? $input;
             $classId = !empty($data['id_kelas']) ? trim($data['id_kelas']) : Helper::generateId('KLS');
             $courseId = trim($data['id_mata_kuliah'] ?? '');
             if (empty($courseId)) {
-                $firstCourse = Database::fetchOne("SELECT id_mata_kuliah FROM courses LIMIT 1");
-                $courseId = $firstCourse ? $firstCourse['id_mata_kuliah'] : '';
+                $userCourses = getCoursesList($user);
+                $courseId = !empty($userCourses) ? $userCourses[0]['id_mata_kuliah'] : '';
             }
             $namaKelas = trim($data['nama_kelas'] ?? 'Kelas Baru');
             $semester = trim($data['semester'] ?? '');
@@ -301,6 +480,7 @@ try {
             break;
 
         case 'deleteClass':
+            UserService::requireAuth();
             $classId = trim($input['classId'] ?? $input['id'] ?? '');
             if (!$classId) throw new Exception("ID Kelas tidak valid.");
 
@@ -319,6 +499,7 @@ try {
         // KELOLA MAHASISWA (STUDENTS)
         // ==========================================
         case 'getStudents':
+            UserService::requireAuth();
             $classId = trim($input['classId'] ?? '');
             $students = Database::fetchAll(
                 "SELECT * FROM students WHERE id_kelas = ? ORDER BY nim ASC",
@@ -331,6 +512,7 @@ try {
             break;
 
         case 'saveStudentsBulk':
+            UserService::requireAuth();
             $classId = trim($input['classId'] ?? '');
             $rawText = trim($input['rawText'] ?? '');
             if (!$classId) throw new Exception('ID Kelas belum ditentukan.');
@@ -390,6 +572,7 @@ try {
             break;
 
         case 'saveStudent':
+            UserService::requireAuth();
             $classId = trim($input['classId'] ?? '');
             $data = $input['data'] ?? $input;
             $mhsId = !empty($data['id_mahasiswa']) ? trim($data['id_mahasiswa']) : Helper::generateId('MHS');
@@ -416,6 +599,7 @@ try {
             break;
 
         case 'deleteStudent':
+            UserService::requireAuth();
             $studentId = trim($input['studentId'] ?? $input['id'] ?? '');
             Database::execute("DELETE FROM students WHERE id_mahasiswa = ?", [$studentId]);
             Helper::json(['success' => true, 'message' => 'Mahasiswa berhasil dihapus.']);
@@ -425,6 +609,7 @@ try {
         // KELOLA TUGAS (TASKS)
         // ==========================================
         case 'getTasks':
+            UserService::requireAuth();
             $courseOrClassId = trim($input['courseIdOrClassId'] ?? $input['courseId'] ?? $input['classId'] ?? '');
             if (str_starts_with($courseOrClassId, 'KLS-')) {
                 Helper::json(['success' => true, 'tasks' => getTasksByClassList($courseOrClassId)]);
@@ -434,16 +619,19 @@ try {
             break;
 
         case 'getTasksByCourse':
+            UserService::requireAuth();
             $courseId = trim($input['courseId'] ?? '');
             Helper::json(['success' => true, 'tasks' => getTasksByCourseList($courseId)]);
             break;
 
         case 'getTasksByClass':
+            UserService::requireAuth();
             $classId = trim($input['classId'] ?? '');
             Helper::json(['success' => true, 'tasks' => getTasksByClassList($classId)]);
             break;
 
         case 'getTaskById':
+            UserService::requireAuth();
             $taskId = trim($input['taskId'] ?? '');
             $classId = trim($input['classId'] ?? '');
             $task = Database::fetchOne("SELECT * FROM tasks WHERE id_tugas = ?", [$taskId]);
@@ -463,12 +651,13 @@ try {
             break;
 
         case 'saveTask':
+            $user = UserService::requireAuth();
             $data = $input['data'] ?? $input;
             $taskId = !empty($data['id_tugas']) ? trim($data['id_tugas']) : Helper::generateId('TGS');
             $courseId = trim($data['id_mata_kuliah'] ?? '');
             if (!$courseId) {
-                $firstCourse = Database::fetchOne("SELECT id_mata_kuliah FROM courses LIMIT 1");
-                $courseId = $firstCourse ? $firstCourse['id_mata_kuliah'] : '';
+                $userCourses = getCoursesList($user);
+                $courseId = !empty($userCourses) ? $userCourses[0]['id_mata_kuliah'] : '';
             }
 
             $judul = trim($data['judul_tugas'] ?? 'Tugas Baru');
@@ -521,6 +710,7 @@ try {
             break;
 
         case 'deleteTask':
+            UserService::requireAuth();
             $taskId = trim($input['taskId'] ?? $input['id'] ?? '');
             Database::execute("DELETE FROM grades WHERE id_tugas = ?", [$taskId]);
             Database::execute("DELETE FROM class_task_folders WHERE id_tugas = ?", [$taskId]);
@@ -532,6 +722,7 @@ try {
         // UPLOAD & PENGELOLAAN BERKAS TUGAS
         // ==========================================
         case 'uploadSubmissionsZip':
+            UserService::requireAuth();
             $taskId = trim($_POST['taskId'] ?? '');
             $classId = trim($_POST['classId'] ?? '');
             if (!$taskId || !$classId) throw new Exception("ID Tugas dan ID Kelas wajib disertakan.");
@@ -544,26 +735,28 @@ try {
             break;
 
         case 'validateTaskFile':
+            UserService::requireAuth();
             $ref = trim($_POST['ref'] ?? ($input['ref'] ?? ($input['taskFileRef'] ?? '')));
             $res = FileService::validateTaskFile($ref);
             Helper::json($res);
             break;
 
         case 'uploadTaskQuestion':
+            UserService::requireAuth();
             $taskId = trim($_POST['taskId'] ?? ($input['taskId'] ?? ''));
             if (!$taskId) throw new Exception("ID Tugas wajib disertakan.");
             if (empty($_FILES['questionFile'])) throw new Exception("Berkas soal belum dipilih.");
 
             $uploadRes = FileService::saveUploadedTaskQuestion($taskId, $_FILES['questionFile']);
-            // Update ref di tabel tasks
             Database::execute("UPDATE tasks SET task_file_ref = ? WHERE id_tugas = ?", [$uploadRes['filePath'], $taskId]);
             Helper::json($uploadRes);
             break;
 
         case 'extractRubricFromTask':
+            $user = UserService::requireAuth();
             $taskId = trim($_POST['taskId'] ?? ($input['taskId'] ?? ''));
             $taskFileRef = trim($_POST['taskFileRef'] ?? ($input['taskFileRef'] ?? ''));
-            $model = trim($_POST['model'] ?? ($input['model'] ?? 'gemini-3.5-flash-lite'));
+            $model = trim($_POST['model'] ?? ($input['model'] ?? ''));
 
             // 1. Cek jika berkas diunggah langsung via multipart form
             if (!empty($_FILES['questionFile']) && $_FILES['questionFile']['error'] === UPLOAD_ERR_OK) {
@@ -584,11 +777,12 @@ try {
                 throw new Exception($errMsg);
             }
 
-            $settings = getSystemSettings();
+            $settings = getSystemSettings($user);
             $apiKey = $settings['rawApiKey'];
-            if (!$apiKey) throw new Exception("Gemini API Key belum dimasukkan di menu Pengaturan.");
+            if (!$apiKey) throw new Exception("Gemini API Key belum dimasukkan di menu Pengaturan Akun Anda.");
 
-            $rubricRes = GeminiService::extractRubricFromTask($taskPayload, $apiKey, $model);
+            $modelName = $model ?: ($settings['modelName'] ?? 'gemini-3.5-flash-lite');
+            $rubricRes = GeminiService::extractRubricFromTask($taskPayload, $apiKey, $modelName);
             Helper::json($rubricRes);
             break;
 
@@ -596,6 +790,7 @@ try {
         // PENILAIAN & EVALUASI GEMINI (GRADES)
         // ==========================================
         case 'getGradesByTask':
+            UserService::requireAuth();
             $taskId = trim($input['taskId'] ?? '');
             $classId = trim($input['classId'] ?? '');
             if (!$taskId || !$classId) throw new Exception("Parameter taskId dan classId wajib diisi.");
@@ -637,6 +832,7 @@ try {
             break;
 
         case 'gradeSingleStudent':
+            $user = UserService::requireAuth();
             $taskId = trim($input['taskId'] ?? '');
             $classId = trim($input['classId'] ?? '');
             $studentNim = trim($input['studentNim'] ?? '');
@@ -654,9 +850,9 @@ try {
             );
             if (!$student) throw new Exception("Mahasiswa dengan NIM {$studentNim} tidak ditemukan di kelas ini.");
 
-            $settings = getSystemSettings();
+            $settings = getSystemSettings($user);
             if (empty($settings['rawApiKey'])) {
-                throw new Exception("Gemini API Key belum dimasukkan di menu Pengaturan.");
+                throw new Exception("Gemini API Key belum dimasukkan di menu Pengaturan Akun Anda.");
             }
 
             $taskQuestionData = FileService::getTaskQuestionPayload($taskId, $task['task_file_ref']);
@@ -665,12 +861,14 @@ try {
             break;
 
         case 'resetFailedGrades':
+            UserService::requireAuth();
             $taskId = trim($input['taskId'] ?? '');
             $classId = trim($input['classId'] ?? '');
             Helper::json(GradingService::resetFailedGrades($taskId, $classId));
             break;
 
         case 'saveGradeManual':
+            UserService::requireAuth();
             $gradeData = $input['gradeData'] ?? $input;
             $res = GradingService::saveGrade($gradeData);
             Helper::json(['success' => true, 'data' => $res]);
@@ -680,6 +878,7 @@ try {
         // REKAPITULASI & LAPORAN NILAI KELAS
         // ==========================================
         case 'getClassReport':
+            UserService::requireAuth();
             $classId = trim($input['classId'] ?? '');
             if (!$classId) throw new Exception("ID Kelas wajib disertakan.");
             Helper::json([
@@ -689,6 +888,7 @@ try {
             break;
 
         case 'getClassFullExportData':
+            UserService::requireAuth();
             $classId = trim($input['classId'] ?? '');
             if (!$classId) throw new Exception("ID Kelas wajib disertakan.");
             $report = generateClassReport($classId);
@@ -770,10 +970,26 @@ function saveSetting(string $key, string $value): void {
     }
 }
 
-function getSystemSettings(): array {
+function getSystemSettings(?array $user = null): array {
     $config = Database::loadConfig();
-    $rawApiKey = getSetting('GEMINI_API_KEY') ?: ($config['gemini']['api_key'] ?? '');
-    $modelName = getSetting('MODEL_NAME') ?: ($config['gemini']['default_model'] ?? 'gemini-3.5-flash-lite');
+
+    // Preferensi API Key & Model: per-pengguna aktif (BYOK), fallback ke global
+    $rawApiKey = '';
+    $modelName = 'gemini-3.5-flash-lite';
+    $userId = $user ? $user['id_user'] : null;
+
+    if ($user && !empty($user['gemini_api_key'])) {
+        $rawApiKey = $user['gemini_api_key'];
+    } else {
+        $rawApiKey = getSetting('GEMINI_API_KEY') ?: ($config['gemini']['api_key'] ?? '');
+    }
+
+    if ($user && !empty($user['model_name'])) {
+        $modelName = $user['model_name'];
+    } else {
+        $modelName = getSetting('MODEL_NAME') ?: ($config['gemini']['default_model'] ?? 'gemini-3.5-flash-lite');
+    }
+
     $activeCourseId = getSetting('ACTIVE_COURSE_ID') ?: '';
     $activeClassId = getSetting('ACTIVE_CLASS_ID') ?: '';
 
@@ -787,12 +1003,25 @@ function getSystemSettings(): array {
         'activeClassId'       => $activeClassId,
         'dbDriver'            => $config['db_driver'] ?? 'sqlite',
         'maxExecutionTimeSec' => 300,
-        'googleOAuth'         => GoogleDriveService::getOAuthStatus()
+        'googleOAuth'         => GoogleDriveService::getOAuthStatus($userId),
+        'currentUser'         => $user ? UserService::sanitizeUser($user) : null
     ];
 }
 
-function getCoursesList(): array {
-    $courses = Database::fetchAll("SELECT * FROM courses ORDER BY nama_mata_kuliah ASC");
+function getCoursesList(?array $user = null): array {
+    $sql = "SELECT c.*, u.nama_lengkap as dosen_nama, u.email as dosen_email 
+            FROM courses c 
+            LEFT JOIN users u ON c.id_user = u.id_user";
+    $params = [];
+
+    if ($user && $user['role'] !== 'admin') {
+        $sql .= " WHERE c.id_user = ?";
+        $params[] = $user['id_user'];
+    }
+
+    $sql .= " ORDER BY c.nama_mata_kuliah ASC";
+    $courses = Database::fetchAll($sql, $params);
+
     $classes = Database::fetchAll("SELECT id_kelas, id_mata_kuliah FROM classes");
     $tasks = Database::fetchAll("SELECT id_tugas, id_mata_kuliah FROM tasks");
     $students = Database::fetchAll("SELECT id_mahasiswa, id_kelas FROM students");
@@ -810,6 +1039,9 @@ function getCoursesList(): array {
 
         return [
             'id_mata_kuliah'   => $cId,
+            'id_user'          => $c['id_user'] ?? '',
+            'dosen_nama'       => $c['dosen_nama'] ?? '',
+            'dosen_email'      => $c['dosen_email'] ?? '',
             'kode_mk'          => $c['kode_mk'] ?? '',
             'nama_mata_kuliah' => $c['nama_mata_kuliah'] ?? '',
             'semester'         => $c['semester'] ?? '',
@@ -821,14 +1053,25 @@ function getCoursesList(): array {
     }, $courses);
 }
 
-function getClassesList(?string $courseId = null): array {
-    $sql = "SELECT c.*, mk.nama_mata_kuliah 
+function getClassesList(?string $courseId = null, ?array $user = null): array {
+    $sql = "SELECT c.*, mk.nama_mata_kuliah, mk.id_user 
             FROM classes c 
             LEFT JOIN courses mk ON c.id_mata_kuliah = mk.id_mata_kuliah";
     $params = [];
+    $where = [];
+
     if ($courseId) {
-        $sql .= " WHERE c.id_mata_kuliah = ?";
+        $where[] = "c.id_mata_kuliah = ?";
         $params[] = $courseId;
+    }
+
+    if ($user && $user['role'] !== 'admin') {
+        $where[] = "mk.id_user = ?";
+        $params[] = $user['id_user'];
+    }
+
+    if (!empty($where)) {
+        $sql .= " WHERE " . implode(' AND ', $where);
     }
     $sql .= " ORDER BY c.nama_kelas ASC";
 

@@ -3,10 +3,14 @@
  * @fileoverview Google OAuth 2.0 Redirect Callback Handler
  */
 
+require_once __DIR__ . '/services/UserService.php';
 require_once __DIR__ . '/services/GoogleDriveService.php';
+
+UserService::startSession();
 
 $error = $_GET['error'] ?? null;
 $code = $_GET['code'] ?? null;
+$targetUserId = $_GET['state'] ?? ($_SESSION['user_id'] ?? null);
 
 $success = false;
 $userEmail = '';
@@ -16,7 +20,7 @@ if ($error) {
     $errorMessage = "Izin otorisasi ditolak oleh pengguna ({$error}).";
 } elseif ($code) {
     try {
-        $result = GoogleDriveService::exchangeCode($code);
+        $result = GoogleDriveService::exchangeCode($code, null, $targetUserId);
         $success = true;
         $userEmail = $result['email'] ?? '';
     } catch (Exception $e) {

@@ -103,6 +103,44 @@ const AppAPI = {
 
   async testGoogleDriveConnection() {
     return this.call('testGoogleDriveConnection');
+  },
+
+  // Auth & Profile
+  async login(email, password) {
+    return this.call('login', { email, password });
+  },
+
+  async logout() {
+    return this.call('logout');
+  },
+
+  async checkAuth() {
+    return this.call('checkAuth');
+  },
+
+  async updateOwnProfile(payload) {
+    return this.call('updateOwnProfile', payload);
+  },
+
+  async updateOwnAiSettings(apiKey, modelName) {
+    return this.call('updateOwnAiSettings', { apiKey, modelName });
+  },
+
+  // Admin User Management
+  async adminGetUsers() {
+    return this.call('adminGetUsers');
+  },
+
+  async adminSaveUser(userData) {
+    return this.call('adminSaveUser', { userData });
+  },
+
+  async adminDeleteUser(id_user) {
+    return this.call('adminDeleteUser', { id_user });
+  },
+
+  async adminSaveGlobalOAuth(clientId, clientSecret) {
+    return this.call('adminSaveGlobalOAuth', { clientId, clientSecret });
   }
 };
 
@@ -113,6 +151,32 @@ window.AppAPI = AppAPI;
  */
 async function dispatchGasApiMethod(methodName, args) {
   switch (methodName) {
+    case 'apiLogin':
+      return await AppAPI.login(args[0], args[1]);
+
+    case 'apiLogout':
+      return await AppAPI.logout();
+
+    case 'apiCheckAuth':
+      return await AppAPI.checkAuth();
+
+    case 'apiUpdateOwnProfile':
+      return await AppAPI.updateOwnProfile(args[0]);
+
+    case 'apiUpdateOwnAiSettings':
+      return await AppAPI.updateOwnAiSettings(args[0], args[1]);
+
+    case 'apiAdminGetUsers':
+      return await AppAPI.adminGetUsers();
+
+    case 'apiAdminSaveUser':
+      return await AppAPI.adminSaveUser(args[0]);
+
+    case 'apiAdminDeleteUser':
+      return await AppAPI.adminDeleteUser(args[0]);
+
+    case 'apiAdminSaveGlobalOAuth':
+      return await AppAPI.adminSaveGlobalOAuth(args[0], args[1]);
     case 'apiGetInitialData':
       return await AppAPI.call('getInitialData');
 
