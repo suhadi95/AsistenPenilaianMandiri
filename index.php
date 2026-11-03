@@ -356,6 +356,9 @@ Database::initDatabase();
             <button onclick="gradeAllStudents()" id="btnGradeAll" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 sm:px-4 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5">
               <span>▶️</span> <span>Nilai Semua</span>
             </button>
+            <button type="button" onclick="syncCurrentTaskDriveFolder()" id="btnSyncDrive" class="bg-sky-50 border border-sky-200 hover:bg-sky-100 text-sky-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Sinkronkan berkas tugas langsung dari Google Drive (OAuth)">
+              <span>🔄</span> <span>Sinkron Drive</span>
+            </button>
             <button type="button" onclick="openUploadZipModal()" id="btnUploadZip" class="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Unggah 1 berkas ZIP berisi tugas seluruh mahasiswa">
               <span>📦</span> <span>Upload ZIP Tugas</span>
             </button>
@@ -586,6 +589,72 @@ Database::initDatabase();
               🗑️ Reset / Mulai Bersih Database
             </button>
             <div id="resetDbAlert" class="hidden mt-2 p-3 rounded-xl text-xs font-medium"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KARTU INTEGRASI GOOGLE DRIVE (OAUTH 2.0) -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <span>📁</span> Integrasi Akun Google Drive (OAuth 2.0)
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Hubungkan akun Google Drive agar sistem dapat menyinkronkan berkas tugas secara otomatis seperti di GAS</p>
+          </div>
+          <div id="googleOAuthStatusBadge">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">Memeriksa status...</span>
+          </div>
+        </div>
+
+        <!-- Panduan Singkat Google Cloud Console -->
+        <div class="p-4 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-2 text-xs">
+          <p class="font-bold text-indigo-950 flex items-center gap-1.5">
+            <span>💡</span> Cara Membuat OAuth Client ID di Google Cloud Console:
+          </p>
+          <ol class="list-decimal list-inside space-y-1 text-slate-600 text-[11px] leading-relaxed">
+            <li>Buka <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-blue-600 font-semibold underline">Google Cloud Console &gt; Credentials</a> (gunakan project yang sama dengan Gemini API Key).</li>
+            <li>Pastikan <strong>Google Drive API</strong> sudah diaktifkan di menu <em>Enabled APIs &amp; Services</em>.</li>
+            <li>Klik <strong>+ Create Credentials &gt; OAuth client ID</strong>, pilih Application type: <strong>Web application</strong>.</li>
+            <li>Tambahkan <strong>Authorized redirect URIs</strong> persis seperti tautan di bawah ini:</li>
+          </ol>
+          <div class="flex items-center gap-2 pt-1">
+            <input type="text" id="oauthRedirectUriText" readonly value="https://apm.suhadip.com/oauth_callback.php" class="flex-1 text-[11px] font-mono px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-slate-700 select-all">
+            <button type="button" onclick="copyOauthRedirectUri()" id="btnCopyUri" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition shrink-0">
+              📋 Salin URI
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Google Client ID -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Google OAuth Client ID</label>
+            <input type="text" id="inputGoogleClientId" placeholder="Contoh: 123456789-abc.apps.googleusercontent.com" class="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono">
+          </div>
+
+          <!-- Google Client Secret -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Google OAuth Client Secret</label>
+            <div class="flex gap-2">
+              <input type="password" id="inputGoogleClientSecret" placeholder="GOCSPX-..." class="flex-1 text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono">
+              <button type="button" onclick="toggleClientSecretVisibility()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-medium">👁️</button>
+            </div>
+          </div>
+
+          <div id="googleOAuthAlert" class="hidden p-3 rounded-xl text-xs"></div>
+
+          <!-- Tombol Aksi OAuth -->
+          <div class="flex flex-col sm:flex-row items-center gap-2 pt-2">
+            <button type="button" onclick="saveGoogleOAuthSettings()" id="btnSaveOAuth" class="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
+              💾 Simpan Kredensial
+            </button>
+            <button type="button" onclick="startGoogleOAuthFlow()" id="btnConnectGoogle" class="w-full sm:flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center justify-center gap-2">
+              <span>🔗</span> <span>Hubungkan Akun Google Drive</span>
+            </button>
+            <button type="button" onclick="disconnectGoogleOAuth()" id="btnDisconnectGoogle" class="hidden w-full sm:w-auto px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
+              <span>✕</span> <span>Putuskan Sambungan</span>
+            </button>
           </div>
         </div>
       </div>
@@ -928,6 +997,19 @@ Database::initDatabase();
           }
           if (appState.settings.apiKey) {
             document.getElementById('inputApiKey').value = appState.settings.apiKey;
+          }
+          if (appState.settings.googleOAuth) {
+            renderGoogleOAuthStatus(appState.settings.googleOAuth);
+          }
+
+          // Cek parameter callback Google OAuth dari URL
+          const currentUrl = window.location.href;
+          if (currentUrl.includes('oauth=connected')) {
+            showGlobalAlert('🎉 Akun Google Drive berhasil terhubung! Anda sekarang dapat menyinkronkan tugas langsung dari Google Drive.', 'success');
+            switchTab('settings');
+          } else if (currentUrl.includes('oauth=failed')) {
+            showGlobalAlert('Gagal menghubungkan Google Drive. Periksa kembali Client ID dan Client Secret Anda.', 'error');
+            switchTab('settings');
           }
 
           // Inisialisasi activeCourseId dan activeClassId
@@ -1519,9 +1601,12 @@ Database::initDatabase();
             ? appState.uploadedSubmissionCount
             : (grades.uploadedCount || 0);
           const folderBadge = document.getElementById('taskInfoFolder');
+          const isOAuthConnected = appState.settings?.googleOAuth?.isConnected;
           if (folderBadge) {
             if (count > 0) {
               folderBadge.innerHTML = `<span class="text-emerald-600 font-bold">✓ ${count} Berkas di Server</span>`;
+            } else if (isOAuthConnected) {
+              folderBadge.innerHTML = `<span class="text-sky-600 font-semibold cursor-pointer hover:underline" onclick="syncCurrentTaskDriveFolder()" title="Klik untuk sinkronkan berkas langsung dari Google Drive">🔄 0 Berkas (Klik Sinkron Drive)</span>`;
             } else {
               folderBadge.innerHTML = `<span class="text-amber-600 font-semibold cursor-pointer hover:underline" onclick="openUploadZipModal()" title="Klik untuk mengunggah berkas">⚠️ 0 Berkas (Upload ZIP)</span>`;
             }
@@ -1638,7 +1723,23 @@ Database::initDatabase();
         return alert('Pilih kelas terlebih dahulu.');
       }
       if (typeof appState.uploadedSubmissionCount !== 'undefined' && appState.uploadedSubmissionCount === 0) {
-        showGlobalAlert('Belum ada berkas tugas mahasiswa yang diunggah ke server untuk kelas ini. Silakan klik "Upload ZIP Tugas" untuk mengunggah berkas jawaban mahasiswa.', 'warning');
+        const isOAuthConnected = appState.settings?.googleOAuth?.isConnected;
+        const task = appState.currentTasks.find(t => t.id_tugas === appState.selectedGradingTaskId);
+        const hasDriveFolder = task && task.drive_folder_id;
+
+        if (isOAuthConnected && hasDriveFolder) {
+          showGlobalAlert('Berkas di server masih kosong. Menyinkronkan berkas tugas otomatis dari Google Drive...', 'info');
+          syncCurrentTaskDriveFolder(true)
+            .then(() => {
+              startGradingQueue(queueItems, queueTitle);
+            })
+            .catch(err => {
+              alert('Gagal menyinkronkan berkas tugas dari Google Drive: ' + err.message);
+            });
+          return;
+        }
+
+        showGlobalAlert('Belum ada berkas tugas mahasiswa yang diunggah ke server untuk kelas ini. Silakan klik "Sinkron Drive" atau "Upload ZIP Tugas".', 'warning');
         openUploadZipModal();
         return;
       }
@@ -3027,6 +3128,187 @@ Database::initDatabase();
           alertBox.textContent = 'Gagal menyimpan: ' + err.message;
         })
         .apiSaveSettings(data);
+    }
+
+    // ==========================================
+    // INTEGRASI GOOGLE OAUTH 2.0 & DRIVE
+    // ==========================================
+
+    function toggleClientSecretVisibility() {
+      const input = document.getElementById('inputGoogleClientSecret');
+      if (input) input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function copyOauthRedirectUri() {
+      const input = document.getElementById('oauthRedirectUriText');
+      if (!input) return;
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        const btn = document.getElementById('btnCopyUri');
+        if (btn) {
+          const original = btn.innerHTML;
+          btn.innerHTML = '✓ Disalin!';
+          setTimeout(() => { btn.innerHTML = original; }, 2000);
+        }
+      });
+    }
+
+    function renderGoogleOAuthStatus(status) {
+      if (!status) return;
+      const badge = document.getElementById('googleOAuthStatusBadge');
+      const btnConnect = document.getElementById('btnConnectGoogle');
+      const btnDisconnect = document.getElementById('btnDisconnectGoogle');
+      const inputId = document.getElementById('inputGoogleClientId');
+      const redirectUriText = document.getElementById('oauthRedirectUriText');
+
+      if (redirectUriText && status.redirectUri) {
+        redirectUriText.value = status.redirectUri;
+      }
+      if (inputId && status.clientId && !inputId.value) {
+        inputId.value = status.clientId;
+      }
+
+      if (status.isConnected) {
+        if (badge) {
+          badge.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 flex items-center gap-1.5">✓ Terhubung: <strong class="font-bold">${status.email || 'Google Drive'}</strong></span>`;
+        }
+        if (btnConnect) btnConnect.classList.add('hidden');
+        if (btnDisconnect) btnDisconnect.classList.remove('hidden');
+      } else {
+        if (badge) {
+          badge.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Belum Terhubung</span>`;
+        }
+        if (btnConnect) btnConnect.classList.remove('hidden');
+        if (btnDisconnect) btnDisconnect.classList.add('hidden');
+      }
+    }
+
+    function saveGoogleOAuthSettings() {
+      const clientId = (document.getElementById('inputGoogleClientId')?.value || '').trim();
+      const clientSecret = (document.getElementById('inputGoogleClientSecret')?.value || '').trim();
+      const alertBox = document.getElementById('googleOAuthAlert');
+      const btn = document.getElementById('btnSaveOAuth');
+
+      if (btn) btn.disabled = true;
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (btn) btn.disabled = false;
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
+            alertBox.textContent = '✓ Kredensial Google OAuth berhasil disimpan.';
+            setTimeout(() => alertBox.classList.add('hidden'), 4000);
+          }
+          showGlobalAlert('Kredensial Google OAuth berhasil disimpan.', 'success');
+        })
+        .withFailureHandler(function(err) {
+          if (btn) btn.disabled = false;
+          if (alertBox) {
+            alertBox.className = 'p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
+            alertBox.textContent = 'Gagal menyimpan: ' + err.message;
+          }
+        })
+        .apiSaveSettings({
+          googleClientId: clientId,
+          googleClientSecret: clientSecret
+        });
+    }
+
+    function startGoogleOAuthFlow() {
+      const clientId = (document.getElementById('inputGoogleClientId')?.value || '').trim();
+      const clientSecret = (document.getElementById('inputGoogleClientSecret')?.value || '').trim();
+
+      if (!clientId) {
+        return alert('Harap isi Google OAuth Client ID terlebih dahulu!');
+      }
+
+      // Simpan kredensial terlebih dahulu agar siap dipakai callback
+      google.script.run
+        .withSuccessHandler(function() {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              if (res.authUrl) {
+                window.location.href = res.authUrl;
+              } else {
+                alert('Gagal menghasilkan URL otorisasi Google.');
+              }
+            })
+            .withFailureHandler(function(err) {
+              alert('Gagal memulai otorisasi: ' + err.message);
+            })
+            .apiGetGoogleAuthUrl();
+        })
+        .withFailureHandler(function(err) {
+          alert('Gagal menyimpan kredensial: ' + err.message);
+        })
+        .apiSaveSettings({
+          googleClientId: clientId,
+          googleClientSecret: clientSecret
+        });
+    }
+
+    function disconnectGoogleOAuth() {
+      if (!confirm('Apakah Anda yakin ingin memutuskan integrasi Google Drive?')) return;
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (appState.settings && appState.settings.googleOAuth) {
+            appState.settings.googleOAuth.isConnected = false;
+            appState.settings.googleOAuth.email = '';
+          }
+          renderGoogleOAuthStatus({ isConnected: false, email: '' });
+          showGlobalAlert(res.message, 'info');
+        })
+        .withFailureHandler(function(err) {
+          alert('Gagal memutuskan integrasi: ' + err.message);
+        })
+        .apiDisconnectGoogleDrive();
+    }
+
+    async function syncCurrentTaskDriveFolder(isAuto = false) {
+      const taskId = appState.selectedGradingTaskId;
+      const classId = appState.activeClassId;
+
+      if (!taskId) return alert('Pilih tugas terlebih dahulu!');
+      if (!classId) return alert('Pilih kelas terlebih dahulu!');
+
+      const btn = document.getElementById('btnSyncDrive');
+      const originalText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner inline-block w-3 h-3 border-2 border-sky-600 border-t-white mr-1"></span> Menyinkronkan...';
+      }
+
+      if (isAuto) {
+        showProgressLog('🔄 Menyinkronkan berkas tugas mahasiswa langsung dari folder Google Drive...');
+      } else {
+        showGlobalAlert('Sedang menyinkronkan berkas dari Google Drive ke server...', 'info');
+      }
+
+      try {
+        const res = await AppAPI.syncTaskDriveFolder(taskId, classId);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+        showGlobalAlert(res.message, 'success');
+        if (isAuto) {
+          showProgressLog('✅ ' + res.message);
+        }
+        loadGradingTable(taskId);
+        return res;
+      } catch (err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+        if (!isAuto) {
+          showGlobalAlert('Gagal sinkronisasi Drive: ' + err.message, 'error');
+        } else {
+          showProgressLog('⚠️ Sinkronisasi Drive otomatis gagal: ' + err.message);
+        }
+        throw err;
+      }
     }
 
     function confirmResetDatabase() {

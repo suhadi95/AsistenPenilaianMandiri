@@ -76,6 +76,22 @@ const AppAPI = {
     formData.append('taskId', taskId);
     formData.append('questionFile', file);
     return this.call('uploadTaskQuestion', formData);
+  },
+
+  async getGoogleOAuthStatus() {
+    return this.call('getGoogleOAuthStatus');
+  },
+
+  async getGoogleAuthUrl(redirectUri = '') {
+    return this.call('getGoogleAuthUrl', { redirectUri });
+  },
+
+  async disconnectGoogleDrive() {
+    return this.call('disconnectGoogleDrive');
+  },
+
+  async syncTaskDriveFolder(taskId, classId) {
+    return this.call('syncTaskDriveFolder', { taskId, classId });
   }
 };
 
@@ -217,6 +233,18 @@ async function dispatchGasApiMethod(methodName, args) {
 
     case 'apiResetDatabase':
       return await AppAPI.call('resetDatabase');
+
+    case 'apiGetGoogleOAuthStatus':
+      return await AppAPI.getGoogleOAuthStatus();
+
+    case 'apiGetGoogleAuthUrl':
+      return await AppAPI.getGoogleAuthUrl(args[0] || '');
+
+    case 'apiDisconnectGoogleDrive':
+      return await AppAPI.disconnectGoogleDrive();
+
+    case 'apiSyncTaskDriveFolder':
+      return await AppAPI.syncTaskDriveFolder(args[0], args[1]);
 
     default:
       return await AppAPI.call(methodName, { args });

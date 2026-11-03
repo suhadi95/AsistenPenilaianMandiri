@@ -241,6 +241,26 @@ class Database {
     }
 
     /**
+     * Mengambil nilai pengaturan dari tabel settings
+     */
+    public static function getSetting(string $key): ?string {
+        $row = self::fetchOne("SELECT setting_value FROM settings WHERE setting_key = ?", [$key]);
+        return $row ? $row['setting_value'] : null;
+    }
+
+    /**
+     * Menyimpan nilai pengaturan ke tabel settings
+     */
+    public static function saveSetting(string $key, string $value): void {
+        $exist = self::fetchOne("SELECT setting_key FROM settings WHERE setting_key = ?", [$key]);
+        if ($exist) {
+            self::execute("UPDATE settings SET setting_value = ?, updated_at = ? WHERE setting_key = ?", [$value, date('Y-m-d H:i:s'), $key]);
+        } else {
+            self::execute("INSERT INTO settings (setting_key, setting_value, updated_at) VALUES (?, ?, ?)", [$key, $value, date('Y-m-d H:i:s')]);
+        }
+    }
+
+    /**
      * Reset total seluruh basis data (hapus data semua tabel)
      */
     public static function resetDatabase(): array {

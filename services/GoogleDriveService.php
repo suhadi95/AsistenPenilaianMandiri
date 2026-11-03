@@ -1,0 +1,376 @@
+<?php
+/**
+ * @fileoverview Layanan Integrasi Google OAuth 2.0 & Google Drive API v3
+ */
+
+require_once __DIR__ . '/../core/Database.php';
+require_once __DIR__ . '/../core/Helper.php';
+require_once __DIR__ . '/FileService.php';
+
+class GoogleDriveService {
+    const OAUTH_AUTH_URL  = 'https://accounts.google.com/o/oauth2/v2/auth';
+    const OAUTH_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+    const DRIVE_API_URL   = 'https://www.googleapis.com/drive/v3';
+    const USERINFO_URL    = 'https://www.googleapis.com/oauth2/v2/userinfo';
+    const SCOPES          = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email';
+
+    /**
+     * Mendeteksi URL redirect resmi sistem
+     */
+    public static function getRedirectUri(): string {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'apm.suhadip.com';
+
+        // Deteksi sub-path jika aplikasi berada di subdirektori
+        $dir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+        if ($dir === '/' || $dir === '') {
+            return "{$scheme}://{$host}/oauth_callback.php";
+        }
+        return "{$scheme}://{$host}{$dir}/oauth_callback.php";
+    }
+
+    /**
+     * Membuat tautan otorisasi Google OAuth 2.0
+     */
+    public static function getAuthUrl(?string $redirectUri = null): string {
+        $clientId = Database::getSetting('GOOGLE_CLIENT_ID') ?: '';
+        if (empty($clientId)) {
+            throw new Exception("Google Client ID belum diisi di menu Pengaturan.");
+        }
+
+        $uri = $redirectUri ?: self::getRedirectUri();
+
+        $params = [
+            'client_id'              => $clientId,
+            'redirect_uri'           => $uri,
+            'response_type'          => 'code',
+            'scope'                  => self::SCOPES,
+            'access_type'            => 'offline',
+            'prompt'                 => 'consent',
+            'include_granted_scopes' => 'true'
+        ];
+
+        return self::OAUTH_AUTH_URL . '?' . http_build_query($params);
+    }
+
+    /**
+     * Menukarkan authorization code dengan access_token & refresh_token
+     */
+    public static function exchangeCode(string $code, ?string $redirectUri = null): array {
+        $clientId = Database::getSetting('GOOGLE_CLIENT_ID') ?: '';
+        $clientSecret = Database::getSetting('GOOGLE_CLIENT_SECRET') ?: '';
+
+        if (empty($clientId) || empty($clientSecret)) {
+            throw new Exception("Google Client ID atau Client Secret belum diisi.");
+        }
+
+        $uri = $redirectUri ?: self::getRedirectUri();
+
+        $body = [
+            'code'          => $code,
+            'client_id'     => $clientId,
+            'client_secret' => $clientSecret,
+            'redirect_uri'  => $uri,
+            'grant_type'    => 'authorization_code'
+        ];
+
+        $ch = curl_init(self::OAUTH_TOKEN_URL);
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($body),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded'],
+            CURLOPT_TIMEOUT        => 30
+        ]);
+
+        $res = curl_exec($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $json = json_decode($res, true);
+        if ($status !== 200 || empty($json['access_token'])) {
+            $msg = $json['error_description'] ?? ($json['error'] ?? 'Gagal menukarkan kode otorisasi.');
+            throw new Exception("Google OAuth Error: {$msg}");
+        }
+
+        // Simpan token ke database
+        Database::saveSetting('GOOGLE_ACCESS_TOKEN', $json['access_token']);
+        if (!empty($json['refresh_token'])) {
+            Database::saveSetting('GOOGLE_REFRESH_TOKEN', $json['refresh_token']);
+        }
+        $expiresAt = time() + ($json['expires_in'] ?? 3600);
+        Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', (string)$expiresAt);
+
+        // Ambil email akun Google terhubung
+        $userEmail = self::fetchConnectedEmail($json['access_token']);
+        if ($userEmail) {
+            Database::saveSetting('GOOGLE_CONNECTED_EMAIL', $userEmail);
+        }
+
+        return [
+            'success' => true,
+            'email'   => $userEmail,
+            'message' => 'Berhasil menghubungkan akun Google Drive!'
+        ];
+    }
+
+    /**
+     * Mengambil profil email dari token aktif
+     */
+    public static function fetchConnectedEmail(string $accessToken): ?string {
+        $ch = curl_init(self::USERINFO_URL);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => ["Authorization: Bearer {$accessToken}"],
+            CURLOPT_TIMEOUT        => 15
+        ]);
+
+        $res = curl_exec($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($status === 200) {
+            $json = json_decode($res, true);
+            return $json['email'] ?? null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Memperoleh Access Token yang valid (auto-refresh jika kedaluwarsa)
+     */
+    public static function getValidAccessToken(): ?string {
+        $token = Database::getSetting('GOOGLE_ACCESS_TOKEN');
+        $expiresAt = (int)(Database::getSetting('GOOGLE_TOKEN_EXPIRES_AT') ?: 0);
+        $refreshToken = Database::getSetting('GOOGLE_REFRESH_TOKEN');
+
+        if (empty($token) && empty($refreshToken)) {
+            return null;
+        }
+
+        // Jika token masih berlaku dengan sisa waktu > 60 detik
+        if (!empty($token) && ($expiresAt - time() > 60)) {
+            return $token;
+        }
+
+        // Segarkan token menggunakan refresh_token
+        if (!empty($refreshToken)) {
+            return self::refreshAccessToken($refreshToken);
+        }
+
+        return null;
+    }
+
+    /**
+     * Memperbarui Access Token dari Refresh Token
+     */
+    private static function refreshAccessToken(string $refreshToken): ?string {
+        $clientId = Database::getSetting('GOOGLE_CLIENT_ID');
+        $clientSecret = Database::getSetting('GOOGLE_CLIENT_SECRET');
+
+        if (!$clientId || !$clientSecret) {
+            return null;
+        }
+
+        $body = [
+            'client_id'     => $clientId,
+            'client_secret' => $clientSecret,
+            'refresh_token' => $refreshToken,
+            'grant_type'    => 'refresh_token'
+        ];
+
+        $ch = curl_init(self::OAUTH_TOKEN_URL);
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($body),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded'],
+            CURLOPT_TIMEOUT        => 30
+        ]);
+
+        $res = curl_exec($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $json = json_decode($res, true);
+        if ($status === 200 && !empty($json['access_token'])) {
+            Database::saveSetting('GOOGLE_ACCESS_TOKEN', $json['access_token']);
+            $expiresAt = time() + ($json['expires_in'] ?? 3600);
+            Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', (string)$expiresAt);
+            return $json['access_token'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Memeriksa apakah Google Drive terhubung
+     */
+    public static function isConnected(): bool {
+        return !empty(self::getValidAccessToken());
+    }
+
+    /**
+     * Memutuskan integrasi Google Drive (hapus token)
+     */
+    public static function disconnect(): bool {
+        Database::saveSetting('GOOGLE_ACCESS_TOKEN', '');
+        Database::saveSetting('GOOGLE_REFRESH_TOKEN', '');
+        Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', '0');
+        Database::saveSetting('GOOGLE_CONNECTED_EMAIL', '');
+        return true;
+    }
+
+    /**
+     * Mengambil ringkasan status integrasi OAuth
+     */
+    public static function getOAuthStatus(): array {
+        $connected = self::isConnected();
+        $email = Database::getSetting('GOOGLE_CONNECTED_EMAIL') ?: '';
+        $clientId = Database::getSetting('GOOGLE_CLIENT_ID') ?: '';
+        $hasSecret = !empty(Database::getSetting('GOOGLE_CLIENT_SECRET'));
+
+        return [
+            'isConnected'   => $connected,
+            'email'         => $email,
+            'clientId'      => $clientId,
+            'hasSecret'     => $hasSecret,
+            'redirectUri'   => self::getRedirectUri()
+        ];
+    }
+
+    /**
+     * Membaca daftar berkas pada suatu folder Google Drive
+     */
+    public static function listFilesInFolder(string $folderId): array {
+        $token = self::getValidAccessToken();
+        if (!$token) {
+            throw new Exception("Akun Google belum terhubung atau token kedaluwarsa. Silakan hubungkan kembali di menu Pengaturan.");
+        }
+
+        $cleanId = Helper::extractDriveFolderId($folderId);
+        if (empty($cleanId)) {
+            throw new Exception("ID Folder Google Drive tidak valid.");
+        }
+
+        $query = "'{$cleanId}' in parents and trashed = false";
+        $fields = 'files(id, name, mimeType, size, modifiedTime)';
+        $url = self::DRIVE_API_URL . "/files?" . http_build_query([
+            'q'        => $query,
+            'fields'   => $fields,
+            'pageSize' => 1000
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => [
+                "Authorization: Bearer {$token}",
+                "Accept: application/json"
+            ],
+            CURLOPT_TIMEOUT        => 30
+        ]);
+
+        $res = curl_exec($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $json = json_decode($res, true);
+        if ($status !== 200) {
+            $msg = $json['error']['message'] ?? "Kesalahan HTTP {$status} saat membaca folder Drive.";
+            throw new Exception("Google Drive Error: {$msg}");
+        }
+
+        return $json['files'] ?? [];
+    }
+
+    /**
+     * Mengunduh konten satu berkas dari Google Drive langsung
+     */
+    public static function downloadFile(string $fileId, string $targetPath, string $mimeType = ''): bool {
+        $token = self::getValidAccessToken();
+        if (!$token) return false;
+
+        // Jika Google Docs, ekspor ke PDF
+        if ($mimeType === 'application/vnd.google-apps.document') {
+            $downloadUrl = self::DRIVE_API_URL . "/files/{$fileId}/export?mimeType=application/pdf";
+        } elseif ($mimeType === 'application/vnd.google-apps.spreadsheet') {
+            $downloadUrl = self::DRIVE_API_URL . "/files/{$fileId}/export?mimeType=application/pdf";
+        } else {
+            $downloadUrl = self::DRIVE_API_URL . "/files/{$fileId}?alt=media";
+        }
+
+        $fp = fopen($targetPath, 'w+');
+        if (!$fp) return false;
+
+        $ch = curl_init($downloadUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_FILE           => $fp,
+            CURLOPT_HTTPHEADER     => ["Authorization: Bearer {$token}"],
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT        => 90
+        ]);
+
+        curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        fclose($fp);
+        curl_close($ch);
+
+        if ($code >= 200 && $code < 300 && file_exists($targetPath) && filesize($targetPath) > 0) {
+            return true;
+        }
+
+        @unlink($targetPath);
+        return false;
+    }
+
+    /**
+     * Sinkronisasi seluruh isi folder Google Drive ke folder server lokal
+     */
+    public static function syncDriveFolderToLocal(string $taskId, string $classId, string $folderId): array {
+        $files = self::listFilesInFolder($folderId);
+        $destDir = FileService::getSubmissionsDir($taskId, $classId);
+
+        $syncedCount = 0;
+        $skippedCount = 0;
+        $syncedFiles = [];
+
+        foreach ($files as $file) {
+            $name = $file['name'];
+            $fileId = $file['id'];
+            $mimeType = $file['mimeType'] ?? '';
+
+            // Abaikan subfolder
+            if ($mimeType === 'application/vnd.google-apps.folder') {
+                continue;
+            }
+
+            $cleanName = preg_replace('/[^a-zA-Z0-9_.-]/', '_', $name);
+
+            // Jika Google Docs, ekspor ke format PDF
+            if ($mimeType === 'application/vnd.google-apps.document') {
+                $cleanName = preg_replace('/\.docx?$/i', '', $cleanName) . '.pdf';
+            }
+
+            $targetPath = "{$destDir}/{$cleanName}";
+
+            // Unduh berkas
+            if (self::downloadFile($fileId, $targetPath, $mimeType)) {
+                $syncedCount++;
+                $syncedFiles[] = $cleanName;
+            } else {
+                $skippedCount++;
+            }
+        }
+
+        return [
+            'success'      => true,
+            'totalInDrive' => count($files),
+            'syncedCount'  => $syncedCount,
+            'skippedCount' => $skippedCount,
+            'files'        => $syncedFiles,
+            'message'      => "Berhasil menyinkronkan {$syncedCount} berkas langsung dari folder Google Drive!"
+        ];
+    }
+}

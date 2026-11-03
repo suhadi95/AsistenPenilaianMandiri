@@ -12,6 +12,7 @@ require_once __DIR__ . '/core/Helper.php';
 require_once __DIR__ . '/services/GeminiService.php';
 require_once __DIR__ . '/services/FileService.php';
 require_once __DIR__ . '/services/GradingService.php';
+require_once __DIR__ . '/services/GoogleDriveService.php';
 
 // Pastikan database terinisialisasi
 Database::initDatabase();
@@ -71,10 +72,64 @@ try {
             if (isset($data['activeClassId'])) {
                 saveSetting('ACTIVE_CLASS_ID', trim($data['activeClassId']));
             }
+            if (isset($data['googleClientId'])) {
+                saveSetting('GOOGLE_CLIENT_ID', trim($data['googleClientId']));
+            }
+            if (!empty($data['googleClientSecret']) && !str_contains($data['googleClientSecret'], '****')) {
+                saveSetting('GOOGLE_CLIENT_SECRET', trim($data['googleClientSecret']));
+            }
             Helper::json([
                 'success' => true,
                 'message' => 'Pengaturan berhasil disimpan!'
             ]);
+            break;
+
+        case 'getGoogleOAuthStatus':
+            Helper::json([
+                'success' => true,
+                'status'  => GoogleDriveService::getOAuthStatus()
+            ]);
+            break;
+
+        case 'getGoogleAuthUrl':
+            $redirectUri = trim($input['redirectUri'] ?? '');
+            $url = GoogleDriveService::getAuthUrl($redirectUri ?: null);
+            Helper::json([
+                'success' => true,
+                'authUrl' => $url
+            ]);
+            break;
+
+        case 'disconnectGoogleDrive':
+            GoogleDriveService::disconnect();
+            Helper::json([
+                'success' => true,
+                'message' => 'Integrasi Google Drive berhasil diputuskan.'
+            ]);
+            break;
+
+        case 'syncTaskDriveFolder':
+            $taskId = trim($input['taskId'] ?? '');
+            $classId = trim($input['classId'] ?? '');
+            if (!$taskId || !$classId) {
+                throw new Exception("ID Tugas dan ID Kelas wajib disertakan.");
+            }
+
+            if (!GoogleDriveService::isConnected()) {
+                throw new Exception("Akun Google Drive belum terhubung. Silakan hubungkan akun Google di menu Pengaturan.");
+            }
+
+            // Cari folder ID
+            $override = Database::fetchOne("SELECT drive_folder_id FROM class_task_folders WHERE id_tugas = ? AND id_kelas = ?", [$taskId, $classId]);
+            $task = Database::fetchOne("SELECT drive_folder_id FROM tasks WHERE id_tugas = ?", [$taskId]);
+            $folderId = (!empty($override['drive_folder_id'])) ? $override['drive_folder_id'] : ($task['drive_folder_id'] ?? '');
+
+            if (empty($folderId)) {
+                throw new Exception("Folder Google Drive tempat tugas mahasiswa belum diisi pada tugas/kelas ini.");
+            }
+
+            $syncRes = GoogleDriveService::syncDriveFolderToLocal($taskId, $classId, $folderId);
+            Helper::json($syncRes);
             break;
 
         case 'testConnection':
@@ -687,7 +742,8 @@ function getSystemSettings(): array {
         'activeCourseId'      => $activeCourseId,
         'activeClassId'       => $activeClassId,
         'dbDriver'            => $config['db_driver'] ?? 'sqlite',
-        'maxExecutionTimeSec' => 300
+        'maxExecutionTimeSec' => 300,
+        'googleOAuth'         => GoogleDriveService::getOAuthStatus()
     ];
 }
 
