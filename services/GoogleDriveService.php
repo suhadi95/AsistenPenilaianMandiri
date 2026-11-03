@@ -485,6 +485,17 @@ class GoogleDriveService {
                 $cleanName = preg_replace('/\.docx?$/i', '', $cleanName) . '.pdf';
             }
 
+            $driveUrl = ($mimeType === 'application/vnd.google-apps.document')
+                ? "https://docs.google.com/document/d/{$fileId}/edit"
+                : "https://drive.google.com/file/d/{$fileId}/view";
+
+            $driveMap[$cleanName] = [
+                'fileId'   => $fileId,
+                'name'     => $cleanName,
+                'driveUrl' => $driveUrl,
+                'mimeType' => $mimeType
+            ];
+
             $targetPath = "{$destDir}/{$cleanName}";
 
             // Jika berkas sudah ada secara lokal dengan ukuran yang valid, lewati download ulang
@@ -502,6 +513,17 @@ class GoogleDriveService {
                 $syncedFiles[] = $cleanName;
             } else {
                 $skippedCount++;
+            }
+        }
+
+        // Simpan pemetaan Drive URL ke disk dan perbarui grades
+        if (!empty($driveMap)) {
+            self::saveDriveFileMap($taskId, $classId, $driveMap);
+            foreach ($driveMap as $fn => $item) {
+                Database::execute(
+                    "UPDATE grades SET drive_file_url = ? WHERE id_tugas = ? AND id_kelas = ? AND LOWER(file_name) = LOWER(?)",
+                    [$item['driveUrl'], $taskId, $classId, $fn]
+                );
             }
         }
 
@@ -561,6 +583,17 @@ class GoogleDriveService {
                 $cleanName = preg_replace('/\.docx?$/i', '', $cleanName) . '.pdf';
             }
 
+            $driveUrl = ($mimeType === 'application/vnd.google-apps.document')
+                ? "https://docs.google.com/document/d/{$fileId}/edit"
+                : "https://drive.google.com/file/d/{$fileId}/view";
+
+            $driveMap[$cleanName] = [
+                'fileId'   => $fileId,
+                'name'     => $cleanName,
+                'driveUrl' => $driveUrl,
+                'mimeType' => $mimeType
+            ];
+
             $targetPath = "{$sharedDir}/{$cleanName}";
 
             if (file_exists($targetPath) && filesize($targetPath) > 0) {
@@ -574,6 +607,17 @@ class GoogleDriveService {
             if (self::downloadFile($fileId, $targetPath, $mimeType)) {
                 $syncedCount++;
                 $syncedFiles[] = $cleanName;
+            }
+        }
+
+        // Simpan pemetaan Drive URL
+        if (!empty($driveMap)) {
+            self::saveDriveFileMap($taskId, null, $driveMap);
+            foreach ($driveMap as $fn => $item) {
+                Database::execute(
+                    "UPDATE grades SET drive_file_url = ? WHERE id_tugas = ? AND LOWER(file_name) = LOWER(?)",
+                    [$item['driveUrl'], $taskId, $fn]
+                );
             }
         }
 
@@ -612,5 +656,51 @@ class GoogleDriveService {
             'updatedClasses' => $updatedClasses,
             'message'        => "Berhasil menyinkronkan {$syncedCount} berkas dari Google Drive untuk kelas: {$classListText}!"
         ];
+    }
+
+    /**
+     * Menyimpan pemetaan nama berkas ke Google Drive File ID & URL
+     */
+    public static function saveDriveFileMap(string $taskId, ?string $classId, array $fileMap): void {
+        $cleanTask = preg_replace('/[^a-zA-Z0-9_-]/', '', $taskId);
+        $taskDir = FileService::getUploadDir() . "/tasks/{$cleanTask}";
+        if (!is_dir($taskDir)) @mkdir($taskDir, 0755, true);
+
+        $mainMapFile = "{$taskDir}/drive_files_map.json";
+        $existing = [];
+        if (file_exists($mainMapFile)) {
+            $existing = json_decode(file_get_contents($mainMapFile), true) ?: [];
+        }
+        $merged = array_merge($existing, $fileMap);
+        @file_put_contents($mainMapFile, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        if (!empty($classId)) {
+            $classDir = FileService::getSubmissionsDir($taskId, $classId);
+            $classMapFile = "{$classDir}/drive_files_map.json";
+            @file_put_contents($classMapFile, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        }
+    }
+
+    /**
+     * Mengambil pemetaan nama berkas ke Google Drive File ID & URL untuk tugas
+     */
+    public static function getDriveFileMap(string $taskId, ?string $classId = null): array {
+        $cleanTask = preg_replace('/[^a-zA-Z0-9_-]/', '', $taskId);
+        $mainMapFile = FileService::getUploadDir() . "/tasks/{$cleanTask}/drive_files_map.json";
+
+        $map = [];
+        if (file_exists($mainMapFile)) {
+            $map = json_decode(file_get_contents($mainMapFile), true) ?: [];
+        }
+
+        if (!empty($classId)) {
+            $classMapFile = FileService::getSubmissionsDir($taskId, $classId) . "/drive_files_map.json";
+            if (file_exists($classMapFile)) {
+                $classMap = json_decode(file_get_contents($classMapFile), true) ?: [];
+                $map = array_merge($map, $classMap);
+            }
+        }
+
+        return $map;
     }
 }

@@ -248,7 +248,31 @@ class Database {
             // Kolom mungkin sudah ada
         }
 
-        // 3. Pastikan ada akun Admin default dan migrasikan data eksisting
+        // 3. Pastikan kolom drive_file_url ada di tabel grades
+        try {
+            if ($driver === 'mysql') {
+                $colCheck = $pdo->query("SHOW COLUMNS FROM grades LIKE 'drive_file_url'")->fetch();
+                if (empty($colCheck)) {
+                    $pdo->exec("ALTER TABLE grades ADD COLUMN drive_file_url TEXT NULL AFTER file_name");
+                }
+            } else {
+                $cols = $pdo->query("PRAGMA table_info(grades)")->fetchAll();
+                $hasCol = false;
+                foreach ($cols as $col) {
+                    if ($col['name'] === 'drive_file_url') {
+                        $hasCol = true;
+                        break;
+                    }
+                }
+                if (!$hasCol) {
+                    $pdo->exec("ALTER TABLE grades ADD COLUMN drive_file_url TEXT NULL");
+                }
+            }
+        } catch (Exception $e) {
+            // Kolom mungkin sudah ada
+        }
+
+        // 4. Pastikan ada akun Admin default dan migrasikan data eksisting
         try {
             $userCount = self::fetchOne("SELECT COUNT(*) as count FROM users");
             if (!$userCount || (int)$userCount['count'] === 0) {

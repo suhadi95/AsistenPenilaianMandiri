@@ -23,13 +23,15 @@ class GradingService {
         );
 
         $gradeId = $existing ? $existing['id_nilai'] : Helper::generateId('NIL');
+        $driveUrl = !empty($gradeData['drive_file_url']) ? $gradeData['drive_file_url'] : null;
 
         if ($existing) {
             Database::execute(
-                "UPDATE grades SET nama_mahasiswa = ?, file_name = ?, nilai_total = ?, rincian_poin = ?, catatan_ai = ?, status = ?, waktu_penilaian = ? WHERE id_nilai = ?",
+                "UPDATE grades SET nama_mahasiswa = ?, file_name = ?, drive_file_url = COALESCE(?, drive_file_url), nilai_total = ?, rincian_poin = ?, catatan_ai = ?, status = ?, waktu_penilaian = ? WHERE id_nilai = ?",
                 [
                     $gradeData['nama_mahasiswa'],
                     $gradeData['file_name'] ?? '',
+                    $driveUrl,
                     isset($gradeData['nilai_total']) && $gradeData['nilai_total'] !== '' ? $gradeData['nilai_total'] : null,
                     $gradeData['rincian_poin'] ?? '',
                     $gradeData['catatan_ai'] ?? '',
@@ -40,8 +42,8 @@ class GradingService {
             );
         } else {
             Database::execute(
-                "INSERT INTO grades (id_nilai, id_tugas, id_kelas, nim, nama_mahasiswa, file_name, nilai_total, rincian_poin, catatan_ai, status, waktu_penilaian, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO grades (id_nilai, id_tugas, id_kelas, nim, nama_mahasiswa, file_name, drive_file_url, nilai_total, rincian_poin, catatan_ai, status, waktu_penilaian, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [
                     $gradeId,
                     $taskId,
@@ -49,6 +51,7 @@ class GradingService {
                     $nim,
                     $gradeData['nama_mahasiswa'],
                     $gradeData['file_name'] ?? '',
+                    $driveUrl,
                     isset($gradeData['nilai_total']) && $gradeData['nilai_total'] !== '' ? $gradeData['nilai_total'] : null,
                     $gradeData['rincian_poin'] ?? '',
                     $gradeData['catatan_ai'] ?? '',
@@ -163,12 +166,14 @@ class GradingService {
             }
 
             // 5. Simpan nilai ke basis data
+            $driveUrl = $submission['driveUrl'] ?? '';
             self::saveGrade([
                 'id_tugas'        => $taskId,
                 'id_kelas'        => $classId,
                 'nim'             => $nim,
                 'nama_mahasiswa'  => $nama,
                 'file_name'       => $submission['fileName'] ?? '',
+                'drive_file_url'  => $driveUrl,
                 'nilai_total'     => $data['totalScore'],
                 'rincian_poin'    => $formattedCriteria,
                 'catatan_ai'      => $fullFeedback,
@@ -182,6 +187,7 @@ class GradingService {
                 'nama'            => $nama,
                 'score'           => $data['totalScore'],
                 'fileName'        => $submission['fileName'] ?? '',
+                'driveUrl'        => $driveUrl,
                 'rincian_poin'    => $formattedCriteria,
                 'catatan_ai'      => $fullFeedback,
                 'status'          => 'Selesai',

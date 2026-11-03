@@ -1903,19 +1903,43 @@ Database::initDatabase();
       window.open(targetUrl, '_blank', 'noopener,noreferrer');
     }
 
-    function renderFileNameCell(fileName) {
-      if (!fileName) return '-';
+    function openStudentSubmissionFile(fileName, driveUrl = '') {
+      const taskId = appState.selectedGradingTaskId;
+      const classId = appState.activeClassId;
+      if (!fileName || fileName === '-') return;
+
+      // 1. Jika URL Google Drive langsung tersedia, buka langsung di Google Drive
+      if (driveUrl && (driveUrl.startsWith('http://') || driveUrl.startsWith('https://'))) {
+        window.open(driveUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      // 2. Fallback ke endpoint server yang otomatis membuka / redirect ke berkas
+      const viewUrl = 'api.php?action=viewSubmissionFile&taskId=' + encodeURIComponent(taskId) + '&classId=' + encodeURIComponent(classId) + '&fileName=' + encodeURIComponent(fileName);
+      window.open(viewUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    function renderFileNameCell(fileName, driveUrl = '') {
+      if (!fileName || fileName === '-') return '<span class="text-slate-400 text-xs">-</span>';
       const isContent = fileName.includes('[via isi]');
       const cleanName = fileName.replace('[via isi]', '').trim();
-      if (isContent) {
-        return `<span class="cursor-pointer hover:text-blue-600 inline-flex items-center gap-1.5" onclick="openCurrentTaskFolder()" title="Berkas dicocokkan dari isi dokumen (NIM/Nama ditemukan di dalam berkas). Klik untuk buka folder Drive.">
-          <span class="truncate">${cleanName}</span>
-          <span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5"><span>🔍</span><span>Isi</span></span>
-        </span>`;
-      }
-      return `<span class="cursor-pointer hover:text-blue-600 inline-flex items-center gap-1" onclick="openCurrentTaskFolder()" title="Klik untuk membuka folder Google Drive">
-        <span class="truncate">${fileName}</span>
-      </span>`;
+
+      const escapedName = cleanName.replace(/'/g, "\\'");
+      const escapedUrl = (driveUrl || '').replace(/'/g, "\\'");
+
+      const contentBadge = isContent
+        ? '<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5" title="Dicocokkan via isi dokumen"><span>🔍</span><span>Isi</span></span>'
+        : '';
+
+      return `
+        <div class="inline-flex items-center gap-1 max-w-full">
+          <button type="button" onclick="openStudentSubmissionFile('${escapedName}', '${escapedUrl}')" class="text-blue-600 hover:text-blue-800 hover:underline font-semibold text-left truncate flex items-center gap-1 cursor-pointer transition text-xs" title="Buka berkas ${cleanName} langsung">
+            <span class="truncate">${cleanName}</span>
+            <span class="text-[10px] text-blue-500 shrink-0">↗</span>
+          </button>
+          ${contentBadge}
+        </div>
+      `;
     }
 
     function loadGradingTable(taskId) {
@@ -2052,7 +2076,7 @@ Database::initDatabase();
             </td>
             <td class="px-4 py-2.5 font-mono font-semibold text-slate-700">${g.nim}</td>
             <td class="px-4 py-2.5 font-medium text-slate-900">${g.nama_mahasiswa}</td>
-            <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[150px]" title="${g.file_name || '-'}">${isUnsubmitted ? '<span class="text-slate-400 text-xs">-</span>' : renderFileNameCell(g.file_name)}</td>
+            <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[170px]" title="${g.file_name || '-'}">${isUnsubmitted ? '<span class="text-slate-400 text-xs">-</span>' : renderFileNameCell(g.file_name, g.drive_file_url)}</td>
             <td id="score-cell-${g.nim}" class="px-4 py-2.5 text-center font-bold text-sm ${isCompleted ? 'text-blue-700' : 'text-slate-400'}">${g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '-'}</td>
             <td id="points-cell-${g.nim}" class="px-4 py-2.5 text-slate-600 line-clamp-1 max-w-[200px]" title="${g.rincian_poin || g.status || '-'}">${pointsContent}</td>
             <td id="status-cell-${g.nim}" class="px-4 py-2.5 text-center">${statusBadge}</td>
@@ -2291,7 +2315,7 @@ Database::initDatabase();
           pointsCell.title = data.rincian_poin || '-';
         }
         if (fileCell) {
-          fileCell.innerHTML = renderFileNameCell(data.fileName);
+          fileCell.innerHTML = renderFileNameCell(data.fileName, data.driveUrl || '');
         }
         if (statusCell) {
           statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">✓ Selesai</span>';
@@ -2303,6 +2327,7 @@ Database::initDatabase();
           appState.currentGrades[idx].rincian_poin = data.rincian_poin;
           appState.currentGrades[idx].catatan_ai = data.catatan_ai;
           appState.currentGrades[idx].file_name = data.fileName;
+          appState.currentGrades[idx].drive_file_url = data.driveUrl || '';
           appState.currentGrades[idx].status = 'Selesai';
         }
       } else if (state === 'failed' && data) {
@@ -3421,7 +3446,10 @@ Database::initDatabase();
       document.getElementById('detailGradeNama').value = grade.nama_mahasiswa;
 
       document.getElementById('detailModalStudentName').textContent = grade.nama_mahasiswa;
-      document.getElementById('detailModalStudentNim').textContent = 'NIM: ' + grade.nim + (grade.file_name ? ' • Berkas: ' + grade.file_name : '');
+      const fileLinkHtml = grade.file_name && grade.file_name !== '-'
+        ? ` • Berkas: <a href="javascript:void(0)" onclick="openStudentSubmissionFile('${grade.file_name.replace(/'/g, "\\'")}', '${(grade.drive_file_url || '').replace(/'/g, "\\'")}')" class="text-blue-600 hover:text-blue-800 underline font-semibold cursor-pointer inline-flex items-center gap-0.5" title="Buka berkas jawaban langsung">${grade.file_name} ↗</a>`
+        : '';
+      document.getElementById('detailModalStudentNim').innerHTML = 'NIM: ' + grade.nim + fileLinkHtml;
       document.getElementById('detailGradeTotalScore').value = grade.nilai_total !== null && grade.nilai_total !== undefined ? grade.nilai_total : '';
       document.getElementById('detailGradeCriteria').value = grade.rincian_poin || '';
       document.getElementById('detailGradeFeedback').value = grade.catatan_ai || '';

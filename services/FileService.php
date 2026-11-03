@@ -673,6 +673,18 @@ class FileService {
 
         $processed = self::processFileForGemini($targetPath);
         $processed['matchedBy'] = $matchedBy;
+
+        // Ambil link Google Drive jika tersedia dari pemetaan berkas
+        $cleanFileName = $targetCandidate['name'];
+        $driveMap = class_exists('GoogleDriveService') ? GoogleDriveService::getDriveFileMap($taskId, $classId) : [];
+        if (isset($driveMap[$cleanFileName])) {
+            $processed['driveUrl'] = $driveMap[$cleanFileName]['driveUrl'] ?? '';
+            $processed['driveFileId'] = $driveMap[$cleanFileName]['fileId'] ?? '';
+        } else {
+            $processed['driveUrl'] = '';
+            $processed['driveFileId'] = '';
+        }
+
         return $processed;
     }
 }

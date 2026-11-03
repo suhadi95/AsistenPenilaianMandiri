@@ -874,20 +874,32 @@ try {
             $students = Database::fetchAll("SELECT * FROM students WHERE id_kelas = ? ORDER BY nim ASC", [$classId]);
             $grades = Database::fetchAll("SELECT * FROM grades WHERE id_tugas = ? AND id_kelas = ?", [$taskId, $classId]);
 
+            // Ambil pemetaan Google Drive File URL
+            $driveMap = class_exists('GoogleDriveService') ? GoogleDriveService::getDriveFileMap($taskId, $classId) : [];
+
             $gradeMap = [];
             foreach ($grades as $g) {
+                // Auto-fill drive_file_url jika di database belum ada tapi terpetakan di driveMap
+                if (empty($g['drive_file_url']) && !empty($g['file_name']) && isset($driveMap[$g['file_name']])) {
+                    $g['drive_file_url'] = $driveMap[$g['file_name']]['driveUrl'] ?? '';
+                }
                 $gradeMap[strtolower(trim($g['nim']))] = $g;
             }
 
-            $result = array_map(function ($st) use ($gradeMap, $taskId, $classId) {
+            $result = array_map(function ($st) use ($gradeMap, $taskId, $classId, $driveMap) {
                 $nimKey = strtolower(trim($st['nim']));
                 if (isset($gradeMap[$nimKey])) {
-                    return array_merge($st, $gradeMap[$nimKey]);
+                    $item = array_merge($st, $gradeMap[$nimKey]);
+                    if (empty($item['drive_file_url']) && !empty($item['file_name']) && isset($driveMap[$item['file_name']])) {
+                        $item['drive_file_url'] = $driveMap[$item['file_name']]['driveUrl'] ?? '';
+                    }
+                    return $item;
                 }
                 return array_merge($st, [
                     'id_nilai'        => '',
                     'id_tugas'        => $taskId,
                     'file_name'       => '',
+                    'drive_file_url'  => '',
                     'nilai_total'     => null,
                     'rincian_poin'    => '',
                     'catatan_ai'      => '',
@@ -897,7 +909,7 @@ try {
             }, $students);
 
             $submissionsDir = FileService::getSubmissionsDir($taskId, $classId);
-            $submissionFiles = is_dir($submissionsDir) ? array_diff(scandir($submissionsDir), ['.', '..']) : [];
+            $submissionFiles = is_dir($submissionsDir) ? array_diff(scandir($submissionsDir), ['.', '..', 'drive_files_map.json']) : [];
             $uploadedCount = count($submissionFiles);
 
             Helper::json([
@@ -906,6 +918,69 @@ try {
                 'uploadedCount' => $uploadedCount
             ]);
             break;
+
+        case 'viewSubmissionFile':
+            // Membuka / mengunduh berkas jawaban mahasiswa langsung
+            $user = UserService::getCurrentUser();
+            if (!$user) {
+                die("Akses ditolak. Silakan login ke aplikasi terlebih dahulu.");
+            }
+
+            $taskId = trim($input['taskId'] ?? '');
+            $classId = trim($input['classId'] ?? '');
+            $fileName = trim($input['fileName'] ?? ($input['file'] ?? ''));
+            $isLocalOnly = !empty($input['local']);
+
+            if (!$taskId || !$fileName) {
+                die("Parameter taskId dan fileName wajib disertakan.");
+            }
+
+            $cleanFile = basename($fileName);
+            $driveMap = class_exists('GoogleDriveService') ? GoogleDriveService::getDriveFileMap($taskId, $classId) : [];
+
+            // Jika ada link Google Drive dan tidak meminta berkas lokal, langsung redirect ke Google Drive
+            if (!$isLocalOnly && !empty($driveMap[$cleanFile]['driveUrl'])) {
+                header("Location: " . $driveMap[$cleanFile]['driveUrl']);
+                exit;
+            }
+
+            // Cari berkas di folder kelas atau shared
+            $targetPath = '';
+            if ($classId) {
+                $p = FileService::getSubmissionsDir($taskId, $classId) . "/{$cleanFile}";
+                if (file_exists($p)) $targetPath = $p;
+            }
+            if (!$targetPath) {
+                $p = FileService::getSharedSubmissionsDir($taskId) . "/{$cleanFile}";
+                if (file_exists($p)) $targetPath = $p;
+            }
+
+            if (!$targetPath || !file_exists($targetPath)) {
+                if (!empty($driveMap[$cleanFile]['driveUrl'])) {
+                    header("Location: " . $driveMap[$cleanFile]['driveUrl']);
+                    exit;
+                }
+                die("Berkas '{$cleanFile}' tidak ditemukan di server maupun Google Drive.");
+            }
+
+            $ext = strtolower(pathinfo($targetPath, PATHINFO_EXTENSION));
+            $mimeMap = [
+                'pdf'  => 'application/pdf',
+                'png'  => 'image/png',
+                'jpg'  => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'txt'  => 'text/plain',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'doc'  => 'application/msword'
+            ];
+            $mime = $mimeMap[$ext] ?? 'application/octet-stream';
+
+            header('Content-Type: ' . $mime);
+            header('Content-Length: ' . filesize($targetPath));
+            header('Content-Disposition: inline; filename="' . $cleanFile . '"');
+            header('Cache-Control: private, max-age=3600');
+            readfile($targetPath);
+            exit;
 
         case 'gradeSingleStudent':
             $user = UserService::requireAuth();
