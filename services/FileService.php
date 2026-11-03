@@ -224,16 +224,199 @@ class FileService {
     }
 
     /**
-     * Membaca konten Soal Tugas (bisa teks langsung atau berkas yang diunggah)
+     * Mengunduh berkas dari Google Drive, Google Docs, atau URL publik
      */
-    public static function getTaskQuestionPayload(string $taskId, ?string $taskFileRef = null): ?array {
+    public static function fetchRemoteOrDriveFile(string $urlOrRef): ?array {
+        $trimmed = trim($urlOrRef);
+        if (empty($trimmed)) return null;
+
+        $fileId = null;
+        $isGoogleDoc = false;
+        $isGoogleSheet = false;
+        $isGoogleSlide = false;
+
+        if (preg_match('#docs\.google\.com/document/d/([a-zA-Z0-9_-]+)#i', $trimmed, $m)) {
+            $fileId = $m[1];
+            $isGoogleDoc = true;
+        } elseif (preg_match('#docs\.google\.com/spreadsheets/d/([a-zA-Z0-9_-]+)#i', $trimmed, $m)) {
+            $fileId = $m[1];
+            $isGoogleSheet = true;
+        } elseif (preg_match('#docs\.google\.com/presentation/d/([a-zA-Z0-9_-]+)#i', $trimmed, $m)) {
+            $fileId = $m[1];
+            $isGoogleSlide = true;
+        } elseif (preg_match('#(?:drive\.google\.com/(?:file/d/|open\?id=|uc\?(?:export=download&)?id=)|/d/)([a-zA-Z0-9_-]+)#i', $trimmed, $m)) {
+            $fileId = $m[1];
+        } elseif (preg_match('/^[a-zA-Z0-9_-]{25,}$/', $trimmed) && !str_contains($trimmed, ' ')) {
+            $fileId = $trimmed;
+        }
+
+        $candidateUrls = [];
+        if ($isGoogleDoc) {
+            $candidateUrls[] = ['url' => "https://docs.google.com/document/d/{$fileId}/export?format=txt", 'type' => 'txt'];
+            $candidateUrls[] = ['url' => "https://docs.google.com/document/d/{$fileId}/export?format=pdf", 'type' => 'pdf'];
+        } elseif ($isGoogleSheet) {
+            $candidateUrls[] = ['url' => "https://docs.google.com/spreadsheets/d/{$fileId}/export?format=pdf", 'type' => 'pdf'];
+        } elseif ($isGoogleSlide) {
+            $candidateUrls[] = ['url' => "https://docs.google.com/presentation/d/{$fileId}/export/pdf", 'type' => 'pdf'];
+        } elseif ($fileId) {
+            $candidateUrls[] = ['url' => "https://drive.usercontent.google.com/download?id={$fileId}&export=download&confirm=t", 'type' => 'auto'];
+            $candidateUrls[] = ['url' => "https://docs.google.com/uc?export=download&id={$fileId}", 'type' => 'auto'];
+            $candidateUrls[] = ['url' => "https://drive.google.com/uc?export=download&id={$fileId}&confirm=t", 'type' => 'auto'];
+        } elseif (preg_match('#^https?://#i', $trimmed)) {
+            $candidateUrls[] = ['url' => $trimmed, 'type' => 'auto'];
+        } else {
+            return null;
+        }
+
+        $tempDir = self::getUploadDir() . '/temp';
+        if (!is_dir($tempDir)) @mkdir($tempDir, 0755, true);
+
+        $downloadedContent = null;
+        $effectiveType = 'auto';
+        $contentDispositionFilename = '';
+
+        foreach ($candidateUrls as $candidate) {
+            $ch = curl_init($candidate['url']);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_AUTOREFERER    => true,
+                CURLOPT_MAXREDIRS      => 5,
+                CURLOPT_TIMEOUT        => 35,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                CURLOPT_HEADERFUNCTION => function($curl, $header) use (&$contentDispositionFilename) {
+                    if (stripos($header, 'Content-Disposition:') === 0) {
+                        if (preg_match('/filename\*?=(?:UTF-8\'\')?["\']?([^"\';\r\n]+)["\']?/i', $header, $matches)) {
+                            $contentDispositionFilename = trim($matches[1]);
+                        }
+                    }
+                    return strlen($header);
+                }
+            ]);
+
+            $resp = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode === 200 && !empty($resp)) {
+                // Periksa apakah respon berupa halaman login Google (file privat)
+                if (str_contains($resp, 'accounts.google.com') || 
+                    str_contains($resp, 'Sign in - Google Accounts') || 
+                    str_contains($resp, 'Google Drive - Access Denied') ||
+                    (str_contains($resp, '<html') && str_contains($resp, 'ServiceLogin'))) {
+                    throw new Exception("Berkas di Google Drive tidak dapat diakses secara publik (masih privat). Silakan ubah opsi berbagi file di Google Drive menjadi 'Siapa saja yang memiliki link' (Anyone with the link), atau unggah berkas soal langsung dari komputer Anda.");
+                }
+
+                $downloadedContent = $resp;
+                $effectiveType = $candidate['type'];
+                break;
+            }
+        }
+
+        if (!$downloadedContent) {
+            throw new Exception("Tidak dapat mengunduh berkas dari tautan Google Drive / URL yang diberikan. Pastikan tautan valid dan dibagikan secara publik ('Anyone with the link').");
+        }
+
+        // Teks UTF-8 langsung
+        if ($effectiveType === 'txt' || (is_string($downloadedContent) && !str_starts_with($downloadedContent, '%PDF') && !str_starts_with($downloadedContent, "PK\x03\x04") && mb_check_encoding($downloadedContent, 'UTF-8') && !str_contains($downloadedContent, "\0") && !str_contains($downloadedContent, '<html'))) {
+            return [
+                'success'     => true,
+                'fileName'    => $contentDispositionFilename ?: 'Soal_Tugas.txt',
+                'mimeType'    => 'text/plain',
+                'isTextOnly'  => true,
+                'textContent' => $downloadedContent,
+                'base64Data'  => null,
+                'sizeBytes'   => strlen($downloadedContent)
+            ];
+        }
+
+        $ext = 'bin';
+        if (str_starts_with($downloadedContent, '%PDF')) {
+            $ext = 'pdf';
+        } elseif (str_starts_with($downloadedContent, "PK\x03\x04")) {
+            $ext = 'docx';
+        } elseif (str_starts_with($downloadedContent, "\xFF\xD8\xFF")) {
+            $ext = 'jpg';
+        } elseif (str_starts_with($downloadedContent, "\x89PNG")) {
+            $ext = 'png';
+        }
+
+        $tempPath = $tempDir . '/remote_' . md5($trimmed) . '.' . $ext;
+        file_put_contents($tempPath, $downloadedContent);
+
+        $payload = self::processFileForGemini($tempPath);
+        if ($contentDispositionFilename) {
+            $payload['fileName'] = $contentDispositionFilename;
+        }
+        return $payload;
+    }
+
+    /**
+     * Memvalidasi berkas soal di Google Drive, URL, atau lokal
+     */
+    public static function validateTaskFile(string $urlOrRef): array {
+        $trimmed = trim($urlOrRef);
+        if (empty($trimmed)) {
+            return ['success' => false, 'message' => 'Tautan berkas atau teks soal tugas belum diisi.'];
+        }
+
+        if (file_exists($trimmed)) {
+            $name = basename($trimmed);
+            $size = round(filesize($trimmed) / 1024, 1);
+            return [
+                'success'   => true,
+                'fileName'  => $name,
+                'sizeBytes' => filesize($trimmed),
+                'message'   => "Berkas lokal ditemukan: {$name} ({$size} KB)"
+            ];
+        }
+
+        $isUrl = preg_match('#^https?://#i', $trimmed);
+        $isDriveId = preg_match('/^[a-zA-Z0-9_-]{25,}$/', $trimmed);
+
+        if ($isUrl || $isDriveId) {
+            try {
+                $payload = self::fetchRemoteOrDriveFile($trimmed);
+                if ($payload && !empty($payload['success'])) {
+                    $name = $payload['fileName'] ?? 'Dokumen Soal';
+                    $size = !empty($payload['sizeBytes']) ? round($payload['sizeBytes'] / 1024, 1) . ' KB' : 'Siap dibaca';
+                    return [
+                        'success'   => true,
+                        'fileName'  => $name,
+                        'sizeBytes' => $payload['sizeBytes'] ?? 0,
+                        'message'   => "Berkas berhasil diakses dari Drive: {$name} ({$size})"
+                    ];
+                }
+            } catch (Exception $e) {
+                return [
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ];
+            }
+        }
+
+        return [
+            'success'  => true,
+            'fileName' => 'Teks Soal Langsung',
+            'message'  => "Teks soal langsung terdeteksi (" . strlen($trimmed) . " karakter)."
+        ];
+    }
+
+    /**
+     * Membaca konten Soal Tugas (bisa teks langsung, berkas upload, atau Google Drive)
+     */
+    public static function getTaskQuestionPayload(?string $taskId = null, ?string $taskFileRef = null): ?array {
         // 1. Cek apakah ada berkas soal di folder pertanyaan tugas
-        $questionDir = self::getTaskQuestionsDir($taskId);
-        if (is_dir($questionDir)) {
-            $files = array_diff(scandir($questionDir), ['.', '..']);
-            if (!empty($files)) {
-                $firstFile = reset($files);
-                return self::processFileForGemini("{$questionDir}/{$firstFile}");
+        if (!empty($taskId)) {
+            $questionDir = self::getTaskQuestionsDir($taskId);
+            if (is_dir($questionDir)) {
+                $files = array_diff(scandir($questionDir), ['.', '..']);
+                if (!empty($files)) {
+                    $firstFile = reset($files);
+                    return self::processFileForGemini("{$questionDir}/{$firstFile}");
+                }
             }
         }
 
@@ -243,6 +426,17 @@ class FileService {
             if (file_exists($trimmed)) {
                 return self::processFileForGemini($trimmed);
             }
+
+            $isUrl = preg_match('#^https?://#i', $trimmed);
+            $isDriveId = preg_match('/^[a-zA-Z0-9_-]{25,}$/', $trimmed);
+
+            if ($isUrl || $isDriveId) {
+                $remotePayload = self::fetchRemoteOrDriveFile($trimmed);
+                if ($remotePayload) {
+                    return $remotePayload;
+                }
+            }
+
             return [
                 'success'     => true,
                 'fileName'    => 'Petunjuk Soal Tugas',

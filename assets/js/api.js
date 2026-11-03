@@ -166,11 +166,7 @@ async function dispatchGasApiMethod(methodName, args) {
       };
 
     case 'apiValidateTaskFile':
-      return {
-        success: true,
-        fileName: 'Teks / Tautan Soal',
-        message: 'Berkas soal terhubung.'
-      };
+      return await AppAPI.call('validateTaskFile', { ref: args[0] });
 
     case 'apiExtractRubricFromTask':
       return await AppAPI.call('extractRubricFromTask', {

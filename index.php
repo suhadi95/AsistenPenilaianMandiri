@@ -750,12 +750,24 @@ Database::initDatabase();
         </div>
 
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Tautan / ID Berkas Soal Tugas di Google Drive</label>
-          <div class="flex gap-2">
-            <input type="text" id="modalTaskQuestionRef" placeholder="Tempel URL atau ID berkas soal di Drive (PDF, Docs, Gambar)" class="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
-            <button type="button" onclick="verifyTaskQuestion()" id="btnVerifyTask" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-semibold">Cek Soal</button>
+          <label class="block font-semibold text-slate-700 mb-1">Berkas Soal Tugas / Kunci Jawaban</label>
+          <div class="space-y-2">
+            <!-- Pilihan 1: Upload Langsung -->
+            <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+              <span class="text-[11px] font-semibold text-slate-700 block">Opsi A: Unggah Langsung Berkas Soal (.pdf, .docx, .txt, gambar)</span>
+              <input type="file" id="modalTaskQuestionFile" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.webp" class="w-full text-xs file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer text-slate-600">
+            </div>
+
+            <!-- Pilihan 2: Link Google Drive -->
+            <div>
+              <span class="text-[11px] font-semibold text-slate-700 block mb-1">Opsi B: Tautan / ID Berkas Soal di Google Drive</span>
+              <div class="flex gap-2">
+                <input type="text" id="modalTaskQuestionRef" placeholder="Tempel URL atau ID berkas soal di Drive (PDF, Docs, Gambar)" class="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+                <button type="button" onclick="verifyTaskQuestion()" id="btnVerifyTask" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-semibold">Cek Soal</button>
+              </div>
+              <div id="verifyTaskAlert" class="hidden mt-1.5 p-2 rounded-lg text-[11px]"></div>
+            </div>
           </div>
-          <div id="verifyTaskAlert" class="hidden mt-1.5 p-2 rounded-lg text-[11px]"></div>
         </div>
 
         <div>
@@ -2594,6 +2606,8 @@ Database::initDatabase();
       if (vFolderAlert) vFolderAlert.classList.add('hidden');
       const aExtAlert = document.getElementById('autoExtractAlert');
       if (aExtAlert) aExtAlert.classList.add('hidden');
+      const qFileInput = document.getElementById('modalTaskQuestionFile');
+      if (qFileInput) qFileInput.value = '';
 
       openModal('taskModal');
     }
@@ -2620,6 +2634,8 @@ Database::initDatabase();
           document.getElementById('verifyTaskAlert').classList.add('hidden');
           document.getElementById('verifyFolderAlert').classList.add('hidden');
           document.getElementById('autoExtractAlert').classList.add('hidden');
+          const qFileInput = document.getElementById('modalTaskQuestionFile');
+          if (qFileInput) qFileInput.value = '';
 
           openModal('taskModal');
         })
@@ -2653,15 +2669,35 @@ Database::initDatabase();
 
       google.script.run
         .withSuccessHandler(function(res) {
-          btn.disabled = false;
-          btn.textContent = 'Simpan Tugas';
-          closeModal('taskModal');
-          showGlobalAlert('Tugas berhasil disimpan untuk seluruh kelas pada mata kuliah ini!', 'success');
-          
-          if (appState.activeClassId) {
-            loadClassDetails(appState.activeClassId);
+          const savedTaskId = (res && res.task && res.task.id_tugas) || data.id_tugas || document.getElementById('modalTaskId').value;
+          const fileInput = document.getElementById('modalTaskQuestionFile');
+
+          if (fileInput && fileInput.files && fileInput.files.length > 0 && savedTaskId) {
+            const formData = new FormData();
+            formData.append('taskId', savedTaskId);
+            formData.append('questionFile', fileInput.files[0]);
+
+            fetch('api.php?action=uploadTaskQuestion', {
+              method: 'POST',
+              body: formData
+            }).finally(() => {
+              finishSave();
+            });
           } else {
-            switchTaskCourse(courseId);
+            finishSave();
+          }
+
+          function finishSave() {
+            btn.disabled = false;
+            btn.textContent = 'Simpan Tugas';
+            closeModal('taskModal');
+            showGlobalAlert('Tugas berhasil disimpan untuk seluruh kelas pada mata kuliah ini!', 'success');
+
+            if (appState.activeClassId) {
+              loadClassDetails(appState.activeClassId);
+            } else {
+              switchTaskCourse(courseId);
+            }
           }
         })
         .withFailureHandler(function(err) {
@@ -2704,26 +2740,26 @@ Database::initDatabase();
       btn.disabled = true;
       btn.textContent = 'Mengecek...';
       alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-slate-100 text-slate-600';
-      alertBox.textContent = 'Menghubungkan ke Google Drive...';
+      alertBox.textContent = 'Mengecek akses berkas soal...';
       alertBox.classList.remove('hidden');
 
       google.script.run
         .withSuccessHandler(function(res) {
           btn.disabled = false;
           btn.textContent = 'Cek Soal';
-          if (res.success) {
+          if (res && res.success) {
             alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium';
             alertBox.textContent = '✓ ' + res.message;
           } else {
             alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium';
-            alertBox.textContent = '✗ ' + res.message;
+            alertBox.textContent = '✗ ' + ((res && res.message) || 'Berkas tidak dapat diakses.');
           }
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
           btn.textContent = 'Cek Soal';
           alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium';
-          alertBox.textContent = 'Gagal verifikasi: ' + err.message;
+          alertBox.textContent = 'Gagal verifikasi: ' + (err.message || err);
         })
         .apiValidateTaskFile(ref);
     }
@@ -2769,40 +2805,60 @@ Database::initDatabase();
     }
 
     function autoExtractRubricInModal() {
+      const fileInput = document.getElementById('modalTaskQuestionFile');
       const ref = document.getElementById('modalTaskQuestionRef').value.trim();
       const alertBox = document.getElementById('autoExtractAlert');
       const btn = document.getElementById('btnAutoExtract');
 
-      if (!ref) {
-        alert('Masukkan URL / ID berkas soal tugas di Google Drive terlebih dahulu!');
+      const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+      if (!hasFile && !ref) {
+        alert('Pilih berkas soal dari komputer ATAU masukkan tautan berkas soal di Google Drive terlebih dahulu!');
         return;
       }
 
       btn.disabled = true;
       btn.textContent = '🤖 Menganalisis...';
       alertBox.className = 'p-2 rounded-lg text-[11px] bg-blue-50 text-blue-700 border border-blue-200 block';
-      alertBox.textContent = 'Gemini AI sedang membaca soal dan menyusun rubrik porsi poin...';
+      alertBox.textContent = 'Gemini AI sedang membaca berkas soal dan menyusun rubrik porsi poin...';
 
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.disabled = false;
-          btn.textContent = '🤖 Ekstrak dari Soal';
-          if (res.success) {
-            document.getElementById('modalTaskRubric').value = res.rubricText;
-            alertBox.className = 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium block';
-            alertBox.textContent = '✓ ' + res.message;
-          } else {
-            alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium block';
-            alertBox.textContent = '✗ ' + res.message;
-          }
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
-          btn.textContent = '🤖 Ekstrak dari Soal';
+      const handleSuccess = function(res) {
+        btn.disabled = false;
+        btn.textContent = '🤖 Ekstrak dari Soal';
+        if (res && res.success) {
+          document.getElementById('modalTaskRubric').value = res.rubricText || '';
+          alertBox.className = 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium block';
+          alertBox.textContent = '✓ ' + (res.message || 'Berhasil menyusun rubrik dari dokumen soal!');
+        } else {
           alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium block';
-          alertBox.textContent = 'Gagal ekstrak: ' + err.message;
+          alertBox.textContent = '✗ ' + ((res && res.message) || 'Gagal mengekstrak rubrik.');
+        }
+      };
+
+      const handleFailure = function(err) {
+        btn.disabled = false;
+        btn.textContent = '🤖 Ekstrak dari Soal';
+        alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium block';
+        alertBox.textContent = 'Gagal ekstrak: ' + (err.message || err);
+      };
+
+      if (hasFile) {
+        const formData = new FormData();
+        formData.append('questionFile', fileInput.files[0]);
+        formData.append('model', (appState.settings && appState.settings.modelName) || 'gemini-3.5-flash-lite');
+
+        fetch('api.php?action=extractRubricFromTask', {
+          method: 'POST',
+          body: formData
         })
-        .apiExtractRubricFromTask(ref, appState.settings.modelName);
+        .then(r => r.json())
+        .then(handleSuccess)
+        .catch(handleFailure);
+      } else {
+        google.script.run
+          .withSuccessHandler(handleSuccess)
+          .withFailureHandler(handleFailure)
+          .apiExtractRubricFromTask(ref, (appState.settings && appState.settings.modelName) || 'gemini-3.5-flash-lite');
+      }
     }
 
     // 4. Detail / Koreksi Manual Modal

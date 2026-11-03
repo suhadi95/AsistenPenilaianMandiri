@@ -442,8 +442,14 @@ try {
             Helper::json($zipRes);
             break;
 
+        case 'validateTaskFile':
+            $ref = trim($_POST['ref'] ?? ($input['ref'] ?? ($input['taskFileRef'] ?? '')));
+            $res = FileService::validateTaskFile($ref);
+            Helper::json($res);
+            break;
+
         case 'uploadTaskQuestion':
-            $taskId = trim($_POST['taskId'] ?? '');
+            $taskId = trim($_POST['taskId'] ?? ($input['taskId'] ?? ''));
             if (!$taskId) throw new Exception("ID Tugas wajib disertakan.");
             if (empty($_FILES['questionFile'])) throw new Exception("Berkas soal belum dipilih.");
 
@@ -454,13 +460,27 @@ try {
             break;
 
         case 'extractRubricFromTask':
-            $taskId = trim($input['taskId'] ?? '');
-            $taskFileRef = trim($input['taskFileRef'] ?? '');
-            $model = trim($input['model'] ?? 'gemini-3.5-flash-lite');
+            $taskId = trim($_POST['taskId'] ?? ($input['taskId'] ?? ''));
+            $taskFileRef = trim($_POST['taskFileRef'] ?? ($input['taskFileRef'] ?? ''));
+            $model = trim($_POST['model'] ?? ($input['model'] ?? 'gemini-3.5-flash-lite'));
 
-            $taskPayload = FileService::getTaskQuestionPayload($taskId, $taskFileRef);
-            if (!$taskPayload) {
-                throw new Exception("Berkas atau teks soal tugas belum diisi atau tidak dapat diakses.");
+            // 1. Cek jika berkas diunggah langsung via multipart form
+            if (!empty($_FILES['questionFile']) && $_FILES['questionFile']['error'] === UPLOAD_ERR_OK) {
+                $tempDir = FileService::getUploadDir() . '/temp';
+                if (!is_dir($tempDir)) @mkdir($tempDir, 0755, true);
+                $cleanName = preg_replace('/[^a-zA-Z0-9_.-]/', '_', basename($_FILES['questionFile']['name']));
+                $dest = "{$tempDir}/soal_upload_" . time() . "_{$cleanName}";
+                if (!move_uploaded_file($_FILES['questionFile']['tmp_name'], $dest)) {
+                    throw new Exception("Gagal memindahkan berkas soal yang diunggah.");
+                }
+                $taskPayload = FileService::processFileForGemini($dest);
+            } else {
+                $taskPayload = FileService::getTaskQuestionPayload($taskId, $taskFileRef);
+            }
+
+            if (!$taskPayload || empty($taskPayload['success'])) {
+                $errMsg = !empty($taskPayload['message']) ? $taskPayload['message'] : "Berkas atau teks soal tugas belum diisi atau tidak dapat diakses.";
+                throw new Exception($errMsg);
             }
 
             $settings = getSystemSettings();

@@ -150,12 +150,19 @@ TUGAS ANDA:
             throw new Exception("Format respons JSON tidak valid dari Gemini.");
         }
 
+        $pointsFound = (bool)($parsed['pointsFound'] ?? false);
+        $totalPoints = $parsed['totalPoints'] ?? 100;
+        $msg = $pointsFound 
+            ? "Berhasil mendeteksi bobot dari dokumen soal (Total {$totalPoints} Poin)."
+            : "Dokumen soal terbaca: Belum ada bobot nilai tertulis di soal, AI membuatkan saran porsi poin otomatis.";
+
         return [
             'success'     => true,
-            'pointsFound' => (bool)($parsed['pointsFound'] ?? false),
-            'totalPoints' => $parsed['totalPoints'] ?? 100,
+            'pointsFound' => $pointsFound,
+            'totalPoints' => $totalPoints,
             'rubricText'  => $parsed['formattedRubricText'] ?? '',
-            'explanation' => $parsed['explanation'] ?? ''
+            'explanation' => $parsed['explanation'] ?? '',
+            'message'     => $msg
         ];
     }
 
