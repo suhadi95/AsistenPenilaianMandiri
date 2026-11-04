@@ -17,6 +17,7 @@ const AppAPI = {
       }
       options = {
         method: 'POST',
+        cache: 'no-store',
         body: payload
       };
     } else {
@@ -26,6 +27,7 @@ const AppAPI = {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
+        cache: 'no-store',
         body: JSON.stringify({ action, ...payload })
       };
     }

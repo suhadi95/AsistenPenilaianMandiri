@@ -531,7 +531,7 @@ Database::initDatabase();
             </div>
           </div>
           <div class="flex items-center space-x-2 shrink-0">
-            <button type="button" onclick="switchTab('reports')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+            <button type="button" onclick="switchTab('tab-reports')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
               <span>📊</span> <span>Buka Rekapitulasi</span>
             </button>
             <button type="button" onclick="document.getElementById('gradingCompletionBanner').classList.add('hidden')" class="px-2.5 py-2 text-slate-400 hover:text-slate-600 text-xs rounded-xl hover:bg-emerald-100 transition">
@@ -1900,6 +1900,16 @@ Database::initDatabase();
 
     // Navigasi Tab
     function switchTab(tabId) {
+      if (tabId === 'reports') tabId = 'tab-reports';
+      if (tabId === 'classes') tabId = 'tab-classes';
+      if (tabId === 'tasks') tabId = 'tab-tasks';
+      if (tabId === 'grading') tabId = 'tab-grading';
+      if (tabId === 'dashboard') tabId = 'tab-dashboard';
+      if (tabId === 'settings') tabId = 'tab-settings';
+      if (tabId === 'guide') tabId = 'tab-guide';
+
+      appState.activeTab = tabId;
+
       document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active', 'text-blue-600', 'bg-blue-50', 'font-semibold');
         btn.classList.add('text-slate-600');
@@ -1924,10 +1934,31 @@ Database::initDatabase();
         }
       }
 
-      if (tabId === 'tab-reports' && appState.activeClassId) {
-        loadClassReport(appState.activeClassId);
-      } else if (tabId === 'tab-tasks' && appState.activeCourseId) {
-        switchTaskCourse(appState.activeCourseId);
+      // Re-sinkronisasi & penyegaran data setiap kali ganti tab agar data selalu mutakhir
+      if (tabId === 'tab-dashboard') {
+        renderDashboardStats();
+        if (appState.activeClassId) {
+          loadClassDetails(appState.activeClassId);
+        }
+      } else if (tabId === 'tab-classes') {
+        renderCoursesList();
+        renderClassesList();
+        if (appState.activeClassId) {
+          loadClassDetails(appState.activeClassId);
+        }
+      } else if (tabId === 'tab-tasks') {
+        if (appState.activeCourseId) {
+          switchTaskCourse(appState.activeCourseId);
+        }
+      } else if (tabId === 'tab-grading') {
+        renderGradingTaskSelect();
+        if (appState.selectedGradingTaskId && appState.activeClassId) {
+          loadGradingTable(appState.selectedGradingTaskId);
+        }
+      } else if (tabId === 'tab-reports') {
+        if (appState.activeClassId) {
+          loadClassReport(appState.activeClassId);
+        }
       } else if (tabId === 'tab-users') {
         loadAdminUsers();
       }
@@ -2073,12 +2104,21 @@ Database::initDatabase();
     }
 
     function loadClassDetails(classId) {
+      if (!classId) return;
       showLoading(true);
       // Ambil Mahasiswa kelas & Tugas mata kuliahnya
       google.script.run
         .withSuccessHandler(function(students) {
           appState.currentStudents = students || [];
           renderStudentsTable(appState.currentStudents);
+
+          // Update studentCount di appState.classes agar kartu kelas & dropdown selalu sinkron
+          const targetClass = appState.classes.find(c => c.id_kelas === classId);
+          if (targetClass) {
+            targetClass.studentCount = appState.currentStudents.length;
+            renderClassesList();
+            renderClassDropdowns();
+          }
 
           // Ambil tugas yang berlaku untuk kelas ini
           google.script.run
@@ -2088,6 +2128,14 @@ Database::initDatabase();
               renderDashboardStats();
               renderTasksGrid();
               renderGradingTaskSelect();
+
+              // Sinkronkan tab aktif saat ini dengan data kelas baru secara instan
+              const currentTabId = appState.activeTab || document.querySelector('.tab-content.active')?.id || 'tab-dashboard';
+              if (currentTabId === 'tab-reports') {
+                loadClassReport(classId);
+              } else if (currentTabId === 'tab-tasks' && appState.activeCourseId) {
+                switchTaskCourse(appState.activeCourseId);
+              }
             })
             .withFailureHandler(function(err) {
               showLoading(false);
@@ -2445,9 +2493,21 @@ Database::initDatabase();
         select.appendChild(opt);
       });
 
-      if (appState.selectedGradingTaskId) {
+      // Periksa apakah selectedGradingTaskId sebelumnya masih ada pada daftar tugas kelas ini
+      const isTaskValid = appState.currentTasks.some(t => t.id_tugas === appState.selectedGradingTaskId);
+
+      if (isTaskValid && appState.selectedGradingTaskId) {
         select.value = appState.selectedGradingTaskId;
         loadGradingTable(appState.selectedGradingTaskId);
+      } else if (appState.currentTasks.length > 0) {
+        // Otomatis pilih tugas pertama dari kelas baru agar langsung menampilkan nilai
+        appState.selectedGradingTaskId = appState.currentTasks[0].id_tugas;
+        select.value = appState.selectedGradingTaskId;
+        loadGradingTable(appState.selectedGradingTaskId);
+      } else {
+        appState.selectedGradingTaskId = '';
+        select.value = '';
+        loadGradingTable('');
       }
     }
 
@@ -2994,6 +3054,16 @@ Database::initDatabase();
       }
 
       showProgressLog(wasAborted ? '⏹️ Antrean penilaian dihentikan.' : '🎉 Antrean penilaian selesai seluruhnya!');
+
+      // Perbarui statistik tugas di latar belakang agar data di tab Dashboard & Tugas seketika baru
+      if (appState.activeClassId) {
+        google.script.run
+          .withSuccessHandler(function(tasks) {
+            appState.currentTasks = tasks || [];
+            renderDashboardStats();
+          })
+          .apiGetTasksByClass(appState.activeClassId);
+      }
     }
 
     function playSuccessChime() {
@@ -3078,7 +3148,15 @@ Database::initDatabase();
 
     function loadClassReport(classId) {
       const container = document.getElementById('reportTableContainer');
-      container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm"><span class="spinner inline-block w-4 h-4 mr-2 border-slate-400 border-t-blue-600"></span>Memuat rekapitulasi nilai...</div>';
+      if (!classId) {
+        if (container) {
+          container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">Pilih kelas pada menu di atas untuk menampilkan rekapitulasi nilai.</div>';
+        }
+        return;
+      }
+      if (container) {
+        container.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm"><span class="spinner inline-block w-4 h-4 mr-2 border-slate-400 border-t-blue-600"></span>Memuat rekapitulasi nilai...</div>';
+      }
 
       google.script.run
         .withSuccessHandler(function(report) {
@@ -4708,7 +4786,7 @@ Database::initDatabase();
         alert('✓ Sinkronisasi Drive Selesai!\n\n' + (res.message || `Berhasil mengunduh dan menyinkronkan berkas tugas mahasiswa.`) + '\n\nTotal Berkas di Server: ' + count + ' Berkas.');
 
         if (appState.activeCourseId) {
-          loadCourseTasks(appState.activeCourseId);
+          switchTaskCourse(appState.activeCourseId);
         }
         if (appState.selectedGradingTaskId === taskId) {
           loadGradingTable(taskId);
