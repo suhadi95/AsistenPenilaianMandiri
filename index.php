@@ -105,7 +105,9 @@ Database::initDatabase();
           
           <!-- Logo & Brand -->
           <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
-            <div class="bg-blue-600 text-white p-1.5 sm:p-2 rounded-xl text-lg sm:text-xl shadow-lg shadow-blue-500/30">🎓</div>
+            <div class="bg-blue-600 text-white p-2 rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5" /></svg>
+            </div>
             <div>
               <h1 class="font-bold text-sm sm:text-base tracking-tight leading-none text-white">Asisten Penilaian</h1>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5 hidden xs:block">Portal Akademik</p>
@@ -121,7 +123,13 @@ Database::initDatabase();
           </div>
 
           <!-- Right Quick Info & Actions -->
-          <div class="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
+          <div class="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
+            <!-- Tombol Panduan di Atas (Terpisah dari Tab Operasional) -->
+            <button onclick="switchTab('tab-guide')" id="headerBtnGuide" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-400/40 transition shadow-xs cursor-pointer" title="Buka Panduan Penggunaan">
+              <svg class="w-4 h-4 shrink-0 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              <span class="font-medium">Panduan</span>
+            </button>
+
             <div id="aiModelBadge" class="hidden lg:flex items-center space-x-1.5 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs px-2.5 py-1 rounded-full font-medium">
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span id="badgeModelName">gemini-3.5-flash-lite</span>
@@ -134,10 +142,10 @@ Database::initDatabase();
                 <div id="headerUserRole" class="text-[10px] text-slate-400 font-medium capitalize">-</div>
               </div>
               <button onclick="switchTab('tab-settings')" class="p-1.5 sm:p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Pengaturan Akun &amp; AI">
-                ⚙️
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               </button>
               <button onclick="handleLogout()" class="p-1.5 sm:p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition" title="Keluar (Logout)">
-                🚪
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               </button>
             </div>
           </div>
@@ -150,30 +158,34 @@ Database::initDatabase();
     <nav class="bg-white border-b border-slate-200 sticky top-14 sm:top-16 z-30 shadow-xs">
       <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
         <div class="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar py-2 text-xs sm:text-sm font-medium">
-          <button onclick="switchTab('tab-dashboard')" id="nav-tab-dashboard" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap active text-blue-600 bg-blue-50 font-semibold shrink-0">
-            🏠 <span class="hidden xs:inline">Dashboard</span><span class="xs:hidden">Dash</span>
+          <button onclick="switchTab('tab-dashboard')" id="nav-tab-dashboard" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap active text-blue-600 bg-blue-50 font-semibold shrink-0 flex items-center gap-1.5">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+            <span class="hidden xs:inline">Dashboard</span><span class="xs:hidden">Dash</span>
           </button>
-          <button onclick="switchTab('tab-classes')" id="nav-tab-classes" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-            👥 <span class="hidden sm:inline">Kelola </span>MK & Kelas
+          <button onclick="switchTab('tab-classes')" id="nav-tab-classes" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 flex items-center gap-1.5">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            <span><span class="hidden sm:inline">Kelola </span>MK &amp; Kelas</span>
           </button>
-          <button onclick="switchTab('tab-tasks')" id="nav-tab-tasks" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-            📝 <span class="hidden sm:inline">Kelola </span>Tugas
+          <button onclick="switchTab('tab-tasks')" id="nav-tab-tasks" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 flex items-center gap-1.5">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+            <span><span class="hidden sm:inline">Kelola </span>Tugas</span>
           </button>
-          <button onclick="switchTab('tab-grading')" id="nav-tab-grading" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-            🎓 Penilaian
+          <button onclick="switchTab('tab-grading')" id="nav-tab-grading" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 flex items-center gap-1.5">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+            <span>Penilaian</span>
           </button>
-          <button onclick="switchTab('tab-reports')" id="nav-tab-reports" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-            📊 Rekapitulasi
+          <button onclick="switchTab('tab-reports')" id="nav-tab-reports" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 flex items-center gap-1.5">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            <span>Rekapitulasi</span>
           </button>
           <!-- Tab Khusus Admin: Kelola Pengguna -->
-          <button onclick="switchTab('tab-users')" id="nav-tab-users" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 hidden">
-            👨‍💼 Kelola Pengguna
+          <button onclick="switchTab('tab-users')" id="nav-tab-users" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 hidden items-center gap-1.5">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            <span>Kelola Pengguna</span>
           </button>
-          <button onclick="switchTab('tab-guide')" id="nav-tab-guide" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-            📖 Panduan
-          </button>
-          <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
-            ⚙️ Pengaturan
+          <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 flex items-center gap-1.5">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+            <span>Pengaturan</span>
           </button>
         </div>
       </div>
@@ -207,13 +219,16 @@ Database::initDatabase();
         </div>
         <div class="flex flex-col sm:flex-row gap-2 sm:gap-2.5 w-full md:w-auto">
           <button onclick="switchTab('tab-guide')" class="bg-indigo-600/90 hover:bg-indigo-600 text-white font-medium px-4 py-2.5 rounded-xl border border-indigo-400/30 text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-sm">
-            📖 Panduan
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            <span>Panduan</span>
           </button>
           <button onclick="switchTab('tab-classes')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-lg text-xs sm:text-sm transition flex items-center justify-center gap-1.5">
-            👥 Kelola Kelas
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            <span>Kelola Kelas</span>
           </button>
           <button onclick="switchTab('tab-grading')" class="bg-white/10 hover:bg-white/20 text-white font-medium px-4 py-2.5 rounded-xl border border-white/20 text-xs sm:text-sm transition flex items-center justify-center gap-1.5">
-            🎓 Mulai Penilaian
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+            <span>Mulai Penilaian</span>
           </button>
         </div>
       </div>
@@ -221,28 +236,36 @@ Database::initDatabase();
       <!-- Stat Cards Grid -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 sm:space-x-4">
-          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0">📚</div>
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+          </div>
           <div class="min-w-0">
             <p class="text-[10px] sm:text-xs font-semibold uppercase text-slate-400 truncate">Mata Kuliah</p>
             <h3 class="text-xl sm:text-2xl font-bold text-slate-900" id="statTotalCourses">0</h3>
           </div>
         </div>
         <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 sm:space-x-4">
-          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0">👥</div>
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+          </div>
           <div class="min-w-0">
             <p class="text-[10px] sm:text-xs font-semibold uppercase text-slate-400 truncate">Total Kelas</p>
             <h3 class="text-xl sm:text-2xl font-bold text-slate-900" id="statTotalClasses">0</h3>
           </div>
         </div>
         <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 sm:space-x-4">
-          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0">🎓</div>
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5" /></svg>
+          </div>
           <div class="min-w-0">
             <p class="text-[10px] sm:text-xs font-semibold uppercase text-slate-400 truncate">Mahasiswa</p>
             <h3 class="text-xl sm:text-2xl font-bold text-slate-900" id="statTotalStudents">0</h3>
           </div>
         </div>
         <div class="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center space-x-3 sm:space-x-4">
-          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0">📝</div>
+          <div class="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+          </div>
           <div class="min-w-0">
             <p class="text-[10px] sm:text-xs font-semibold uppercase text-slate-400 truncate">Total Tugas</p>
             <h3 class="text-xl sm:text-2xl font-bold text-slate-900" id="statTotalTasks">0</h3>
@@ -413,25 +436,32 @@ Database::initDatabase();
           <!-- Action Buttons -->
           <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full md:w-auto">
             <button onclick="gradeSelectedStudents()" id="btnGradeSelected" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3 sm:px-4 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50" disabled>
-              <span>🎯</span> <span>Pilihan (<span id="selectedCountBadge">0</span>)</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span>Pilihan (<span id="selectedCountBadge">0</span>)</span>
             </button>
             <button onclick="gradeAllStudents()" id="btnGradeAll" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 sm:px-4 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5">
-              <span>▶️</span> <span>Nilai Semua</span>
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <span>Nilai Semua</span>
             </button>
             <button type="button" onclick="syncCurrentTaskDriveFolder()" id="btnSyncDrive" class="bg-sky-50 border border-sky-200 hover:bg-sky-100 text-sky-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Sinkronkan berkas tugas langsung dari Google Drive (OAuth)">
-              <span>🔄</span> <span>Sinkron Drive</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              <span>Sinkron Drive</span>
             </button>
             <button type="button" onclick="openClassFolderOverrideModal()" id="btnClassFolderOverride" class="bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Atur Folder Google Drive khusus untuk kelas ini jika berbeda dari kelas lain">
-              <span>📁</span> <span>Folder Kelas</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+              <span>Folder Kelas</span>
             </button>
             <button type="button" onclick="openUploadZipModal()" id="btnUploadZip" class="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Unggah 1 berkas ZIP berisi tugas seluruh mahasiswa">
-              <span>📦</span> <span>Upload ZIP Tugas</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+              <span>Upload ZIP</span>
             </button>
             <button type="button" onclick="openCurrentTaskFolder()" id="btnOpenTaskFolder" class="bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Buka folder Google Drive tempat berkas jawaban mahasiswa tersimpan">
-              <span>📁</span> <span>Buka Drive</span> <span class="text-[10px] text-slate-400">↗</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+              <span>Buka Drive</span>
             </button>
             <button onclick="resetFailedGrades()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-3 py-2.5 rounded-xl transition flex items-center justify-center gap-1" title="Reset baris gagal">
-              <span>🔄</span> <span>Reset Gagal</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              <span>Reset Gagal</span>
             </button>
           </div>
         </div>
@@ -848,7 +878,8 @@ Database::initDatabase();
       <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white p-5 sm:p-7 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-indigo-900/50">
         <div>
           <div class="inline-flex items-center gap-1.5 bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 text-[11px] px-3 py-1 rounded-full font-semibold mb-2">
-            <span>📖</span> <span>Pusat Bantuan &amp; Dokumentasi Resmi</span>
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            <span>Pusat Bantuan &amp; Dokumentasi Resmi</span>
           </div>
           <h2 class="text-xl sm:text-2xl font-bold tracking-tight">Panduan Lengkap Asisten Penilaian Mandiri (APM)</h2>
           <p class="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
@@ -857,10 +888,12 @@ Database::initDatabase();
         </div>
         <div class="flex flex-wrap items-center gap-2 shrink-0">
           <button onclick="switchTab('tab-settings')" class="bg-white/10 hover:bg-white/20 text-white font-semibold text-xs px-3.5 py-2 rounded-xl border border-white/20 transition flex items-center gap-1.5 cursor-pointer">
-            <span>⚙️</span> <span>Buka Pengaturan</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+            <span>Pengaturan</span>
           </button>
           <button onclick="switchTab('tab-classes')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
-            <span>👥</span> <span>Kelola Kelas</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            <span>Kelola Kelas</span>
           </button>
         </div>
       </div>
@@ -870,14 +903,14 @@ Database::initDatabase();
         <button type="button" onclick="switchGuideTopic('guide-api')" id="btn-guide-api" class="guide-nav-btn px-3.5 py-2 rounded-xl text-blue-700 bg-blue-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer active">
           <span>🚀</span> <span>1. Persiapan &amp; API Key</span>
         </button>
-        <button type="button" onclick="switchGuideTopic('guide-classes')" id="btn-guide-classes" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>👥</span> <span>2. MK, Kelas &amp; Mahasiswa</span>
+        <button type="button" onclick="switchGuideTopic('guide-courses')" id="btn-guide-courses" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
+          <span>📚</span> <span>2. Mata Kuliah</span>
         </button>
-        <button type="button" onclick="switchGuideTopic('guide-tasks')" id="btn-guide-tasks" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>📝</span> <span>3. Tugas &amp; Rubrik AI</span>
+        <button type="button" onclick="switchGuideTopic('guide-classes')" id="btn-guide-classes" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
+          <span>👥</span> <span>3. Kelola Kelas &amp; Mahasiswa</span>
         </button>
         <button type="button" onclick="switchGuideTopic('guide-grading')" id="btn-guide-grading" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>🎓</span> <span>4. Penilaian &amp; Sinkronisasi</span>
+          <span>🎓</span> <span>4. Cara Memberikan Penilaian</span>
         </button>
         <button type="button" onclick="switchGuideTopic('guide-reports')" id="btn-guide-reports" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
           <span>📊</span> <span>5. Rekapitulasi &amp; Ekspor</span>
@@ -894,7 +927,7 @@ Database::initDatabase();
         <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 1</span>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 1</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
                 <span>🚀</span> <span>Persiapan Akun, Gemini API Key &amp; Google Drive</span>
               </h3>
@@ -962,59 +995,107 @@ Database::initDatabase();
       </div>
 
       <!-- ========================================== -->
-      <!-- TOPIK 2: KELOLA MK, KELAS & MAHASISWA      -->
+      <!-- TOPIK 2: MANAJEMEN MATA KULIAH (MK)        -->
+      <!-- ========================================== -->
+      <div id="guide-courses" class="guide-topic-section hidden space-y-4">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 2</span>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
+                <span>📚</span> <span>Manajemen Mata Kuliah (MK) Induk</span>
+              </h3>
+            </div>
+            <button type="button" onclick="switchTab('tab-classes')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Kelola MK &rarr;</button>
+          </div>
+
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3 text-xs text-slate-700">
+            <h4 class="font-bold text-slate-900 text-sm">Konsep Mata Kuliah sebagai Payung Utama Kurikulum</h4>
+            <p class="text-slate-600 leading-relaxed">
+              Di sistem APM, <strong>Mata Kuliah</strong> berfungsi sebagai entitas induk yang menaungi beberapa kelas paralel (misalnya Kelas A, B, dan C) serta kumpulan tugas-tugas terpusat. Dengan konsep ini, Anda cukup membuat soal dan rubrik tugas 1 kali saja di tingkat Mata Kuliah, dan tugas tersebut otomatis dapat dinilai untuk seluruh kelas paralel.
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+              <div class="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
+                <span class="font-bold text-blue-600">Langkah 1:</span>
+                <p class="text-slate-600">Buka menu <strong>Kelola MK &amp; Kelas</strong> &rarr; klik tombol <strong>"+ Tambah MK Baru"</strong>.</p>
+              </div>
+              <div class="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
+                <span class="font-bold text-blue-600">Langkah 2:</span>
+                <p class="text-slate-600">Isi <strong>Nama Mata Kuliah</strong> (contoh: <i>Analisis &amp; Perancangan Sistem</i>), <strong>Kode MK</strong> (<i>APSI101</i>), dan <strong>Semester</strong>.</p>
+              </div>
+              <div class="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
+                <span class="font-bold text-blue-600">Langkah 3:</span>
+                <p class="text-slate-600">Klik <strong>Simpan Mata Kuliah</strong>. Sekarang Anda siap menambahkan kelas-kelas paralel di bawah mata kuliah ini.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TOPIK 3: KELOLA KELAS DAN MAHASISWA        -->
       <!-- ========================================== -->
       <div id="guide-classes" class="guide-topic-section hidden space-y-4">
         <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 2</span>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 3</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
-                <span>👥</span> <span>Kelola Mata Kuliah, Kelas Paralel &amp; Mahasiswa</span>
+                <span>👥</span> <span>Kelola Kelas dan Data Mahasiswa</span>
               </h3>
             </div>
             <button type="button" onclick="switchTab('tab-classes')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Kelola Kelas &rarr;</button>
           </div>
 
           <div class="space-y-4 text-xs text-slate-700">
-            <!-- Langkah 1: Buat MK -->
-            <div class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200/70">
-              <span class="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
-              <div class="space-y-1">
-                <h4 class="font-bold text-slate-900 text-sm">Buat Mata Kuliah (MK) Induk</h4>
+            <!-- Langkah 1: Buat Kelas Paralel -->
+            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+              <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
+              <div class="space-y-1.5 w-full">
+                <h4 class="font-bold text-slate-900 text-sm">Membuat Kelas Paralel (A, B, C, dst.)</h4>
                 <p class="text-slate-600 leading-relaxed">
-                  Buka tab <strong>Kelola MK &amp; Kelas</strong> &rarr; klik tombol <strong>"+ Tambah MK Baru"</strong>. Isi Nama Mata Kuliah (contoh: <i>Analisis &amp; Perancangan Sistem Informasi</i>), Kode MK (<i>APSI101</i>), dan Semester (<i>Ganjil 2026/2027</i>). Seluruh kelas paralel dan tugas akan terorganisir di bawah mata kuliah ini.
+                  Pada tab <strong>Kelola MK &amp; Kelas</strong>, di bawah kartu Mata Kuliah yang sesuai, klik tombol <strong>"+ Tambah Kelas Baru"</strong>. Masukkan nama kelas (contoh: <code class="bg-slate-200 px-1.5 py-0.5 rounded font-bold">Kelas A</code> atau <code class="bg-slate-200 px-1.5 py-0.5 rounded font-bold">Kelas B (Sore)</code>). Setiap kelas akan memiliki daftar mahasiswa dan rekapitulasi nilai tersendiri.
                 </p>
               </div>
             </div>
 
-            <!-- Langkah 2: Buat Kelas -->
-            <div class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200/70">
-              <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
-              <div class="space-y-1">
-                <h4 class="font-bold text-slate-900 text-sm">Tambahkan Kelas Paralel</h4>
-                <p class="text-slate-600 leading-relaxed">
-                  Di bawah mata kuliah yang sama, klik tombol <strong>"+ Tambah Kelas Baru"</strong> (contoh: <i>Kelas A</i>, <i>Kelas B</i>). Anda dapat membuat tugas sekali di tingkat mata kuliah, dan tugas tersebut otomatis berlaku untuk semua kelas ini!
+            <!-- Langkah 2: Import Cepat Mahasiswa Masal -->
+            <div class="flex items-start gap-3 p-4 bg-blue-50/70 border border-blue-200/80 rounded-xl">
+              <span class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
+              <div class="space-y-2.5 w-full">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-bold text-indigo-950 text-sm">Import Cepat Mahasiswa Masal (Salin-Tempel dari Excel / SIAKAD)</h4>
+                  <span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Sangat Praktis</span>
+                </div>
+                <p class="text-indigo-950 leading-relaxed">
+                  Anda <strong>TIDAK PERLU</strong> mengetik nama mahasiswa satu per satu! Cukup salin dua kolom (NIM dan Nama) langsung dari portal akademik kampus atau Microsoft Excel:
                 </p>
-              </div>
-            </div>
-
-            <!-- Langkah 3: Input Mahasiswa Masal -->
-            <div class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200/70">
-              <span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</span>
-              <div class="space-y-2 w-full">
-                <h4 class="font-bold text-slate-900 text-sm">Import Cepat Mahasiswa (Copy-Paste dari Excel / SIAKAD)</h4>
-                <p class="text-slate-600 leading-relaxed">
-                  Tidak perlu mengetik satu per satu! Buka kelas yang diinginkan, lalu klik tombol ungu <strong>"📋 Tambah Masal"</strong>. Anda cukup menyalin kolom <strong>NIM</strong> dan <strong>Nama</strong> langsung dari Microsoft Excel atau portal SIAKAD kampus Anda.
-                </p>
+                <ol class="list-decimal list-inside space-y-1.5 text-indigo-900 pl-1 leading-relaxed">
+                  <li>Buka kelas yang dituju &rarr; klik tombol ungu <strong>"📋 Tambah Masal"</strong>.</li>
+                  <li>Buka file Excel daftar hadir atau halaman SIAKAD &rarr; blok kolom <strong>NIM</strong> dan <strong>Nama</strong> &rarr; tekan <kbd class="bg-white px-1.5 py-0.5 rounded border border-indigo-200 font-mono font-bold">Ctrl + C</kbd> (Salin).</li>
+                  <li>Kembali ke kotak dialog sistem &rarr; tekan <kbd class="bg-white px-1.5 py-0.5 rounded border border-indigo-200 font-mono font-bold">Ctrl + V</kbd> (Tempel).</li>
+                  <li>Klik tombol <strong>"Simpan Mahasiswa"</strong>. Puluhan mahasiswa langsung masuk dalam 3 detik!</li>
+                </ol>
                 <div class="bg-slate-900 text-slate-200 p-3 rounded-xl font-mono text-[11px] space-y-1">
-                  <div class="text-slate-400 font-sans text-[10px] uppercase font-bold tracking-wider">Contoh Format yang Didukung:</div>
+                  <div class="text-slate-400 font-sans text-[10px] uppercase font-bold tracking-wider">Format yang Didukung Otomatis:</div>
                   <div>2488010001	Najwa Ramadhan</div>
                   <div>2488010011	Tanu Hasyim</div>
                   <div>2488010012, Faiz Alfaresi</div>
                 </div>
                 <p class="text-[11px] text-slate-500">
-                  Sistem otomatis mendeteksi pemisah tabulasi, tanda koma, maupun spasi, serta otomatis mengabaikan baris kosong atau duplikasi NIM.
+                  Sistem otomatis mendeteksi pemisah tabulasi Excel, tanda koma, titik koma, dan spasi, serta otomatis menyaring duplikasi data.
+                </p>
+              </div>
+            </div>
+
+            <!-- Langkah 3: Tambah Manual & Manajemen Mahasiswa -->
+            <div class="flex items-start gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+              <span class="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</span>
+              <div class="space-y-1.5 w-full">
+                <h4 class="font-bold text-slate-900 text-sm">Tambah Manual &amp; Perubahan Data Mahasiswa</h4>
+                <p class="text-slate-600 leading-relaxed">
+                  Jika ada mahasiswa susulan atau perbaikan nama, klik tombol <strong>"+ Tambah Mahasiswa"</strong> untuk menambah 1 orang. Untuk mengedit atau menghapus data mahasiswa yang salah, klik tombol aksi <strong>✏️ Edit</strong> atau <strong>🗑️ Hapus</strong> pada baris nama mahasiswa yang bersangkutan.
                 </p>
               </div>
             </div>
@@ -1023,75 +1104,15 @@ Database::initDatabase();
       </div>
 
       <!-- ========================================== -->
-      <!-- TOPIK 3: TUGAS & RUBRIK AI                 -->
-      <!-- ========================================== -->
-      <div id="guide-tasks" class="guide-topic-section hidden space-y-4">
-        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div>
-              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 3</span>
-              <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
-                <span>📝</span> <span>Manajemen Tugas &amp; Ekstraksi Rubrik Otomatis dengan AI</span>
-              </h3>
-            </div>
-            <button type="button" onclick="switchTab('tab-tasks')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Kelola Tugas &rarr;</button>
-          </div>
-
-          <div class="space-y-4 text-xs text-slate-700">
-            <!-- Langkah 1: Buat Tugas -->
-            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
-              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <span>1️⃣</span> <span>Membuat Tugas Baru</span>
-              </h4>
-              <p class="text-slate-600 leading-relaxed">
-                Buka tab <strong>Kelola Tugas</strong> &rarr; klik tombol <strong>"+ Buat Tugas Baru"</strong>. Masukkan Judul Tugas (misal: <i>TuRi 1 - Analisis Kebutuhan Sistem</i>) dan Bobot Persentase Nilai Akhir (misal <i>25.00%</i>). Bobot ini akan otomatis digunakan untuk kalkulasi Nilai Akhir semester.
-              </p>
-            </div>
-
-            <!-- Langkah 2: Ekstraksi Rubrik AI -->
-            <div class="p-4 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-2">
-              <h4 class="font-bold text-blue-950 text-sm flex items-center gap-2">
-                <span>2️⃣</span> <span>Fitur Unggulan: Ekstraksi Rubrik Penilaian Otomatis</span>
-              </h4>
-              <p class="text-blue-900 leading-relaxed">
-                Anda tidak perlu menyusun rubrik secara manual! Unggah file PDF/Word soal Anda, atau masukkan tautan Google Drive soal tersebut, lalu klik tombol:
-              </p>
-              <div class="py-1">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-xs">
-                  <span>🤖</span> <span>Ekstrak dari Soal</span>
-                </span>
-              </div>
-              <p class="text-blue-900 leading-relaxed">
-                Gemini AI akan membedah butir-butir pertanyaan pada lembar soal dan otomatis membuat rubrik objektif lengkap dengan kriteria penilaian, deskripsi mutu, dan porsi poin skor total 100. Anda tetap bebas menyunting teks rubrik jika ingin menambahkan penyesuaian khusus.
-              </p>
-            </div>
-
-            <!-- Langkah 3: Menghubungkan Folder Drive Jawaban -->
-            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
-              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <span>3️⃣</span> <span>Menghubungkan Folder Jawaban Mahasiswa di Google Drive</span>
-              </h4>
-              <p class="text-slate-600 leading-relaxed">
-                Pada formulir tugas, masukkan link atau ID Folder Google Drive tempat mahasiswa mengumpulkan berkas tugas mereka (misal folder pengumpulan dari Google Classroom atau Google Form). Klik tombol <strong>"Cek Folder"</strong> untuk memvalidasi.
-              </p>
-              <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px]">
-                💡 <strong>Kiat Folder Paralel:</strong> Jika seluruh kelas (Kelas A dan Kelas B) mengumpulkan pada 1 link folder Drive yang sama, cukup isi folder ini sekali di Kelola Tugas. Jika Kelas B mengumpulkan di link terpisah, Anda dapat mengatur folder override khusus Kelas B di tab Penilaian.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ========================================== -->
-      <!-- TOPIK 4: PENILAIAN & SINKRONISASI          -->
+      <!-- TOPIK 4: CARA MEMBERIKAN PENILAIAN         -->
       <!-- ========================================== -->
       <div id="guide-grading" class="guide-topic-section hidden space-y-4">
         <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 4</span>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 4</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
-                <span>🎓</span> <span>Alur Sinkronisasi &amp; Penilaian Otomatis Berbasis AI</span>
+                <span>🎓</span> <span>Cara Memberikan Penilaian Tugas (Panduan Lengkap)</span>
               </h3>
             </div>
             <button type="button" onclick="switchTab('tab-grading')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Penilaian &rarr;</button>
@@ -1099,96 +1120,127 @@ Database::initDatabase();
 
           <!-- Flowchart Visual -->
           <div class="p-4 bg-slate-900 text-slate-100 rounded-xl space-y-3">
-            <span class="text-xs font-bold uppercase tracking-wider text-blue-400">Alur Kerja Penilaian Cepat:</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-400">Alur Kerja 4 Langkah Penilaian:</span>
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-center text-xs">
               <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
+                <div class="text-lg mb-1">📝</div>
+                <div class="font-bold text-white">1. Siapkan Tugas</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Buat soal &amp; rubrik AI</div>
+              </div>
+              <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
                 <div class="text-lg mb-1">🔄</div>
-                <div class="font-bold text-white">1. Sinkron Drive</div>
-                <div class="text-[10px] text-slate-400 mt-0.5">Unduh berkas mahasiswa</div>
+                <div class="font-bold text-white">2. Sinkron Drive</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Unduh berkas jawaban</div>
               </div>
               <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
                 <div class="text-lg mb-1">▶️</div>
-                <div class="font-bold text-white">2. Nilai Semua</div>
+                <div class="font-bold text-white">3. Nilai Otomatis</div>
                 <div class="text-[10px] text-slate-400 mt-0.5">Antrean AI mengevaluasi</div>
               </div>
               <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
-                <div class="text-lg mb-1">📄</div>
-                <div class="font-bold text-white">3. Tinjau Berkas</div>
-                <div class="text-[10px] text-slate-400 mt-0.5">Klik file untuk lihat dokumen</div>
-              </div>
-              <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
-                <div class="text-lg mb-1">📊</div>
-                <div class="font-bold text-white">4. Rekapitulasi</div>
-                <div class="text-[10px] text-slate-400 mt-0.5">Ekspor ke Excel/PDF</div>
+                <div class="text-lg mb-1">👁️</div>
+                <div class="font-bold text-white">4. Tinjau &amp; Koreksi</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Otoritas dosen penuh</div>
               </div>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-700">
-            <!-- A. Cara Sinkronisasi -->
-            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
-              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                <span>🔄</span> <span>Dua Cara Sinkronisasi Berkas</span>
+          <div class="space-y-4 text-xs text-slate-700">
+            <!-- Tahap 1: Pembuatan Tugas & Rubrik Otomatis AI -->
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">A</span>
+                <span>Langkah 1: Menyiapkan Tugas &amp; Ekstraksi Rubrik Otomatis oleh Gemini AI</span>
               </h4>
-              <ul class="space-y-2 text-slate-600 leading-relaxed">
-                <li>
-                  <strong>A. Dari Tab Kelola Tugas (Rekomendasi):</strong> Pada kartu tugas, klik tombol <strong>"🔄 Sinkron Drive"</strong>. Berkas diunduh dari Drive dan otomatis disebarkan ke seluruh kelas paralel di bawah mata kuliah tersebut.
-                </li>
-                <li>
-                  <strong>B. Dari Tab Penilaian:</strong> Pilih tugas dan kelas &rarr; klik tombol <strong>"🔄 Sinkron Drive"</strong> di bilah atas tabel.
-                </li>
-                <li>
-                  <strong>C. Tanpa Google Drive (Upload ZIP):</strong> Jika tugas tidak di Drive, klik tombol <strong>"📦 Upload ZIP Tugas"</strong> untuk mengunggah 1 file ZIP berisi seluruh berkas jawaban mahasiswa.
-                </li>
+              <p class="text-slate-600 leading-relaxed">
+                Buka tab <strong>Kelola Tugas</strong> &rarr; klik <strong>"+ Buat Tugas Baru"</strong>. Tentukan judul tugas dan bobot persentase nilai akhir (misal <i>25.00%</i>). Unggah lembar soal tugas (format PDF/DOCX) lalu klik tombol:
+              </p>
+              <div class="py-1">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-xs">
+                  <span>✨</span> <span>Ekstrak dari Soal</span>
+                </span>
+              </div>
+              <p class="text-slate-600 leading-relaxed">
+                Gemini AI akan membedah butir pertanyaan pada lembar soal dan otomatis merumuskan butir-butir rubrik penilaian objektif dengan skor total 100. Masukkan link atau ID Folder Google Drive tempat mahasiswa mengumpulkan tugas &rarr; klik <strong>Simpan Tugas</strong>.
+              </p>
+            </div>
+
+            <!-- Tahap 2: Sinkronisasi Berkas Jawaban -->
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">B</span>
+                <span>Langkah 2: Sinkronisasi Berkas Mahasiswa</span>
+              </h4>
+              <p class="text-slate-600 leading-relaxed">
+                Sebelum memulai penilaian, Anda perlu mengunduh berkas jawaban mahasiswa ke server dengan salah satu cara berikut:
+              </p>
+              <ul class="list-disc list-inside space-y-1.5 pl-1 text-slate-700">
+                <li><strong>Dari Tab Kelola Tugas (Rekomendasi):</strong> Klik tombol <strong>"🔄 Sinkron Drive"</strong> pada kartu tugas. Berkas otomatis disebarkan ke semua kelas paralel di bawah mata kuliah tersebut.</li>
+                <li><strong>Dari Tab Penilaian:</strong> Pilih tugas &rarr; klik tombol <strong>"🔄 Sinkron Drive"</strong> di bilah tombol atas.</li>
+                <li><strong>Tanpa Google Drive (Upload ZIP):</strong> Jika tugas dikumpulkan via flashdisk/email, klik tombol <strong>"📦 Upload ZIP Tugas"</strong> untuk mengunggah arsip berkas sekaligus.</li>
               </ul>
             </div>
 
-            <!-- B. Menjalankan Penilaian -->
-            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
-              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                <span>▶️</span> <span>Opsi Penilaian Jawaban</span>
+            <!-- Tahap 3: Menjalankan Penilaian Otomatis -->
+            <div class="p-4 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-2.5">
+              <h4 class="font-bold text-blue-950 text-sm flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">C</span>
+                <span>Langkah 3: Menjalankan Penilaian Otomatis Berbasis AI</span>
               </h4>
-              <ul class="space-y-2 text-slate-600 leading-relaxed">
-                <li>
-                  <strong>▶️ Nilai Semua:</strong> Menilai seluruh mahasiswa kelas secara otomatis dalam antrean cerdas. Dilengkapi indikator progres animasi (*live progress bar*).
-                </li>
-                <li>
-                  <strong>🎯 Pilihan (N):</strong> Centang beberapa mahasiswa tertentu lalu klik tombol <i>Pilihan</i> untuk menilai hanya mahasiswa yang ditandai.
-                </li>
-                <li>
-                  <strong>👁️ Detail (Satuan):</strong> Klik tombol <i>Detail</i> pada baris mahasiswa untuk menilai atau meninjau ulasan secara individual.
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <!-- Arti Status Hasil Penilaian -->
-          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
-            <h4 class="font-bold text-slate-900 text-sm">Penjelasan Status Penilaian pada Tabel:</h4>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-              <div class="p-2.5 bg-white rounded-xl border border-emerald-200">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">✓ Selesai</span>
-                <p class="text-[11px] text-slate-600 mt-1">Jawaban berhasil dinilai AI. Menampilkan skor akhir, rincian kriteria, kelebihan, dan saran perbaikan.</p>
-              </div>
-              <div class="p-2.5 bg-white rounded-xl border border-amber-200">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">⚠️ Belum Kumpul</span>
-                <p class="text-[11px] text-slate-600 mt-1">Mahasiswa tidak mengumpulkan berkas tugas di folder Drive. Diberi skor <code class="font-bold">-</code> tanpa membuat error sistem.</p>
-              </div>
-              <div class="p-2.5 bg-white rounded-xl border border-rose-200">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">❌ Gagal</span>
-                <p class="text-[11px] text-slate-600 mt-1">Terjadi kendala kuota API atau koneksi. Klik tombol <i>Rincian</i> untuk melihat solusi, lalu gunakan tombol <i>Reset Gagal</i>.</p>
+              <p class="text-blue-900 leading-relaxed">
+                Pilih tugas yang ingin dinilai pada tab <strong>Penilaian</strong>. Anda memiliki 3 mode penilaian yang fleksibel:
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                <div class="p-3 bg-white rounded-xl border border-blue-200 space-y-1">
+                  <span class="font-bold text-emerald-700">1. Nilai Semua</span>
+                  <p class="text-slate-600">Menilai seluruh mahasiswa satu kelas secara otomatis antrean (*queue*) dengan animasi *live progress bar*.</p>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-blue-200 space-y-1">
+                  <span class="font-bold text-purple-700">2. Nilai Pilihan</span>
+                  <p class="text-slate-600">Centang kotak beberapa mahasiswa tertentu, lalu klik tombol <i>🎯 Pilihan (N)</i> untuk menilai hanya yang ditandai.</p>
+                </div>
+                <div class="p-3 bg-white rounded-xl border border-blue-200 space-y-1">
+                  <span class="font-bold text-blue-700">3. Penilaian Satuan</span>
+                  <p class="text-slate-600">Klik tombol <i>👁️ Detail</i> pada baris mahasiswa untuk menilai atau mengevaluasi ulang secara individual.</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Fitur Klik Langsung File -->
-          <div class="p-4 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs space-y-2">
-            <h4 class="font-bold text-blue-950 text-sm flex items-center gap-1.5">
-              <span>📄</span> <span>Fitur 1-Klik Buka Berkas Jawaban Mahasiswa Langsung</span>
-            </h4>
-            <p class="text-blue-900 leading-relaxed">
-              Setelah dinilai, pada kolom <strong>Berkas Jawaban</strong>, Anda cukup mengeklik nama berkas mahasiswa (contoh: <code class="bg-blue-100 px-1 py-0.5 rounded text-blue-900 font-bold">2488010001_Najwa.pdf ↗</code>). Sistem akan langsung membuka file dokumen PDF mahasiswa tersebut di Google Drive / peramban sehingga Anda dapat langsung membaca isi aslinya!
-            </p>
+            <!-- Tahap 4: Memahami Status & 1-Klik Buka Berkas -->
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">D</span>
+                <span>Langkah 4: Memahami Status Penilaian &amp; Fitur 1-Klik Buka Berkas</span>
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                <div class="p-2.5 bg-white rounded-xl border border-emerald-200">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">✓ Selesai</span>
+                  <p class="text-[11px] text-slate-600 mt-1">Tugas selesai dievaluasi AI. Nilai total dan rincian poin per butir soal otomatis tercatat.</p>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-amber-200">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">⚠️ Belum Kumpul</span>
+                  <p class="text-[11px] text-slate-600 mt-1">Mahasiswa tidak mengumpulkan berkas atau nama file tidak memuat identitas. Nilai tercatat <code class="font-bold">-</code>.</p>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-rose-200">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">❌ Gagal</span>
+                  <p class="text-[11px] text-slate-600 mt-1">Kendala kuota API/jaringan. Klik tombol <i>Reset Gagal</i> lalu klik <i>Nilai Semua</i> lagi.</p>
+                </div>
+              </div>
+              <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-900 mt-2 space-y-1">
+                <strong>📄 Fitur 1-Klik Buka Berkas:</strong> Pada kolom <i>Berkas Jawaban</i>, klik nama file (misal: <code class="bg-indigo-100 px-1 py-0.5 rounded font-bold">2488010001_Tugas1.pdf ↗</code>) untuk membuka dan membaca langsung dokumen asli mahasiswa di Google Drive / peramban.
+              </div>
+            </div>
+
+            <!-- Tahap 5: Koreksi Nilai Manual Dosen -->
+            <div class="p-4 bg-emerald-50/70 border border-emerald-200/80 rounded-xl space-y-2">
+              <h4 class="font-bold text-emerald-950 text-sm flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">E</span>
+                <span>Langkah 5: Otoritas Dosen &amp; Koreksi Manual Nilai</span>
+              </h4>
+              <p class="text-emerald-900 leading-relaxed">
+                AI bertindak sebagai asisten pemeriksa awal. <strong>Dosen memiliki kendali mutlak atas nilai mahasiswa</strong>. Jika Anda ingin merevisi nilai, klik tombol <strong>👁️ Detail</strong> pada baris mahasiswa &rarr; ubah angka nilai atau deskripsi evaluasi sesuka Anda &rarr; klik <strong>"Simpan Perubahan Nilai"</strong>.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -1200,7 +1252,7 @@ Database::initDatabase();
         <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 5</span>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 5</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
                 <span>📊</span> <span>Rekapitulasi Nilai Akhir &amp; Ekspor Laporan Resmi</span>
               </h3>
@@ -1219,10 +1271,10 @@ Database::initDatabase();
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
                 <h4 class="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <span>📥</span> <span>Ekspor ke Excel / CSV</span>
+                  <span>📥</span> <span>Ekspor Data ke File Excel (CSV)</span>
                 </h4>
                 <p class="text-emerald-900 leading-relaxed">
-                  Klik tombol <strong>"📥 Unduh CSV/Excel"</strong> untuk mengunduh rekapitulasi nilai lengkap seluruh tugas dalam format CSV yang kompatibel dengan Microsoft Excel, Google Sheets, dan sistem SIAKAD kampus Anda.
+                  Klik tombol <strong>"📥 Ekspor Excel (CSV)"</strong> untuk mengunduh rekapitulasi nilai lengkap seluruh tugas yang dapat langsung diimpor ke sistem SIAKAD kampus Anda.
                 </p>
               </div>
 
@@ -1246,7 +1298,7 @@ Database::initDatabase();
         <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 6</span>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 6</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
                 <span>❓</span> <span>Tanya Jawab (FAQ) &amp; Solusi Kendala Umum</span>
               </h3>
@@ -1854,6 +1906,16 @@ Database::initDatabase();
       }
       const targetSection = document.getElementById(tabId);
       if (targetSection) targetSection.classList.add('active');
+
+      // Indikator aktif pada tombol Panduan di Header Atas
+      const headerGuideBtn = document.getElementById('headerBtnGuide');
+      if (headerGuideBtn) {
+        if (tabId === 'tab-guide') {
+          headerGuideBtn.className = 'inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white border border-indigo-400 shadow-md transition cursor-pointer ring-2 ring-indigo-400/50';
+        } else {
+          headerGuideBtn.className = 'inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-400/40 transition shadow-xs cursor-pointer';
+        }
+      }
 
       if (tabId === 'tab-reports' && appState.activeClassId) {
         loadClassReport(appState.activeClassId);
@@ -4183,21 +4245,11 @@ Database::initDatabase();
       try {
         const res = await AppAPI.login(email, password);
         if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = '<span>Masuk ke Portal</span>';
+          btn.innerHTML = '<span class="spinner inline-block w-4 h-4 mr-2"></span> Memuat sesi akun baru...';
         }
-        if (res && res.user) {
-          appState.currentUser = res.user;
-          const nameEl = document.getElementById('headerUserName');
-          const roleEl = document.getElementById('headerUserRole');
-          if (nameEl) nameEl.textContent = res.user.nama || res.user.nama_lengkap;
-          if (roleEl) {
-            const isAdmin = res.user.role === 'admin';
-            roleEl.textContent = isAdmin ? 'Administrator' : 'Dosen';
-            roleEl.className = isAdmin ? 'text-[10px] text-purple-400 font-bold uppercase tracking-wider' : 'text-[10px] text-blue-400 font-medium capitalize';
-          }
-        }
-        initApp();
+        // Bersihkan state memori total dan muat ulang halaman secara fresh untuk akun baru
+        window.location.reload();
+        return;
       } catch (err) {
         if (btn) {
           btn.disabled = false;
@@ -4217,11 +4269,8 @@ Database::initDatabase();
       } catch (err) {
         console.error(err);
       }
-      appState.currentUser = null;
-      document.getElementById('appWrapper')?.classList.add('hidden');
-      document.getElementById('loginScreenContainer')?.classList.remove('hidden');
-      const passInp = document.getElementById('loginPassword');
-      if (passInp) passInp.value = '';
+      // Hancurkan memori sesi dan muat ulang halaman ke formulir login bersih
+      window.location.reload();
     }
 
     async function saveMyProfile() {
