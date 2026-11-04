@@ -140,6 +140,27 @@ try {
             ]);
             break;
 
+        case 'impersonateUser':
+        case 'adminImpersonateUser':
+            $targetId = trim($input['id_user'] ?? $input['userId'] ?? '');
+            if (!$targetId) throw new Exception("ID Pengguna tujuan wajib disertakan.");
+            $impersonated = UserService::impersonateUser($targetId);
+            Helper::json([
+                'success' => true,
+                'message' => "Berhasil masuk sebagai {$impersonated['nama_lengkap']}.",
+                'user'    => $impersonated
+            ]);
+            break;
+
+        case 'revertImpersonation':
+            $reverted = UserService::revertImpersonation();
+            Helper::json([
+                'success' => true,
+                'message' => "Kembali ke akun Administrator ({$reverted['nama_lengkap']}).",
+                'user'    => $reverted
+            ]);
+            break;
+
         case 'adminSaveGlobalOAuth':
             UserService::requireAdmin();
             $clientId = trim($input['clientId'] ?? '');
@@ -1183,7 +1204,8 @@ function getCoursesList(?array $user = null): array {
             LEFT JOIN users u ON c.id_user = u.id_user";
     $params = [];
 
-    if ($user && $user['role'] !== 'admin') {
+    // Isolasi ketat: Setiap pengguna (Dosen maupun Admin) hanya melihat mata kuliah miliknya sendiri
+    if ($user && !empty($user['id_user'])) {
         $sql .= " WHERE c.id_user = ?";
         $params[] = $user['id_user'];
     }
@@ -1234,7 +1256,8 @@ function getClassesList(?string $courseId = null, ?array $user = null): array {
         $params[] = $courseId;
     }
 
-    if ($user && $user['role'] !== 'admin') {
+    // Isolasi ketat: Setiap pengguna (Dosen maupun Admin) hanya melihat kelas miliknya sendiri
+    if ($user && !empty($user['id_user'])) {
         $where[] = "mk.id_user = ?";
         $params[] = $user['id_user'];
     }

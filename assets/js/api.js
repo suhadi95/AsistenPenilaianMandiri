@@ -149,6 +149,14 @@ const AppAPI = {
     return this.call('adminDeleteUser', { id_user });
   },
 
+  async impersonateUser(id_user) {
+    return this.call('impersonateUser', { id_user });
+  },
+
+  async revertImpersonation() {
+    return this.call('revertImpersonation');
+  },
+
   async adminSaveGlobalOAuth(clientId, clientSecret) {
     return this.call('adminSaveGlobalOAuth', { clientId, clientSecret });
   }

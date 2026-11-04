@@ -154,6 +154,18 @@ Database::initDatabase();
       </div>
     </header>
 
+    <!-- IMPERSONATION / LOGIN AS WARNING BAR (ADMIN ONLY) -->
+    <div id="impersonationBanner" class="hidden bg-amber-500 text-slate-950 px-3 sm:px-6 py-2 text-xs font-semibold shadow-md border-b border-amber-600 flex items-center justify-between gap-3 sticky top-0 sm:top-0 z-40">
+      <div class="flex items-center gap-2 truncate">
+        <span class="text-sm shrink-0">⚠️</span>
+        <span class="truncate">Mode Penyamaran: Anda sedang masuk sebagai <strong id="impersonatedUserName" class="underline">Dosen</strong> (<span id="impersonatedUserEmail">email</span>).</span>
+      </div>
+      <button onclick="exitImpersonation()" class="px-2.5 sm:px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer shrink-0">
+        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        <span>Kembali ke Akun Admin</span>
+      </button>
+    </div>
+
     <!-- NAVIGATION TABS -->
     <nav class="bg-white border-b border-slate-200 sticky top-14 sm:top-16 z-30 shadow-xs">
       <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
@@ -179,7 +191,7 @@ Database::initDatabase();
             <span>Rekapitulasi</span>
           </button>
           <!-- Tab Khusus Admin: Kelola Pengguna -->
-          <button onclick="switchTab('tab-users')" id="nav-tab-users" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 hidden items-center gap-1.5">
+          <button onclick="switchTab('tab-users')" id="nav-tab-users" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 hidden flex items-center gap-1.5">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             <span>Kelola Pengguna</span>
           </button>
@@ -1886,16 +1898,38 @@ Database::initDatabase();
             roleEl.className = isAdmin ? 'text-[10px] text-purple-400 font-bold uppercase tracking-wider' : 'text-[10px] text-blue-400 font-medium capitalize';
           }
 
+          // Impersonation Banner (Mode Penyamaran Administrator)
+          const impBanner = document.getElementById('impersonationBanner');
+          if (impBanner) {
+            if (data.currentUser && data.currentUser.isImpersonating) {
+              impBanner.classList.remove('hidden');
+              impBanner.classList.add('flex');
+              const uName = document.getElementById('impersonatedUserName');
+              const uEmail = document.getElementById('impersonatedUserEmail');
+              if (uName) uName.textContent = data.currentUser.nama || data.currentUser.nama_lengkap || 'Dosen';
+              if (uEmail) uEmail.textContent = data.currentUser.email || '';
+            } else {
+              impBanner.classList.add('hidden');
+              impBanner.classList.remove('flex');
+            }
+          }
+
           // Tab & Bagian Khusus Administrator
           const navUsers = document.getElementById('nav-tab-users');
           const adminOAuth = document.getElementById('adminGlobalOAuthConfig');
           const adminReset = document.getElementById('adminResetDbSection');
-          if (data.currentUser.role === 'admin') {
-            if (navUsers) navUsers.classList.remove('hidden');
+          if (data.currentUser.role === 'admin' && !data.currentUser.isImpersonating) {
+            if (navUsers) {
+              navUsers.classList.remove('hidden');
+              navUsers.classList.add('flex');
+            }
             if (adminOAuth) adminOAuth.classList.remove('hidden');
             if (adminReset) adminReset.classList.remove('hidden');
           } else {
-            if (navUsers) navUsers.classList.add('hidden');
+            if (navUsers) {
+              navUsers.classList.add('hidden');
+              navUsers.classList.remove('flex');
+            }
             if (adminOAuth) adminOAuth.classList.add('hidden');
             if (adminReset) adminReset.classList.add('hidden');
           }
@@ -4800,6 +4834,10 @@ Database::initDatabase();
               <td class="p-3">${geminiBadge}</td>
               <td class="p-3 text-slate-500 text-[11px]">${u.created_at || '-'}</td>
               <td class="p-3 text-right space-x-1 whitespace-nowrap">
+                ${!isMe ? `
+                <button onclick="impersonateUser('${u.id_user}', '${escapeHtml(u.nama_lengkap || '')}')" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[11px] font-bold transition inline-flex items-center gap-1 shadow-2xs cursor-pointer" title="Masuk sebagai ${escapeHtml(u.nama_lengkap || '')} tanpa perlu kata sandi">
+                  <span>🔑</span> <span>Login As</span>
+                </button>` : ''}
                 <button onclick="openEditUserModal('${userJson}')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition">
                   ✏️ Edit
                 </button>
@@ -4901,6 +4939,36 @@ Database::initDatabase();
         loadAdminUsers();
       } catch (err) {
         showGlobalAlert('Gagal menghapus pengguna: ' + err.message, 'error');
+      }
+    }
+
+    async function impersonateUser(userId, userName) {
+      if (!confirm(`Apakah Anda yakin ingin masuk sebagai "${userName}"?\n\nAnda dapat melihat dan memeriksa mata kuliah, kelas, tugas, berkas, serta rekapitulasi akun ini persis seperti pengajar yang bersangkutan tanpa perlu mengetahui kata sandinya.`)) return;
+
+      try {
+        showGlobalAlert(`Sedang beralih masuk sebagai ${userName}...`, 'info');
+        const res = await AppAPI.impersonateUser(userId);
+        if (res.success) {
+          window.location.reload();
+        } else {
+          showGlobalAlert(res.message || 'Gagal masuk sebagai pengguna tersebut.', 'error');
+        }
+      } catch (err) {
+        showGlobalAlert('Gagal masuk sebagai pengguna: ' + err.message, 'error');
+      }
+    }
+
+    async function exitImpersonation() {
+      try {
+        showGlobalAlert('Sedang kembali ke akun Administrator...', 'info');
+        const res = await AppAPI.revertImpersonation();
+        if (res.success) {
+          window.location.reload();
+        } else {
+          showGlobalAlert(res.message || 'Gagal kembali ke akun Administrator.', 'error');
+        }
+      } catch (err) {
+        showGlobalAlert('Gagal kembali ke akun Administrator: ' + err.message, 'error');
       }
     }
 

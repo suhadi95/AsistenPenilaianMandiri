@@ -133,6 +133,8 @@ class UserService {
             'hasDriveConnected'      => $hasGoogle,
             'googleConnectedEmail'   => $user['google_connected_email'] ?: '',
             'google_connected_email' => $user['google_connected_email'] ?: '',
+            'isImpersonating'        => !empty($_SESSION['impersonator_admin_id']),
+            'impersonatorAdminId'    => $_SESSION['impersonator_admin_id'] ?? null,
             'lastLoginAt'            => !empty($user['last_login_at']) ? date('d/m/Y H:i', strtotime($user['last_login_at'])) : '-',
             'createdAt'              => !empty($user['created_at']) ? date('d/m/Y', strtotime($user['created_at'])) : '-',
             'created_at'             => !empty($user['created_at']) ? date('d/m/Y', strtotime($user['created_at'])) : '-'
@@ -301,6 +303,75 @@ class UserService {
 
         $updated = Database::fetchOne("SELECT * FROM users WHERE id_user = ?", [$userId]);
         return self::sanitizeUser($updated);
+    }
+
+    /**
+     * Masuk sebagai pengguna lain (Impersonation / Login As - Khusus Admin)
+     */
+    public static function impersonateUser(string $targetUserId): array {
+        self::startSession();
+
+        $adminId = $_SESSION['impersonator_admin_id'] ?? $_SESSION['user_id'] ?? null;
+        if (!$adminId) {
+            throw new Exception("Sesi login tidak valid.", 401);
+        }
+
+        $admin = Database::fetchOne("SELECT * FROM users WHERE id_user = ?", [$adminId]);
+        if (!$admin || $admin['role'] !== 'admin' || $admin['status'] !== 'active') {
+            throw new Exception("Hanya Administrator yang memiliki wewenang untuk masuk sebagai pengguna lain.", 403);
+        }
+
+        if ($targetUserId === $adminId) {
+            throw new Exception("Anda sudah berada pada akun administrator ini.");
+        }
+
+        $targetUser = Database::fetchOne("SELECT * FROM users WHERE id_user = ?", [$targetUserId]);
+        if (!$targetUser) {
+            throw new Exception("Pengguna tujuan tidak ditemukan.");
+        }
+
+        if ($targetUser['status'] === 'inactive' || $targetUser['status'] === 'nonaktif') {
+            throw new Exception("Akun pengguna ini sedang dinonaktifkan.");
+        }
+
+        // Catat admin ID penyamar dan alihkan sesi aktif ke pengguna tujuan
+        $_SESSION['impersonator_admin_id'] = $adminId;
+        $_SESSION['user_id'] = $targetUser['id_user'];
+        $_SESSION['user_role'] = $targetUser['role'];
+        $_SESSION['user_email'] = $targetUser['email'];
+        $_SESSION['user_nama'] = $targetUser['nama'];
+
+        $sanitized = self::sanitizeUser($targetUser);
+        $sanitized['isImpersonating'] = true;
+        return $sanitized;
+    }
+
+    /**
+     * Kembali ke akun Administrator semula dari mode penyamaran (Exit Impersonation)
+     */
+    public static function revertImpersonation(): array {
+        self::startSession();
+
+        $adminId = $_SESSION['impersonator_admin_id'] ?? null;
+        if (!$adminId) {
+            throw new Exception("Anda saat ini tidak sedang dalam mode penyamaran.");
+        }
+
+        $admin = Database::fetchOne("SELECT * FROM users WHERE id_user = ?", [$adminId]);
+        if (!$admin || $admin['status'] !== 'active') {
+            throw new Exception("Akun administrator tidak ditemukan atau nonaktif.");
+        }
+
+        // Pulihkan sesi ke administrator semula
+        $_SESSION['user_id'] = $admin['id_user'];
+        $_SESSION['user_role'] = $admin['role'];
+        $_SESSION['user_email'] = $admin['email'];
+        $_SESSION['user_nama'] = $admin['nama'];
+        unset($_SESSION['impersonator_admin_id']);
+
+        $sanitized = self::sanitizeUser($admin);
+        $sanitized['isImpersonating'] = false;
+        return $sanitized;
     }
 
     /**
