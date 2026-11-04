@@ -1260,9 +1260,32 @@ function getTasksByCourseList(string $courseId): array {
         $totalScore = array_reduce($taskGrades, fn($sum, $g) => $sum + (float)$g['nilai_total'], 0);
         $avg = $gradedCount > 0 ? round($totalScore / $gradedCount, 1) : 0;
 
+        // Hitung jumlah berkas tugas mahasiswa yang sudah tersimpan di server
+        $sharedDir = FileService::getSharedSubmissionsDir($tId);
+        $sharedFiles = is_dir($sharedDir) ? array_diff(scandir($sharedDir), ['.', '..', 'drive_files_map.json']) : [];
+        $subCount = count($sharedFiles);
+
+        if ($subCount === 0) {
+            $cleanTId = preg_replace('/[^a-zA-Z0-9_-]/', '', $tId);
+            $taskBaseDir = FileService::getUploadDir() . "/tasks/{$cleanTId}";
+            if (is_dir($taskBaseDir)) {
+                $subDirs = array_diff(scandir($taskBaseDir), ['.', '..', 'shared']);
+                $maxInSub = 0;
+                foreach ($subDirs as $sd) {
+                    $clsDir = "{$taskBaseDir}/{$sd}";
+                    if (is_dir($clsDir)) {
+                        $cf = array_diff(scandir($clsDir), ['.', '..', 'drive_files_map.json']);
+                        if (count($cf) > $maxInSub) $maxInSub = count($cf);
+                    }
+                }
+                $subCount = $maxInSub;
+            }
+        }
+
         return array_merge($task, [
-            'gradedCount'  => $gradedCount,
-            'averageScore' => $avg
+            'gradedCount'     => $gradedCount,
+            'averageScore'    => $avg,
+            'submissionCount' => $subCount
         ]);
     }, $tasks);
 }
