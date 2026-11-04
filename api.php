@@ -21,6 +21,10 @@ require_once __DIR__ . '/services/UserService.php';
 UserService::startSession();
 Database::initDatabase();
 
+if (defined('APM_TEST_MODE')) {
+    return;
+}
+
 // Parsing input: dukung JSON body, POST multipart, atau GET query
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 $input = [];
@@ -331,7 +335,7 @@ try {
                     throw new Exception("Folder Google Drive belum diatur pada tugas '{$taskName}'. Silakan edit tugas di tab 'Kelola Tugas' dan isi link/ID folder Drive.");
                 }
 
-                $syncRes = GoogleDriveService::syncDriveFolderForTaskAllClasses($taskId, $task['id_mata_kuliah'], $folderId);
+                $syncRes = GoogleDriveService::syncDriveFolderForTaskAllClasses($taskId, $task['id_mata_kuliah'], $folderId, $cur['id_user']);
                 Helper::json($syncRes);
                 break;
             }
@@ -349,7 +353,7 @@ try {
                 throw new Exception("Folder Google Drive tempat tugas mahasiswa belum diisi pada tugas '{$taskName}'. Silakan edit tugas atau atur folder kelas.");
             }
 
-            $syncRes = GoogleDriveService::syncDriveFolderToLocal($taskId, $classId, $folderId);
+            $syncRes = GoogleDriveService::syncDriveFolderToLocal($taskId, $classId, $folderId, $cur['id_user']);
             Helper::json($syncRes);
             break;
 
@@ -417,9 +421,15 @@ try {
                 if ($cur && !empty($cur['gemini_api_key'])) {
                     $key = $cur['gemini_api_key'];
                 } else {
-                    $saved = getSetting('GEMINI_API_KEY');
-                    $key = $saved ?: '';
+                    $key = '';
                 }
+            }
+            if (empty($key)) {
+                Helper::json([
+                    'success' => false,
+                    'message' => 'Gemini API Key belum dimasukkan. Silakan isi API key Anda terlebih dahulu di menu Pengaturan.'
+                ]);
+                break;
             }
             $model = $input['model'] ?? ($cur['model_name'] ?? 'gemini-3.5-flash-lite');
             $testRes = GeminiService::testConnection($key, $model);
@@ -1134,28 +1144,26 @@ function saveSetting(string $key, string $value): void {
 function getSystemSettings(?array $user = null): array {
     $config = Database::loadConfig();
 
-    // Preferensi API Key & Model: per-pengguna aktif (BYOK), fallback ke global
+    // Preferensi API Key & Model: STRICTLY terisolasi per-pengguna aktif (BYOK)
     $rawApiKey = '';
     $modelName = 'gemini-3.5-flash-lite';
     $userId = $user ? $user['id_user'] : null;
 
     if ($user && !empty($user['gemini_api_key'])) {
         $rawApiKey = $user['gemini_api_key'];
-    } else {
-        $rawApiKey = getSetting('GEMINI_API_KEY') ?: ($config['gemini']['api_key'] ?? '');
     }
 
     if ($user && !empty($user['model_name'])) {
         $modelName = $user['model_name'];
     } else {
-        $modelName = getSetting('MODEL_NAME') ?: ($config['gemini']['default_model'] ?? 'gemini-3.5-flash-lite');
+        $modelName = $config['gemini']['default_model'] ?? 'gemini-3.5-flash-lite';
     }
 
     $activeCourseId = getSetting('ACTIVE_COURSE_ID') ?: '';
     $activeClassId = getSetting('ACTIVE_CLASS_ID') ?: '';
 
     return [
-        'apiKey'              => Helper::maskApiKey($rawApiKey),
+        'apiKey'              => !empty($rawApiKey) ? Helper::maskApiKey($rawApiKey) : '',
         'hasApiKey'           => !empty($rawApiKey),
         'rawApiKey'           => $rawApiKey,
         'modelName'           => $modelName,

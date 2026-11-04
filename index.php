@@ -1916,6 +1916,8 @@ Database::initDatabase();
           }
           if (appState.settings.apiKey) {
             document.getElementById('inputApiKey').value = appState.settings.apiKey;
+          } else {
+            document.getElementById('inputApiKey').value = '';
           }
           if (appState.settings.googleOAuth) {
             renderGoogleOAuthStatus(appState.settings.googleOAuth);

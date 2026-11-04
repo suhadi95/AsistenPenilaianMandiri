@@ -316,6 +316,36 @@ class Database {
         } catch (Exception $e) {
             error_log("Admin seed error: " . $e->getMessage());
         }
+
+        // 5. Migrasi aman kredensial legacy dari tabel settings ke akun admin
+        // dan bersihkan dari tabel settings agar TIDAK bocor ke akun dosen/pengguna lain
+        try {
+            $legacyApiKey = self::getSetting('GEMINI_API_KEY');
+            $legacyGoogleAccess = self::getSetting('GOOGLE_ACCESS_TOKEN');
+            $legacyGoogleRefresh = self::getSetting('GOOGLE_REFRESH_TOKEN');
+            $legacyGoogleExpires = self::getSetting('GOOGLE_TOKEN_EXPIRES_AT');
+            $legacyGoogleEmail = self::getSetting('GOOGLE_CONNECTED_EMAIL');
+
+            if (!empty($legacyApiKey) || !empty($legacyGoogleAccess) || !empty($legacyGoogleRefresh)) {
+                $adminUser = self::fetchOne("SELECT * FROM users WHERE role = 'admin' ORDER BY created_at ASC LIMIT 1");
+                if ($adminUser) {
+                    if (empty($adminUser['gemini_api_key']) && !empty($legacyApiKey)) {
+                        self::execute("UPDATE users SET gemini_api_key = ? WHERE id_user = ?", [$legacyApiKey, $adminUser['id_user']]);
+                    }
+                    if (empty($adminUser['google_access_token']) && !empty($legacyGoogleAccess)) {
+                        self::execute(
+                            "UPDATE users SET google_access_token = ?, google_refresh_token = ?, google_token_expires_at = ?, google_connected_email = ? WHERE id_user = ?",
+                            [$legacyGoogleAccess, $legacyGoogleRefresh, (int)$legacyGoogleExpires, $legacyGoogleEmail, $adminUser['id_user']]
+                        );
+                    }
+                }
+            }
+
+            // Hapus kredensial privat dari tabel settings global agar terisolasi penuh per akun
+            self::execute("DELETE FROM settings WHERE setting_key IN ('GEMINI_API_KEY', 'GOOGLE_ACCESS_TOKEN', 'GOOGLE_REFRESH_TOKEN', 'GOOGLE_TOKEN_EXPIRES_AT', 'GOOGLE_CONNECTED_EMAIL')");
+        } catch (Exception $e) {
+            error_log("Credential isolation migration error: " . $e->getMessage());
+        }
     }
 
     /**

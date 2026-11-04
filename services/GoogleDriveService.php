@@ -115,7 +115,7 @@ class GoogleDriveService {
         $expiresAt = time() + ($json['expires_in'] ?? 3600);
         $refreshToken = $json['refresh_token'] ?? null;
 
-        // Simpan token khusus ke profil pengguna aktif
+        // Simpan token khusus ke profil pengguna aktif (terisolasi per akun)
         if (!empty($targetUser)) {
             if (!empty($refreshToken)) {
                 Database::execute(
@@ -128,16 +128,6 @@ class GoogleDriveService {
                     [$json['access_token'], $expiresAt, $userEmail, $targetUser]
                 );
             }
-        }
-
-        // Simpan juga ke settings sebagai fallback global
-        Database::saveSetting('GOOGLE_ACCESS_TOKEN', $json['access_token']);
-        if (!empty($refreshToken)) {
-            Database::saveSetting('GOOGLE_REFRESH_TOKEN', $refreshToken);
-        }
-        Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', (string)$expiresAt);
-        if ($userEmail) {
-            Database::saveSetting('GOOGLE_CONNECTED_EMAIL', $userEmail);
         }
 
         return [
@@ -175,25 +165,20 @@ class GoogleDriveService {
      */
     public static function getValidAccessToken(?string $userId = null): ?string {
         $targetUser = self::getTargetUserId($userId);
+        if (empty($targetUser)) {
+            return null;
+        }
+
         $token = null;
         $expiresAt = 0;
         $refreshToken = null;
 
-        // 1. Cek di profil pengguna
-        if (!empty($targetUser)) {
-            $u = Database::fetchOne("SELECT google_access_token, google_token_expires_at, google_refresh_token FROM users WHERE id_user = ?", [$targetUser]);
-            if ($u) {
-                $token = $u['google_access_token'] ?: null;
-                $expiresAt = (int)($u['google_token_expires_at'] ?: 0);
-                $refreshToken = $u['google_refresh_token'] ?: null;
-            }
-        }
-
-        // 2. Fallback ke settings global
-        if (empty($token) && empty($refreshToken)) {
-            $token = Database::getSetting('GOOGLE_ACCESS_TOKEN');
-            $expiresAt = (int)(Database::getSetting('GOOGLE_TOKEN_EXPIRES_AT') ?: 0);
-            $refreshToken = Database::getSetting('GOOGLE_REFRESH_TOKEN');
+        // Cek EKSKLUSIF di profil pengguna aktif (tanpa fallback ke akun pengguna lain)
+        $u = Database::fetchOne("SELECT google_access_token, google_token_expires_at, google_refresh_token FROM users WHERE id_user = ?", [$targetUser]);
+        if ($u) {
+            $token = $u['google_access_token'] ?: null;
+            $expiresAt = (int)($u['google_token_expires_at'] ?: 0);
+            $refreshToken = $u['google_refresh_token'] ?: null;
         }
 
         if (empty($token) && empty($refreshToken)) {
@@ -205,7 +190,7 @@ class GoogleDriveService {
             return $token;
         }
 
-        // Segarkan token menggunakan refresh_token
+        // Segarkan token menggunakan refresh_token milik pengguna ini
         if (!empty($refreshToken)) {
             return self::refreshAccessToken($refreshToken, $targetUser);
         }
@@ -255,9 +240,6 @@ class GoogleDriveService {
                     [$newAccess, $expiresAt, $userId]
                 );
             }
-
-            Database::saveSetting('GOOGLE_ACCESS_TOKEN', $newAccess);
-            Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', (string)$expiresAt);
             return $newAccess;
         }
 
@@ -283,13 +265,8 @@ class GoogleDriveService {
             );
         }
 
-        // Jika tidak ada user spesifik, hapus global
-        if (empty($targetUser)) {
-            Database::saveSetting('GOOGLE_ACCESS_TOKEN', '');
-            Database::saveSetting('GOOGLE_REFRESH_TOKEN', '');
-            Database::saveSetting('GOOGLE_TOKEN_EXPIRES_AT', '0');
-            Database::saveSetting('GOOGLE_CONNECTED_EMAIL', '');
-        }
+        // Hapus juga dari tabel settings untuk mencegah residu legacy
+        Database::execute("DELETE FROM settings WHERE setting_key IN ('GOOGLE_ACCESS_TOKEN', 'GOOGLE_REFRESH_TOKEN', 'GOOGLE_TOKEN_EXPIRES_AT', 'GOOGLE_CONNECTED_EMAIL')");
 
         return true;
     }
@@ -299,15 +276,15 @@ class GoogleDriveService {
      */
     public static function getOAuthStatus(?string $userId = null): array {
         $targetUser = self::getTargetUserId($userId);
-        $connected = self::isConnected($targetUser);
+        $connected = false;
         $email = '';
 
         if (!empty($targetUser)) {
-            $u = Database::fetchOne("SELECT google_connected_email FROM users WHERE id_user = ?", [$targetUser]);
-            $email = $u['google_connected_email'] ?? '';
-        }
-        if (empty($email)) {
-            $email = Database::getSetting('GOOGLE_CONNECTED_EMAIL') ?: '';
+            $connected = self::isConnected($targetUser);
+            if ($connected) {
+                $u = Database::fetchOne("SELECT google_connected_email FROM users WHERE id_user = ?", [$targetUser]);
+                $email = $u['google_connected_email'] ?? '';
+            }
         }
 
         $clientId = Database::getSetting('GOOGLE_CLIENT_ID') ?: '';
@@ -325,10 +302,10 @@ class GoogleDriveService {
     /**
      * Membaca daftar berkas pada suatu folder Google Drive
      */
-    public static function listFilesInFolder(string $folderId): array {
-        $token = self::getValidAccessToken();
+    public static function listFilesInFolder(string $folderId, ?string $userId = null): array {
+        $token = self::getValidAccessToken($userId);
         if (!$token) {
-            throw new Exception("Akun Google belum terhubung atau token otorisasi kedaluwarsa. Silakan hubungkan kembali di tab Pengaturan.");
+            throw new Exception("Akun Google Drive belum terhubung atau token otorisasi kedaluwarsa. Silakan hubungkan akun Google Anda di tab Pengaturan.");
         }
 
         $cleanId = Helper::extractDriveFolderId($folderId);
@@ -370,7 +347,14 @@ class GoogleDriveService {
         $json = json_decode($res, true);
         if ($status !== 200) {
             $msg = $json['error']['message'] ?? "Kesalahan HTTP {$status} saat membaca folder Drive.";
-            $userEmail = Database::getSetting('GOOGLE_CONNECTED_EMAIL') ?: 'akun Anda';
+            $targetUser = self::getTargetUserId($userId);
+            $userEmail = 'akun Google Anda';
+            if (!empty($targetUser)) {
+                $u = Database::fetchOne("SELECT google_connected_email FROM users WHERE id_user = ?", [$targetUser]);
+                if (!empty($u['google_connected_email'])) {
+                    $userEmail = $u['google_connected_email'];
+                }
+            }
             if ($status === 403 && (str_contains(strtolower($msg), 'drive api') || str_contains(strtolower($msg), 'not been used') || str_contains(strtolower($msg), 'disabled'))) {
                 $msg .= " (Harap aktifkan 'Google Drive API' di Google Cloud Console pada menu APIs & Services > Enabled APIs & Services lalu tunggu 1-2 menit).";
             } elseif ($status === 404) {
@@ -385,8 +369,8 @@ class GoogleDriveService {
     /**
      * Mengunduh konten satu berkas dari Google Drive langsung
      */
-    public static function downloadFile(string $fileId, string $targetPath, string $mimeType = ''): bool {
-        $token = self::getValidAccessToken();
+    public static function downloadFile(string $fileId, string $targetPath, string $mimeType = '', ?string $userId = null): bool {
+        $token = self::getValidAccessToken($userId);
         if (!$token) return false;
 
         // Jika Google Docs atau Sheets, ekspor ke PDF
@@ -435,7 +419,7 @@ class GoogleDriveService {
     /**
      * Sinkronisasi seluruh isi folder Google Drive ke folder server lokal untuk kelas tertentu
      */
-    public static function syncDriveFolderToLocal(string $taskId, string $classId, string $folderId): array {
+    public static function syncDriveFolderToLocal(string $taskId, string $classId, string $folderId, ?string $userId = null): array {
         @set_time_limit(180);
         @ini_set('memory_limit', '256M');
 
@@ -444,7 +428,7 @@ class GoogleDriveService {
             throw new Exception("ID Folder Google Drive tidak valid ('{$folderId}').");
         }
 
-        $files = self::listFilesInFolder($cleanFolderId);
+        $files = self::listFilesInFolder($cleanFolderId, $userId);
         if (empty($files)) {
             return [
                 'success'      => true,
@@ -526,7 +510,7 @@ class GoogleDriveService {
             }
 
             // Unduh berkas
-            if (self::downloadFile($fileId, $targetPath, $mimeType)) {
+            if (self::downloadFile($fileId, $targetPath, $mimeType, $userId)) {
                 if (!empty($modifiedTime)) {
                     $mtime = strtotime($modifiedTime);
                     if ($mtime > 0) @touch($targetPath, $mtime);
@@ -562,7 +546,7 @@ class GoogleDriveService {
     /**
      * Sinkronisasi seluruh isi folder Google Drive tugas utama dan mendistribusikannya ke seluruh kelas
      */
-    public static function syncDriveFolderForTaskAllClasses(string $taskId, string $courseId, string $folderId): array {
+    public static function syncDriveFolderForTaskAllClasses(string $taskId, string $courseId, string $folderId, ?string $userId = null): array {
         @set_time_limit(180);
         @ini_set('memory_limit', '256M');
 
@@ -571,7 +555,7 @@ class GoogleDriveService {
             throw new Exception("ID Folder Google Drive tugas belum diisi atau tidak valid.");
         }
 
-        $files = self::listFilesInFolder($cleanFolderId);
+        $files = self::listFilesInFolder($cleanFolderId, $userId);
         if (empty($files)) {
             return [
                 'success'      => true,
@@ -644,7 +628,7 @@ class GoogleDriveService {
                 }
             }
 
-            if (self::downloadFile($fileId, $targetPath, $mimeType)) {
+            if (self::downloadFile($fileId, $targetPath, $mimeType, $userId)) {
                 if (!empty($modifiedTime)) {
                     $mtime = strtotime($modifiedTime);
                     if ($mtime > 0) @touch($targetPath, $mtime);
