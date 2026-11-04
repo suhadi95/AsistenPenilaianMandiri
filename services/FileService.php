@@ -126,6 +126,13 @@ class FileService {
                 if ($stream) {
                     file_put_contents($destFilePath, stream_get_contents($stream));
                     fclose($stream);
+
+                    // Pertahankan timestamp asli dari arsip ZIP
+                    $stat = $zip->statIndex($i);
+                    if (!empty($stat['mtime'])) {
+                        @touch($destFilePath, (int)$stat['mtime']);
+                    }
+
                     $extractedCount++;
                     $extractedFiles[] = $cleanFileName;
                 }
@@ -276,10 +283,19 @@ class FileService {
 
         // Biner Multimodal (PDF, Gambar, Audio, Video)
         $mimeType = 'application/octet-stream';
-        if ($ext === 'pdf') $mimeType = 'application/pdf';
-        elseif (in_array($ext, ['png', 'jpg', 'jpeg', 'webp'], true)) $mimeType = "image/{$ext}";
-        elseif ($ext === 'mp3') $mimeType = 'audio/mp3';
-        elseif ($ext === 'mp4') $mimeType = 'video/mp4';
+        if ($ext === 'pdf') {
+            $mimeType = 'application/pdf';
+        } elseif (in_array($ext, ['jpg', 'jpeg'], true)) {
+            $mimeType = 'image/jpeg';
+        } elseif (in_array($ext, ['png', 'webp'], true)) {
+            $mimeType = "image/{$ext}";
+        } elseif (in_array($ext, ['heic', 'heif'], true)) {
+            $mimeType = "image/{$ext}";
+        } elseif ($ext === 'mp3') {
+            $mimeType = 'audio/mp3';
+        } elseif ($ext === 'mp4') {
+            $mimeType = 'video/mp4';
+        }
 
         $fileContent = file_get_contents($filePath);
         $base64 = base64_encode($fileContent);
@@ -413,6 +429,8 @@ class FileService {
             $ext = 'jpg';
         } elseif (str_starts_with($downloadedContent, "\x89PNG")) {
             $ext = 'png';
+        } elseif (strlen($downloadedContent) > 12 && str_contains(substr($downloadedContent, 4, 8), 'ftyp')) {
+            $ext = 'heic';
         }
 
         $tempPath = $tempDir . '/remote_' . md5($trimmed) . '.' . $ext;
@@ -523,6 +541,91 @@ class FileService {
     }
 
     /**
+     * Memilih kandidat berkas tugas terbaik/terbaru jika mahasiswa memiliki lebih dari 1 berkas jawaban
+     * Mengurutkan berdasarkan timestamp (Google Drive modifiedTime atau filemtime lokal) dan nomor versi/revisi nama berkas
+     */
+    public static function selectLatestCandidate(array $candidates, string $taskId, string $classId): array {
+        if (count($candidates) <= 1) {
+            return $candidates[0] ?? [];
+        }
+
+        $driveMap = class_exists('GoogleDriveService') ? GoogleDriveService::getDriveFileMap($taskId, $classId) : [];
+        $sharedMap = class_exists('GoogleDriveService') ? GoogleDriveService::getDriveFileMap($taskId, null) : [];
+
+        $scored = [];
+        foreach ($candidates as $cand) {
+            $name = $cand['name'];
+            $filePath = "{$cand['dir']}/{$name}";
+
+            // 1. Dapatkan Timestamp modifikasi (Drive modifiedTime atau filemtime lokal)
+            $mtime = 0;
+            if (isset($driveMap[$name]['modifiedTime'])) {
+                $t = strtotime($driveMap[$name]['modifiedTime']);
+                if ($t > 0) $mtime = $t;
+            } elseif (isset($sharedMap[$name]['modifiedTime'])) {
+                $t = strtotime($sharedMap[$name]['modifiedTime']);
+                if ($t > 0) $mtime = $t;
+            }
+
+            if ($mtime === 0 && file_exists($filePath)) {
+                $mtime = (int)@filemtime($filePath);
+            }
+
+            // Ukuran berkas
+            $size = file_exists($filePath) ? (int)@filesize($filePath) : 0;
+
+            // 2. Deteksi indikator revisi / versi pada nama berkas
+            $revScore = 0;
+
+            // Pola (1), (2), (3) dari Google Drive / browser download
+            if (preg_match('/\((?<v>\d+)\)\.[a-z0-9]+$/i', $name, $m)) {
+                $revScore += ((int)$m['v']) * 10;
+            }
+
+            // Pola revisi, v2, v3, rev2
+            if (preg_match('/[_-](?:v|ver|version|rev|revisi)[_-]?(?<v>\d+)?(?:\.[a-z0-9]+)?$/i', $name, $m)) {
+                $num = !empty($m['v']) ? (int)$m['v'] : 1;
+                $revScore += $num * 10;
+            }
+
+            // Pola penamaan final / fix / terbaru
+            if (preg_match('/[_-](?:final|fix|terbaru|terakhir|update)(?:\.[a-z0-9]+)?$/i', $name)) {
+                $revScore += 15;
+            }
+
+            $cand['_mtime'] = $mtime;
+            $cand['_revScore'] = $revScore;
+            $cand['_size'] = $size;
+            $scored[] = $cand;
+        }
+
+        // Urutkan kandidat dari yang terbaru ke yang terlama
+        usort($scored, function($a, $b) {
+            // Berkas 0 bytes diposisikan paling bawah jika ada berkas yang valid
+            if ($a['_size'] === 0 && $b['_size'] > 0) return 1;
+            if ($b['_size'] === 0 && $a['_size'] > 0) return -1;
+
+            // Selisih waktu modifikasi: jika selisih > 2 detik, waktu terbaru mutlak menang
+            $timeDiff = $b['_mtime'] - $a['_mtime'];
+            if (abs($timeDiff) > 2) {
+                return $timeDiff;
+            }
+
+            // Jika waktu modifikasi sama/hampir bersamaan, gunakan penanda revisi
+            if ($b['_revScore'] !== $a['_revScore']) {
+                return $b['_revScore'] <=> $a['_revScore'];
+            }
+
+            // Fallback natural case-insensitive comparison (misal 'Tugas (2).pdf' > 'Tugas (1).pdf')
+            return strnatcasecmp($b['name'], $a['name']);
+        });
+
+        $chosen = $scored[0];
+        unset($chosen['_mtime'], $chosen['_revScore'], $chosen['_size']);
+        return $chosen;
+    }
+
+    /**
      * Mencari berkas tugas mahasiswa berdasarkan NIM, Nama, atau kecocokan isi
      */
     public static function getStudentSubmission(
@@ -536,17 +639,19 @@ class FileService {
         $classDir = self::getSubmissionsDir($taskId, $classId);
         $sharedDir = self::getSharedSubmissionsDir($taskId);
 
-        $classFiles = is_dir($classDir) ? array_diff(scandir($classDir), ['.', '..']) : [];
-        $sharedFiles = is_dir($sharedDir) ? array_diff(scandir($sharedDir), ['.', '..']) : [];
+        $classFiles = is_dir($classDir) ? array_diff(scandir($classDir), ['.', '..', 'drive_files_map.json']) : [];
+        $sharedFiles = is_dir($sharedDir) ? array_diff(scandir($sharedDir), ['.', '..', 'drive_files_map.json']) : [];
 
-        // Gabungkan berkas: prioritaskan berkas yang ada di folder kelas
+        // Gabungkan berkas: sertakan berkas kelas dan berkas shared
         $allCandidates = [];
+        $knownClassFiles = [];
         foreach ($classFiles as $f) {
             $allCandidates[] = ['name' => $f, 'dir' => $classDir, 'isShared' => false];
+            $knownClassFiles[] = $f;
         }
         foreach ($sharedFiles as $f) {
             // Hindari duplikasi jika nama berkas sudah ada di folder kelas
-            if (!in_array($f, $classFiles, true)) {
+            if (!in_array($f, $knownClassFiles, true)) {
                 $allCandidates[] = ['name' => $f, 'dir' => $sharedDir, 'isShared' => true];
             }
         }
@@ -562,29 +667,28 @@ class FileService {
         $sanitizedNim = preg_replace('/[^0-9a-z]/', '', $cleanNim);
         $cleanNama = strtolower(trim($nama));
 
-        $targetCandidate = null;
+        $matchedCandidates = [];
         $matchedBy = 'filename';
 
-        // 1. Prioritas NIM pada nama berkas
+        // 1. Prioritas NIM pada nama berkas (kumpulkan SEMUA yang cocok)
         foreach ($allCandidates as $cand) {
             $fileLower = strtolower($cand['name']);
             $sanitizedFile = preg_replace('/[^0-9a-z]/', '', $fileLower);
 
             if (!empty($cleanNim) && (str_contains($fileLower, $cleanNim) || (strlen($sanitizedNim) >= 4 && str_contains($sanitizedFile, $sanitizedNim)))) {
-                $targetCandidate = $cand;
-                break;
+                $matchedCandidates[] = $cand;
             }
         }
 
         // 2. Prioritas Nama pada nama berkas jika NIM tidak cocok
-        if (!$targetCandidate && !empty($cleanNama) && strlen($cleanNama) >= 4) {
+        if (empty($matchedCandidates) && !empty($cleanNama) && strlen($cleanNama) >= 4) {
             // Pecah nama menjadi kata kunci utama (abaikan kata gelar/pendek < 3 huruf)
             $nameWords = array_filter(explode(' ', $cleanNama), fn($w) => strlen(trim($w)) >= 3);
             foreach ($allCandidates as $cand) {
                 $fileLower = strtolower($cand['name']);
                 if (str_contains($fileLower, $cleanNama)) {
-                    $targetCandidate = $cand;
-                    break;
+                    $matchedCandidates[] = $cand;
+                    continue;
                 }
                 // Jika mengandung minimal 2 kata nama berurutan
                 if (count($nameWords) >= 2) {
@@ -593,11 +697,17 @@ class FileService {
                         if (str_contains($fileLower, $w)) $matchedWords++;
                     }
                     if ($matchedWords >= 2 && $matchedWords >= (count($nameWords) * 0.6)) {
-                        $targetCandidate = $cand;
-                        break;
+                        $matchedCandidates[] = $cand;
                     }
                 }
             }
+        }
+
+        // Jika ditemukan 1 atau beberapa berkas yang cocok, pilih berkas TERBARU / TERAKHIR
+        if (!empty($matchedCandidates)) {
+            $targetCandidate = self::selectLatestCandidate($matchedCandidates, $taskId, $classId);
+        } else {
+            $targetCandidate = null;
         }
 
         // 3. Pencarian Berdasarkan Isi Dokumen (Content-Based Matching)
@@ -631,7 +741,7 @@ class FileService {
                 }
 
                 // Cek Gemini Vision HANYA jika berkas benar-benar anonim dan dibatasi maksimal 1 berkas
-                if (in_array($ext, ['pdf', 'png', 'jpg', 'jpeg'], true) && !empty($apiKey) && $checkedAiCount < 1) {
+                if (in_array($ext, ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'heic', 'heif'], true) && !empty($apiKey) && $checkedAiCount < 1) {
                     $checkedAiCount++;
                     try {
                         $payload = self::processFileForGemini($filePath);
@@ -665,6 +775,8 @@ class FileService {
             $localClassPath = "{$classDir}/{$targetCandidate['name']}";
             if (!file_exists($localClassPath)) {
                 @copy($sourcePath, $localClassPath);
+                $mtime = @filemtime($sourcePath);
+                if ($mtime > 0) @touch($localClassPath, $mtime);
             }
             $targetPath = $localClassPath;
         } else {

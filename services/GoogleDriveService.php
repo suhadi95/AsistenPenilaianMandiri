@@ -464,12 +464,15 @@ class GoogleDriveService {
         $syncedCount = 0;
         $skippedCount = 0;
         $syncedFiles = [];
+        $driveMap = [];
+        $seenFiles = [];
 
         foreach ($files as $file) {
             $name = $file['name'] ?? '';
             $fileId = $file['id'] ?? '';
             $mimeType = $file['mimeType'] ?? '';
             $driveSize = isset($file['size']) ? (int)$file['size'] : null;
+            $modifiedTime = $file['modifiedTime'] ?? null;
 
             if (empty($fileId) || empty($name)) continue;
 
@@ -485,22 +488,37 @@ class GoogleDriveService {
                 $cleanName = preg_replace('/\.docx?$/i', '', $cleanName) . '.pdf';
             }
 
+            // Jika ada berkas kembar dengan nama yang sama, berikan nomor versi agar semua versi terunduh
+            if (isset($seenFiles[$cleanName])) {
+                $seenFiles[$cleanName]++;
+                $pi = pathinfo($cleanName);
+                $extPart = !empty($pi['extension']) ? '.' . $pi['extension'] : '';
+                $cleanName = $pi['filename'] . " ({$seenFiles[$cleanName]})" . $extPart;
+            } else {
+                $seenFiles[$cleanName] = 0;
+            }
+
             $driveUrl = ($mimeType === 'application/vnd.google-apps.document')
                 ? "https://docs.google.com/document/d/{$fileId}/edit"
                 : "https://drive.google.com/file/d/{$fileId}/view";
 
             $driveMap[$cleanName] = [
-                'fileId'   => $fileId,
-                'name'     => $cleanName,
-                'driveUrl' => $driveUrl,
-                'mimeType' => $mimeType
+                'fileId'       => $fileId,
+                'name'         => $cleanName,
+                'driveUrl'     => $driveUrl,
+                'mimeType'     => $mimeType,
+                'modifiedTime' => $modifiedTime
             ];
 
             $targetPath = "{$destDir}/{$cleanName}";
 
-            // Jika berkas sudah ada secara lokal dengan ukuran yang valid, lewati download ulang
+            // Jika berkas sudah ada secara lokal dengan ukuran yang valid, perbarui timestamp dan lewati download ulang
             if (file_exists($targetPath) && filesize($targetPath) > 0) {
                 if ($driveSize === null || filesize($targetPath) === $driveSize) {
+                    if (!empty($modifiedTime)) {
+                        $mtime = strtotime($modifiedTime);
+                        if ($mtime > 0) @touch($targetPath, $mtime);
+                    }
                     $syncedCount++;
                     $syncedFiles[] = $cleanName;
                     continue;
@@ -509,6 +527,10 @@ class GoogleDriveService {
 
             // Unduh berkas
             if (self::downloadFile($fileId, $targetPath, $mimeType)) {
+                if (!empty($modifiedTime)) {
+                    $mtime = strtotime($modifiedTime);
+                    if ($mtime > 0) @touch($targetPath, $mtime);
+                }
                 $syncedCount++;
                 $syncedFiles[] = $cleanName;
             } else {
@@ -568,12 +590,15 @@ class GoogleDriveService {
 
         $syncedCount = 0;
         $syncedFiles = [];
+        $driveMap = [];
+        $seenFiles = [];
 
         foreach ($files as $file) {
             $name = $file['name'] ?? '';
             $fileId = $file['id'] ?? '';
             $mimeType = $file['mimeType'] ?? '';
             $driveSize = isset($file['size']) ? (int)$file['size'] : null;
+            $modifiedTime = $file['modifiedTime'] ?? null;
 
             if (empty($fileId) || empty($name)) continue;
             if ($mimeType === 'application/vnd.google-apps.folder') continue;
@@ -583,21 +608,36 @@ class GoogleDriveService {
                 $cleanName = preg_replace('/\.docx?$/i', '', $cleanName) . '.pdf';
             }
 
+            // Jika ada berkas kembar dengan nama yang sama, berikan nomor versi agar semua versi terunduh
+            if (isset($seenFiles[$cleanName])) {
+                $seenFiles[$cleanName]++;
+                $pi = pathinfo($cleanName);
+                $extPart = !empty($pi['extension']) ? '.' . $pi['extension'] : '';
+                $cleanName = $pi['filename'] . " ({$seenFiles[$cleanName]})" . $extPart;
+            } else {
+                $seenFiles[$cleanName] = 0;
+            }
+
             $driveUrl = ($mimeType === 'application/vnd.google-apps.document')
                 ? "https://docs.google.com/document/d/{$fileId}/edit"
                 : "https://drive.google.com/file/d/{$fileId}/view";
 
             $driveMap[$cleanName] = [
-                'fileId'   => $fileId,
-                'name'     => $cleanName,
-                'driveUrl' => $driveUrl,
-                'mimeType' => $mimeType
+                'fileId'       => $fileId,
+                'name'         => $cleanName,
+                'driveUrl'     => $driveUrl,
+                'mimeType'     => $mimeType,
+                'modifiedTime' => $modifiedTime
             ];
 
             $targetPath = "{$sharedDir}/{$cleanName}";
 
             if (file_exists($targetPath) && filesize($targetPath) > 0) {
                 if ($driveSize === null || filesize($targetPath) === $driveSize) {
+                    if (!empty($modifiedTime)) {
+                        $mtime = strtotime($modifiedTime);
+                        if ($mtime > 0) @touch($targetPath, $mtime);
+                    }
                     $syncedCount++;
                     $syncedFiles[] = $cleanName;
                     continue;
@@ -605,6 +645,10 @@ class GoogleDriveService {
             }
 
             if (self::downloadFile($fileId, $targetPath, $mimeType)) {
+                if (!empty($modifiedTime)) {
+                    $mtime = strtotime($modifiedTime);
+                    if ($mtime > 0) @touch($targetPath, $mtime);
+                }
                 $syncedCount++;
                 $syncedFiles[] = $cleanName;
             }

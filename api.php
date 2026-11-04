@@ -969,11 +969,21 @@ try {
                 'png'  => 'image/png',
                 'jpg'  => 'image/jpeg',
                 'jpeg' => 'image/jpeg',
+                'webp' => 'image/webp',
+                'heic' => 'image/heic',
+                'heif' => 'image/heif',
                 'txt'  => 'text/plain',
                 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 'doc'  => 'application/msword'
             ];
             $mime = $mimeMap[$ext] ?? 'application/octet-stream';
+
+            // Jika berkas berupa HEIC/HEIF dan tautan Google Drive tersedia,
+            // alihkan ke Google Drive agar dapat dipratinjau langsung di browser non-Apple
+            if (in_array($ext, ['heic', 'heif'], true) && !empty($driveMap[$cleanFile]['driveUrl'])) {
+                header("Location: " . $driveMap[$cleanFile]['driveUrl']);
+                exit;
+            }
 
             header('Content-Type: ' . $mime);
             header('Content-Length: ' . filesize($targetPath));

@@ -1571,8 +1571,8 @@ Database::initDatabase();
           <div class="space-y-2">
             <!-- Pilihan 1: Upload Langsung -->
             <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
-              <span class="text-[11px] font-semibold text-slate-700 block">Opsi A: Unggah Langsung Berkas Soal (.pdf, .docx, .txt, gambar)</span>
-              <input type="file" id="modalTaskQuestionFile" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.webp" class="w-full text-xs file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer text-slate-600">
+              <span class="text-[11px] font-semibold text-slate-700 block">Opsi A: Unggah Langsung Berkas Soal (.pdf, .docx, .txt, gambar, .heic)</span>
+              <input type="file" id="modalTaskQuestionFile" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.webp,.heic,.heif" class="w-full text-xs file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer text-slate-600">
             </div>
 
             <!-- Pilihan 2: Link Google Drive -->
@@ -1685,8 +1685,8 @@ Database::initDatabase();
         </div>
 
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Pilih Berkas ZIP atau File Tugas (.zip, .pdf, .docx, dll)</label>
-          <input type="file" id="inputZipFile" accept=".zip,.pdf,.docx,.doc,.txt,.png,.jpg,.jpeg" multiple class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
+          <label class="block font-semibold text-slate-700 mb-1">Pilih Berkas ZIP atau File Tugas (.zip, .pdf, .docx, .heic, dll)</label>
+          <input type="file" id="inputZipFile" accept=".zip,.pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.webp,.heic,.heif" multiple class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500">
           <p class="text-[10px] text-slate-400 mt-1">Dapat memilih 1 file .zip atau menandai banyak berkas sekaligus.</p>
         </div>
         <div id="uploadZipAlert" class="hidden p-2.5 rounded-xl text-xs font-medium"></div>
