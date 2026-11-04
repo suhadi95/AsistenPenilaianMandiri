@@ -2396,21 +2396,33 @@ Database::initDatabase();
               </div>
 
               ${t.drive_folder_id ? `
-                <div class="grid grid-cols-2 gap-2">
-                  <button type="button" onclick="syncTaskDriveFromCard('${t.id_tugas}', this)" id="btnCardSync_${t.id_tugas}" class="bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 font-semibold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer" title="Sinkronkan berkas tugas mahasiswa dari Google Drive untuk seluruh kelas di mata kuliah ini">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                    <span>Sinkron Drive</span>
-                  </button>
-                  <button onclick="goToGradingTask('${t.id_tugas}')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-2.5 rounded-xl text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+                <div class="space-y-2">
+                  <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="syncTaskDriveFromCard('${t.id_tugas}', this)" id="btnCardSync_${t.id_tugas}" class="bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 font-semibold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer" title="Sinkronkan berkas tugas mahasiswa dari Google Drive untuk seluruh kelas di mata kuliah ini">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                      <span>Sinkron Drive</span>
+                    </button>
+                    <button type="button" onclick="openTaskDriveFolderById('${t.id_tugas}')" class="bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer" title="Buka folder Google Drive tempat pengumpulan berkas jawaban mahasiswa">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      <span>Folder Drive</span>
+                    </button>
+                  </div>
+                  <button onclick="goToGradingTask('${t.id_tugas}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-3 rounded-xl text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
-                    <span>Nilai Tugas</span>
+                    <span>Mulai Penilaian</span>
                   </button>
                 </div>
               ` : `
-                <button onclick="goToGradingTask('${t.id_tugas}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-xl text-xs shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
-                  <span>Koreksi &amp; Nilai Tugas Ini</span>
-                </button>
+                <div class="space-y-2">
+                  <button onclick="editTask('${t.id_tugas}')" class="w-full bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-semibold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Atur tautan folder Google Drive untuk tugas ini">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <span>Hubungkan Folder Drive</span>
+                  </button>
+                  <button onclick="goToGradingTask('${t.id_tugas}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-xs shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+                    <span>Koreksi &amp; Nilai Tugas Ini</span>
+                  </button>
+                </div>
               `}
             </div>
           </div>
@@ -2447,6 +2459,20 @@ Database::initDatabase();
         select.value = taskId;
         loadGradingTable(taskId);
       }
+    }
+
+    function openTaskDriveFolderById(taskId) {
+      if (!taskId) return;
+      const task = appState.currentTasks.find(t => t.id_tugas === taskId);
+      const folderIdOrUrl = task ? (task.drive_folder_id || '') : '';
+      if (!folderIdOrUrl) {
+        return alert('Folder Google Drive untuk tugas ini belum diatur. Silakan klik tombol "Edit Tugas" untuk menambahkan link folder.');
+      }
+      let targetUrl = String(folderIdOrUrl).trim();
+      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        targetUrl = 'https://drive.google.com/drive/folders/' + folderIdOrUrl;
+      }
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
     }
 
     async function openCurrentTaskFolder() {
