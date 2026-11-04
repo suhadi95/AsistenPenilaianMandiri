@@ -169,6 +169,9 @@ Database::initDatabase();
           <button onclick="switchTab('tab-users')" id="nav-tab-users" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0 hidden">
             👨‍💼 Kelola Pengguna
           </button>
+          <button onclick="switchTab('tab-guide')" id="nav-tab-guide" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
+            📖 Panduan
+          </button>
           <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition whitespace-nowrap shrink-0">
             ⚙️ Pengaturan
           </button>
@@ -203,6 +206,9 @@ Database::initDatabase();
           </p>
         </div>
         <div class="flex flex-col sm:flex-row gap-2 sm:gap-2.5 w-full md:w-auto">
+          <button onclick="switchTab('tab-guide')" class="bg-indigo-600/90 hover:bg-indigo-600 text-white font-medium px-4 py-2.5 rounded-xl border border-indigo-400/30 text-xs sm:text-sm transition flex items-center justify-center gap-1.5 shadow-sm">
+            📖 Panduan
+          </button>
           <button onclick="switchTab('tab-classes')" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-lg text-xs sm:text-sm transition flex items-center justify-center gap-1.5">
             👥 Kelola Kelas
           </button>
@@ -833,6 +839,467 @@ Database::initDatabase();
 
     </section>
 
+    <!-- ======================================================== -->
+    <!-- TAB 8: PANDUAN PENGGUNAAN LENGKAP                        -->
+    <!-- ======================================================== -->
+    <section id="tab-guide" class="tab-content space-y-6">
+      
+      <!-- Guide Hero Banner -->
+      <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white p-5 sm:p-7 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-indigo-900/50">
+        <div>
+          <div class="inline-flex items-center gap-1.5 bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 text-[11px] px-3 py-1 rounded-full font-semibold mb-2">
+            <span>📖</span> <span>Pusat Bantuan &amp; Dokumentasi Resmi</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-bold tracking-tight">Panduan Lengkap Asisten Penilaian Mandiri (APM)</h2>
+          <p class="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            Petunjuk operasional praktis langkah demi langkah: mulai dari persiapan akun &amp; Gemini API, manajemen kelas &amp; mahasiswa, sinkronisasi Google Drive, hingga penilaian cerdas multimodal.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
+          <button onclick="switchTab('tab-settings')" class="bg-white/10 hover:bg-white/20 text-white font-semibold text-xs px-3.5 py-2 rounded-xl border border-white/20 transition flex items-center gap-1.5 cursor-pointer">
+            <span>⚙️</span> <span>Buka Pengaturan</span>
+          </button>
+          <button onclick="switchTab('tab-classes')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+            <span>👥</span> <span>Kelola Kelas</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Guide Sub-Navigation Pills -->
+      <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-xs flex items-center space-x-1.5 overflow-x-auto no-scrollbar text-xs font-semibold">
+        <button type="button" onclick="switchGuideTopic('guide-api')" id="btn-guide-api" class="guide-nav-btn px-3.5 py-2 rounded-xl text-blue-700 bg-blue-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer active">
+          <span>🚀</span> <span>1. Persiapan &amp; API Key</span>
+        </button>
+        <button type="button" onclick="switchGuideTopic('guide-classes')" id="btn-guide-classes" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
+          <span>👥</span> <span>2. MK, Kelas &amp; Mahasiswa</span>
+        </button>
+        <button type="button" onclick="switchGuideTopic('guide-tasks')" id="btn-guide-tasks" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
+          <span>📝</span> <span>3. Tugas &amp; Rubrik AI</span>
+        </button>
+        <button type="button" onclick="switchGuideTopic('guide-grading')" id="btn-guide-grading" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
+          <span>🎓</span> <span>4. Penilaian &amp; Sinkronisasi</span>
+        </button>
+        <button type="button" onclick="switchGuideTopic('guide-reports')" id="btn-guide-reports" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
+          <span>📊</span> <span>5. Rekapitulasi &amp; Ekspor</span>
+        </button>
+        <button type="button" onclick="switchGuideTopic('guide-faq')" id="btn-guide-faq" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
+          <span>❓</span> <span>6. Tanya Jawab (FAQ)</span>
+        </button>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TOPIK 1: PERSIAPAN & API KEY               -->
+      <!-- ========================================== -->
+      <div id="guide-api" class="guide-topic-section space-y-4">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 1</span>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
+                <span>🚀</span> <span>Persiapan Akun, Gemini API Key &amp; Google Drive</span>
+              </h3>
+            </div>
+            <span class="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-emerald-200">100% Gratis</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Langkah A: Dapatkan Gemini API Key -->
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+              <div class="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">1</span>
+                <span>Cara Mendapatkan Gemini API Key Pribadi</span>
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Setiap dosen menggunakan kuota gratisnya masing-masing dari Google AI Studio tanpa biaya langganan:
+              </p>
+              <ol class="list-decimal list-inside text-xs text-slate-700 space-y-1.5 pl-1 leading-relaxed">
+                <li>Buka situs resmi: <a href="https://aistudio.google.com/" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-semibold">aistudio.google.com ↗</a></li>
+                <li>Masuk menggunakan <strong>Akun Google</strong> Anda.</li>
+                <li>Pilih menu <strong>"Get API key"</strong> di panel sebelah kiri.</li>
+                <li>Klik tombol biru <strong>"Create API key"</strong>.</li>
+                <li>Salin kode kunci API yang dihasilkan (diawali teks <code class="bg-slate-200 px-1 py-0.5 rounded text-[11px]">AIzaSy...</code>).</li>
+                <li>Buka tab <button type="button" onclick="switchTab('tab-settings')" class="text-blue-600 underline font-semibold cursor-pointer">Pengaturan</button> &rarr; tempel ke kolom <strong>Gemini API Key Pribadi</strong> &rarr; klik <strong>Simpan API Key</strong>.</li>
+                <li>Klik tombol <strong>🧪 Uji Koneksi</strong> untuk memastikan status aktif.</li>
+              </ol>
+              <div class="p-2.5 bg-blue-50 border border-blue-200/60 rounded-xl text-[11px] text-blue-900 leading-relaxed">
+                💡 <strong>Rekomendasi Model:</strong> Pilih <strong><code class="font-bold">gemini-3.5-flash-lite</code></strong>. Model ini sangat cepat, hemat kuota gratis (hingga 1.500 request/hari), dan akurat membaca berkas PDF/gambar tugas.
+              </div>
+            </div>
+
+            <!-- Langkah B: Hubungkan Google Drive -->
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+              <div class="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                <span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs">2</span>
+                <span>1-Klik Hubungkan Akun Google Drive (OAuth 2.0)</span>
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Menghubungkan Drive memungkinkan sistem mengunduh berkas jawaban mahasiswa secara otomatis seperti Google Apps Script:
+              </p>
+              <ol class="list-decimal list-inside text-xs text-slate-700 space-y-1.5 pl-1 leading-relaxed">
+                <li>Buka menu <button type="button" onclick="switchTab('tab-settings')" class="text-blue-600 underline font-semibold cursor-pointer">Pengaturan</button>.</li>
+                <li>Gulir ke kartu <strong>Integrasi Akun Google Drive (OAuth 2.0)</strong>.</li>
+                <li>Klik tombol hijau <strong>"🔗 Hubungkan Google Drive Saya"</strong>.</li>
+                <li>Pilih akun Google tempat Anda menyimpan folder tugas mahasiswa.</li>
+                <li>Klik <strong>Lanjutkan / Izinkan</strong> pada halaman persetujuan Google.</li>
+                <li>Selesai! Status akan berubah menjadi <span class="text-emerald-700 font-bold">✓ Terhubung: email_anda@kampus.ac.id</span>.</li>
+              </ol>
+              <div class="p-2.5 bg-emerald-50 border border-emerald-200/60 rounded-xl text-[11px] text-emerald-900 leading-relaxed">
+                🔒 <strong>Privasi Aman:</strong> Sistem hanya meminta izin baca (<i>drive.readonly</i>) untuk mengambil berkas tugas mahasiswa Anda. Dosen lain tidak dapat mengakses folder Drive Anda.
+              </div>
+            </div>
+          </div>
+
+          <!-- Note Khusus Administrator -->
+          <div class="p-4 bg-purple-50/70 border border-purple-200 rounded-xl text-xs space-y-2">
+            <div class="flex items-center gap-2 text-purple-950 font-bold">
+              <span>👑</span> <span>Catatan Khusus Administrator Sistem</span>
+            </div>
+            <p class="text-purple-900 leading-relaxed">
+              Dosen lain <strong>TIDAK PERLU</strong> membuka Google Cloud Console. Administrator cukup sekali membuat <strong>OAuth 2.0 Web Client ID</strong> di Google Cloud Console, lalu memasukkan <i>Client ID</i> dan <i>Client Secret</i> di tab Pengaturan &rarr; <i>Pengaturan Global OAuth</i>. Seluruh dosen tinggal menekan 1 tombol untuk menghubungkan Drive mereka masing-masing.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TOPIK 2: KELOLA MK, KELAS & MAHASISWA      -->
+      <!-- ========================================== -->
+      <div id="guide-classes" class="guide-topic-section hidden space-y-4">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 2</span>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
+                <span>👥</span> <span>Kelola Mata Kuliah, Kelas Paralel &amp; Mahasiswa</span>
+              </h3>
+            </div>
+            <button type="button" onclick="switchTab('tab-classes')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Kelola Kelas &rarr;</button>
+          </div>
+
+          <div class="space-y-4 text-xs text-slate-700">
+            <!-- Langkah 1: Buat MK -->
+            <div class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200/70">
+              <span class="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
+              <div class="space-y-1">
+                <h4 class="font-bold text-slate-900 text-sm">Buat Mata Kuliah (MK) Induk</h4>
+                <p class="text-slate-600 leading-relaxed">
+                  Buka tab <strong>Kelola MK &amp; Kelas</strong> &rarr; klik tombol <strong>"+ Tambah MK Baru"</strong>. Isi Nama Mata Kuliah (contoh: <i>Analisis &amp; Perancangan Sistem Informasi</i>), Kode MK (<i>APSI101</i>), dan Semester (<i>Ganjil 2026/2027</i>). Seluruh kelas paralel dan tugas akan terorganisir di bawah mata kuliah ini.
+                </p>
+              </div>
+            </div>
+
+            <!-- Langkah 2: Buat Kelas -->
+            <div class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200/70">
+              <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
+              <div class="space-y-1">
+                <h4 class="font-bold text-slate-900 text-sm">Tambahkan Kelas Paralel</h4>
+                <p class="text-slate-600 leading-relaxed">
+                  Di bawah mata kuliah yang sama, klik tombol <strong>"+ Tambah Kelas Baru"</strong> (contoh: <i>Kelas A</i>, <i>Kelas B</i>). Anda dapat membuat tugas sekali di tingkat mata kuliah, dan tugas tersebut otomatis berlaku untuk semua kelas ini!
+                </p>
+              </div>
+            </div>
+
+            <!-- Langkah 3: Input Mahasiswa Masal -->
+            <div class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200/70">
+              <span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</span>
+              <div class="space-y-2 w-full">
+                <h4 class="font-bold text-slate-900 text-sm">Import Cepat Mahasiswa (Copy-Paste dari Excel / SIAKAD)</h4>
+                <p class="text-slate-600 leading-relaxed">
+                  Tidak perlu mengetik satu per satu! Buka kelas yang diinginkan, lalu klik tombol ungu <strong>"📋 Tambah Masal"</strong>. Anda cukup menyalin kolom <strong>NIM</strong> dan <strong>Nama</strong> langsung dari Microsoft Excel atau portal SIAKAD kampus Anda.
+                </p>
+                <div class="bg-slate-900 text-slate-200 p-3 rounded-xl font-mono text-[11px] space-y-1">
+                  <div class="text-slate-400 font-sans text-[10px] uppercase font-bold tracking-wider">Contoh Format yang Didukung:</div>
+                  <div>2488010001	Najwa Ramadhan</div>
+                  <div>2488010011	Tanu Hasyim</div>
+                  <div>2488010012, Faiz Alfaresi</div>
+                </div>
+                <p class="text-[11px] text-slate-500">
+                  Sistem otomatis mendeteksi pemisah tabulasi, tanda koma, maupun spasi, serta otomatis mengabaikan baris kosong atau duplikasi NIM.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TOPIK 3: TUGAS & RUBRIK AI                 -->
+      <!-- ========================================== -->
+      <div id="guide-tasks" class="guide-topic-section hidden space-y-4">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 3</span>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
+                <span>📝</span> <span>Manajemen Tugas &amp; Ekstraksi Rubrik Otomatis dengan AI</span>
+              </h3>
+            </div>
+            <button type="button" onclick="switchTab('tab-tasks')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Kelola Tugas &rarr;</button>
+          </div>
+
+          <div class="space-y-4 text-xs text-slate-700">
+            <!-- Langkah 1: Buat Tugas -->
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span>1️⃣</span> <span>Membuat Tugas Baru</span>
+              </h4>
+              <p class="text-slate-600 leading-relaxed">
+                Buka tab <strong>Kelola Tugas</strong> &rarr; klik tombol <strong>"+ Buat Tugas Baru"</strong>. Masukkan Judul Tugas (misal: <i>TuRi 1 - Analisis Kebutuhan Sistem</i>) dan Bobot Persentase Nilai Akhir (misal <i>25.00%</i>). Bobot ini akan otomatis digunakan untuk kalkulasi Nilai Akhir semester.
+              </p>
+            </div>
+
+            <!-- Langkah 2: Ekstraksi Rubrik AI -->
+            <div class="p-4 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-2">
+              <h4 class="font-bold text-blue-950 text-sm flex items-center gap-2">
+                <span>2️⃣</span> <span>Fitur Unggulan: Ekstraksi Rubrik Penilaian Otomatis</span>
+              </h4>
+              <p class="text-blue-900 leading-relaxed">
+                Anda tidak perlu menyusun rubrik secara manual! Unggah file PDF/Word soal Anda, atau masukkan tautan Google Drive soal tersebut, lalu klik tombol:
+              </p>
+              <div class="py-1">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-xs">
+                  <span>🤖</span> <span>Ekstrak dari Soal</span>
+                </span>
+              </div>
+              <p class="text-blue-900 leading-relaxed">
+                Gemini AI akan membedah butir-butir pertanyaan pada lembar soal dan otomatis membuat rubrik objektif lengkap dengan kriteria penilaian, deskripsi mutu, dan porsi poin skor total 100. Anda tetap bebas menyunting teks rubrik jika ingin menambahkan penyesuaian khusus.
+              </p>
+            </div>
+
+            <!-- Langkah 3: Menghubungkan Folder Drive Jawaban -->
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span>3️⃣</span> <span>Menghubungkan Folder Jawaban Mahasiswa di Google Drive</span>
+              </h4>
+              <p class="text-slate-600 leading-relaxed">
+                Pada formulir tugas, masukkan link atau ID Folder Google Drive tempat mahasiswa mengumpulkan berkas tugas mereka (misal folder pengumpulan dari Google Classroom atau Google Form). Klik tombol <strong>"Cek Folder"</strong> untuk memvalidasi.
+              </p>
+              <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px]">
+                💡 <strong>Kiat Folder Paralel:</strong> Jika seluruh kelas (Kelas A dan Kelas B) mengumpulkan pada 1 link folder Drive yang sama, cukup isi folder ini sekali di Kelola Tugas. Jika Kelas B mengumpulkan di link terpisah, Anda dapat mengatur folder override khusus Kelas B di tab Penilaian.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TOPIK 4: PENILAIAN & SINKRONISASI          -->
+      <!-- ========================================== -->
+      <div id="guide-grading" class="guide-topic-section hidden space-y-4">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 4</span>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
+                <span>🎓</span> <span>Alur Sinkronisasi &amp; Penilaian Otomatis Berbasis AI</span>
+              </h3>
+            </div>
+            <button type="button" onclick="switchTab('tab-grading')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Penilaian &rarr;</button>
+          </div>
+
+          <!-- Flowchart Visual -->
+          <div class="p-4 bg-slate-900 text-slate-100 rounded-xl space-y-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-400">Alur Kerja Penilaian Cepat:</span>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-center text-xs">
+              <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
+                <div class="text-lg mb-1">🔄</div>
+                <div class="font-bold text-white">1. Sinkron Drive</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Unduh berkas mahasiswa</div>
+              </div>
+              <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
+                <div class="text-lg mb-1">▶️</div>
+                <div class="font-bold text-white">2. Nilai Semua</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Antrean AI mengevaluasi</div>
+              </div>
+              <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
+                <div class="text-lg mb-1">📄</div>
+                <div class="font-bold text-white">3. Tinjau Berkas</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Klik file untuk lihat dokumen</div>
+              </div>
+              <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
+                <div class="text-lg mb-1">📊</div>
+                <div class="font-bold text-white">4. Rekapitulasi</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Ekspor ke Excel/PDF</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-700">
+            <!-- A. Cara Sinkronisasi -->
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                <span>🔄</span> <span>Dua Cara Sinkronisasi Berkas</span>
+              </h4>
+              <ul class="space-y-2 text-slate-600 leading-relaxed">
+                <li>
+                  <strong>A. Dari Tab Kelola Tugas (Rekomendasi):</strong> Pada kartu tugas, klik tombol <strong>"🔄 Sinkron Drive"</strong>. Berkas diunduh dari Drive dan otomatis disebarkan ke seluruh kelas paralel di bawah mata kuliah tersebut.
+                </li>
+                <li>
+                  <strong>B. Dari Tab Penilaian:</strong> Pilih tugas dan kelas &rarr; klik tombol <strong>"🔄 Sinkron Drive"</strong> di bilah atas tabel.
+                </li>
+                <li>
+                  <strong>C. Tanpa Google Drive (Upload ZIP):</strong> Jika tugas tidak di Drive, klik tombol <strong>"📦 Upload ZIP Tugas"</strong> untuk mengunggah 1 file ZIP berisi seluruh berkas jawaban mahasiswa.
+                </li>
+              </ul>
+            </div>
+
+            <!-- B. Menjalankan Penilaian -->
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                <span>▶️</span> <span>Opsi Penilaian Jawaban</span>
+              </h4>
+              <ul class="space-y-2 text-slate-600 leading-relaxed">
+                <li>
+                  <strong>▶️ Nilai Semua:</strong> Menilai seluruh mahasiswa kelas secara otomatis dalam antrean cerdas. Dilengkapi indikator progres animasi (*live progress bar*).
+                </li>
+                <li>
+                  <strong>🎯 Pilihan (N):</strong> Centang beberapa mahasiswa tertentu lalu klik tombol <i>Pilihan</i> untuk menilai hanya mahasiswa yang ditandai.
+                </li>
+                <li>
+                  <strong>👁️ Detail (Satuan):</strong> Klik tombol <i>Detail</i> pada baris mahasiswa untuk menilai atau meninjau ulasan secara individual.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Arti Status Hasil Penilaian -->
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+            <h4 class="font-bold text-slate-900 text-sm">Penjelasan Status Penilaian pada Tabel:</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div class="p-2.5 bg-white rounded-xl border border-emerald-200">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">✓ Selesai</span>
+                <p class="text-[11px] text-slate-600 mt-1">Jawaban berhasil dinilai AI. Menampilkan skor akhir, rincian kriteria, kelebihan, dan saran perbaikan.</p>
+              </div>
+              <div class="p-2.5 bg-white rounded-xl border border-amber-200">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">⚠️ Belum Kumpul</span>
+                <p class="text-[11px] text-slate-600 mt-1">Mahasiswa tidak mengumpulkan berkas tugas di folder Drive. Diberi skor <code class="font-bold">-</code> tanpa membuat error sistem.</p>
+              </div>
+              <div class="p-2.5 bg-white rounded-xl border border-rose-200">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">❌ Gagal</span>
+                <p class="text-[11px] text-slate-600 mt-1">Terjadi kendala kuota API atau koneksi. Klik tombol <i>Rincian</i> untuk melihat solusi, lalu gunakan tombol <i>Reset Gagal</i>.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fitur Klik Langsung File -->
+          <div class="p-4 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs space-y-2">
+            <h4 class="font-bold text-blue-950 text-sm flex items-center gap-1.5">
+              <span>📄</span> <span>Fitur 1-Klik Buka Berkas Jawaban Mahasiswa Langsung</span>
+            </h4>
+            <p class="text-blue-900 leading-relaxed">
+              Setelah dinilai, pada kolom <strong>Berkas Jawaban</strong>, Anda cukup mengeklik nama berkas mahasiswa (contoh: <code class="bg-blue-100 px-1 py-0.5 rounded text-blue-900 font-bold">2488010001_Najwa.pdf ↗</code>). Sistem akan langsung membuka file dokumen PDF mahasiswa tersebut di Google Drive / peramban sehingga Anda dapat langsung membaca isi aslinya!
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TOPIK 5: REKAPITULASI & EKSPOR             -->
+      <!-- ========================================== -->
+      <div id="guide-reports" class="guide-topic-section hidden space-y-4">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 5</span>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
+                <span>📊</span> <span>Rekapitulasi Nilai Akhir &amp; Ekspor Laporan Resmi</span>
+              </h3>
+            </div>
+            <button type="button" onclick="switchTab('tab-reports')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Rekapitulasi &rarr;</button>
+          </div>
+
+          <div class="space-y-4 text-xs text-slate-700">
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+              <h4 class="font-bold text-slate-900 text-sm">Perhitungan Nilai Akhir Otomatis Berdasarkan Bobot</h4>
+              <p class="text-slate-600 leading-relaxed">
+                Di tab <strong>Rekapitulasi</strong>, sistem secara otomatis mengagregasi nilai seluruh tugas mahasiswa sesuai bobot persentase masing-masing (misal Tugas 1: 25%, Tugas 2: 25%, UAS: 50%). Nilai Akhir dan Konversi Nilai Huruf (A, B+, B, C+, C, D, E) langsung terkalkulasi secara akurat.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
+                <h4 class="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
+                  <span>📥</span> <span>Ekspor ke Excel / CSV</span>
+                </h4>
+                <p class="text-emerald-900 leading-relaxed">
+                  Klik tombol <strong>"📥 Unduh CSV/Excel"</strong> untuk mengunduh rekapitulasi nilai lengkap seluruh tugas dalam format CSV yang kompatibel dengan Microsoft Excel, Google Sheets, dan sistem SIAKAD kampus Anda.
+                </p>
+              </div>
+
+              <div class="p-4 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
+                <h4 class="font-bold text-purple-950 text-sm flex items-center gap-1.5">
+                  <span>🖨️</span> <span>Cetak Berita Acara &amp; Simpan PDF</span>
+                </h4>
+                <p class="text-purple-900 leading-relaxed">
+                  Klik tombol <strong>"🖨️ Cetak / Simpan PDF"</strong> untuk mencetak lembar rekapitulasi nilai resmi yang telah diformat rapi standar akademik, lengkap dengan kolom tanda tangan dosen pengampu.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TOPIK 6: FAQ & TROUBLESHOOTING             -->
+      <!-- ========================================== -->
+      <div id="guide-faq" class="guide-topic-section hidden space-y-4">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Bab 6</span>
+              <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
+                <span>❓</span> <span>Tanya Jawab (FAQ) &amp; Solusi Kendala Umum</span>
+              </h3>
+            </div>
+            <span class="text-xs text-slate-400">Troubleshooting</span>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <!-- FAQ 1 -->
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span class="text-blue-600">Q:</span> Bagaimana format penamaan berkas mahasiswa yang dianjurkan?
+              </h4>
+              <p class="text-slate-600 leading-relaxed pl-5">
+                <strong>A:</strong> Mahasiswa cukup mencantumkan <strong>NIM</strong> pada nama berkasnya (contoh: <code class="bg-slate-200 px-1 py-0.5 rounded">2488010001_Tugas1.pdf</code> atau <code class="bg-slate-200 px-1 py-0.5 rounded">Tugas Mandiri (2488010001).pdf</code>). Jika nama berkas tidak memuat NIM, sistem akan mencoba mencocokkan berdasarkan Nama Mahasiswa atau teks di dalam dokumen.
+              </p>
+            </div>
+
+            <!-- FAQ 2 -->
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span class="text-blue-600">Q:</span> Muncul pesan error "Batas kuota Gemini API tercapai (Rate Limit 429)" saat menilai kelas besar?
+              </h4>
+              <p class="text-slate-600 leading-relaxed pl-5">
+                <strong>A:</strong> Google AI Studio membatasi kecepatan panggilan gratis sekitar 15 request per menit (RPM). Jika Anda menilai kelas besar (>20 mahasiswa), cukup tunggu sekitar 60 detik lalu klik tombol <strong>"🔄 Reset Gagal"</strong> dan klik <strong>"Nilai Semua"</strong> lagi. Mahasiswa yang sudah dinilai tidak akan dinilai ulang.
+              </p>
+            </div>
+
+            <!-- FAQ 3 -->
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span class="text-blue-600">Q:</span> Apakah berkas Google Docs (.gdoc) mahasiswa dapat dibaca?
+              </h4>
+              <p class="text-slate-600 leading-relaxed pl-5">
+                <strong>A:</strong> Ya! Saat Anda menekan tombol <i>Sinkron Drive</i>, sistem secara otomatis mengekspor berkas Google Docs dan Google Sheets mahasiswa menjadi format PDF sehingga Gemini AI dapat mengevaluasinya secara sempurna.
+              </p>
+            </div>
+
+            <!-- FAQ 4 -->
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1">
+              <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span class="text-blue-600">Q:</span> Apakah dosen tetap bisa mengoreksi nilai yang diberikan oleh AI?
+              </h4>
+              <p class="text-slate-600 leading-relaxed pl-5">
+                <strong>A:</strong> Tentu saja. Dosen memiliki otoritas penuh. Anda cukup klik tombol <strong>👁️ Detail</strong> pada baris mahasiswa, lalu Anda bebas mengubah angka nilai, merevisi rincian poin, atau menambahkan catatan khusus dosen, kemudian klik <strong>Simpan Perubahan Nilai</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
   </main>
   </div> <!-- end #appWrapper -->
 
@@ -1394,6 +1861,27 @@ Database::initDatabase();
         switchTaskCourse(appState.activeCourseId);
       } else if (tabId === 'tab-users') {
         loadAdminUsers();
+      }
+    }
+
+    function switchGuideTopic(topicId) {
+      document.querySelectorAll('.guide-nav-btn').forEach(btn => {
+        btn.classList.remove('active', 'text-blue-700', 'bg-blue-50');
+        btn.classList.add('text-slate-600');
+      });
+      document.querySelectorAll('.guide-topic-section').forEach(sec => {
+        sec.classList.add('hidden');
+      });
+
+      const activeBtn = document.getElementById('btn-' + topicId);
+      if (activeBtn) {
+        activeBtn.classList.add('active', 'text-blue-700', 'bg-blue-50');
+        activeBtn.classList.remove('text-slate-600');
+      }
+
+      const targetSec = document.getElementById(topicId);
+      if (targetSec) {
+        targetSec.classList.remove('hidden');
       }
     }
 
@@ -2015,13 +2503,6 @@ Database::initDatabase();
             } else {
               folderBadge.innerHTML = `<span class="text-amber-600 font-semibold cursor-pointer hover:underline" onclick="openUploadZipModal()" title="Klik untuk mengunggah berkas">⚠️ 0 Berkas (Upload ZIP)</span>`;
             }
-          }
-        })
-        .withFailureHandler(function(err) {
-          showGlobalAlert('Gagal memuat penilaian tugas: ' + err.message, 'error');
-        })
-        .apiGetGradesByTask(taskId, appState.activeClassId);
-    }
           }
         })
         .withFailureHandler(function(err) {
