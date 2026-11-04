@@ -492,6 +492,69 @@ Database::initDatabase();
           </div>
         </div>
 
+        <!-- Statistik & Filter Penilaian Cepat -->
+        <div id="gradingStatsBar" class="hidden grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+          <!-- Total Mahasiswa -->
+          <button type="button" onclick="filterGradingTableByStatus('all')" id="statFilterAll" class="grading-stat-card text-left p-3 rounded-2xl border transition cursor-pointer bg-slate-50 hover:bg-slate-100/80 border-slate-200 ring-2 ring-blue-500 shadow-2xs" title="Tampilkan seluruh mahasiswa">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-slate-600">Total Mahasiswa</span>
+              <span class="text-xs bg-slate-200/70 text-slate-700 px-1.5 py-0.5 rounded-md font-mono">👥</span>
+            </div>
+            <div class="flex items-baseline gap-1 mt-1.5">
+              <span class="text-xl font-extrabold text-slate-900" id="statCountTotal">0</span>
+              <span class="text-[11px] text-slate-400 font-medium">Mhs</span>
+            </div>
+          </button>
+
+          <!-- Selesai Dinilai -->
+          <button type="button" onclick="filterGradingTableByStatus('selesai')" id="statFilterSelesai" class="grading-stat-card text-left p-3 rounded-2xl border transition cursor-pointer bg-emerald-50/70 hover:bg-emerald-100/80 border-emerald-200 shadow-2xs" title="Klik untuk memfilter: Hanya yang sudah selesai dinilai">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-emerald-800">Selesai Dinilai</span>
+              <span class="text-xs bg-emerald-200/70 text-emerald-800 px-1.5 py-0.5 rounded-md font-bold">✓</span>
+            </div>
+            <div class="flex items-baseline gap-1 mt-1.5">
+              <span class="text-xl font-extrabold text-emerald-700" id="statCountSelesai">0</span>
+              <span class="text-[11px] text-emerald-600 font-bold" id="statPctSelesai">(0%)</span>
+            </div>
+          </button>
+
+          <!-- Belum Dinilai -->
+          <button type="button" onclick="filterGradingTableByStatus('belum')" id="statFilterBelum" class="grading-stat-card text-left p-3 rounded-2xl border transition cursor-pointer bg-blue-50/70 hover:bg-blue-100/80 border-blue-200 shadow-2xs" title="Klik untuk memfilter: Mahasiswa yang belum dinilai">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-blue-800">Belum Dinilai</span>
+              <span class="text-xs bg-blue-200/70 text-blue-800 px-1.5 py-0.5 rounded-md">⏳</span>
+            </div>
+            <div class="flex items-baseline gap-1 mt-1.5">
+              <span class="text-xl font-extrabold text-blue-700" id="statCountBelum">0</span>
+              <span class="text-[11px] text-blue-600 font-bold" id="statPctBelum">(0%)</span>
+            </div>
+          </button>
+
+          <!-- Belum Kumpul -->
+          <button type="button" onclick="filterGradingTableByStatus('belum_kumpul')" id="statFilterBelumKumpul" class="grading-stat-card text-left p-3 rounded-2xl border transition cursor-pointer bg-amber-50/70 hover:bg-amber-100/80 border-amber-200 shadow-2xs" title="Klik untuk memfilter: Mahasiswa belum mengumpulkan jawaban">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-amber-800">Belum Kumpul</span>
+              <span class="text-xs bg-amber-200/70 text-amber-800 px-1.5 py-0.5 rounded-md">⚠️</span>
+            </div>
+            <div class="flex items-baseline gap-1 mt-1.5">
+              <span class="text-xl font-extrabold text-amber-700" id="statCountBelumKumpul">0</span>
+              <span class="text-[11px] text-amber-600 font-bold" id="statPctBelumKumpul">(0%)</span>
+            </div>
+          </button>
+
+          <!-- Gagal / Perlu Reset -->
+          <button type="button" onclick="filterGradingTableByStatus('gagal')" id="statFilterGagal" class="grading-stat-card text-left p-3 rounded-2xl border transition cursor-pointer bg-rose-50/70 hover:bg-rose-100/80 border-rose-200 shadow-2xs col-span-2 sm:col-span-1" title="Klik untuk memfilter: Penilaian yang gagal/error">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-rose-800">Gagal / Error</span>
+              <span class="text-xs bg-rose-200/70 text-rose-800 px-1.5 py-0.5 rounded-md font-bold">❌</span>
+            </div>
+            <div class="flex items-baseline gap-1 mt-1.5">
+              <span class="text-xl font-extrabold text-rose-700" id="statCountGagal">0</span>
+              <span class="text-[11px] text-rose-600 font-bold" id="statPctGagal">(0%)</span>
+            </div>
+          </button>
+        </div>
+
         <!-- Live Grading Progress Panel -->
         <div id="gradingProgressPanel" class="hidden bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl shadow-lg border border-blue-800/40 space-y-3.5">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -544,6 +607,15 @@ Database::initDatabase();
 
       <!-- Grading Table -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-3.5 bg-slate-50/80 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-800 uppercase tracking-wide">Daftar Mahasiswa</span>
+            <span id="gradingFilterBadge" class="text-[11px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">(Semua)</span>
+          </div>
+          <div class="w-full sm:w-72">
+            <input type="text" id="gradingSearchInput" oninput="filterGradingTable()" placeholder="Cari NIM atau Nama mahasiswa..." class="w-full text-xs px-3.5 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 shadow-2xs">
+          </div>
+        </div>
         <div class="block sm:hidden text-[10px] text-slate-400 bg-slate-50 text-center py-1.5 border-b border-slate-100">
           👉 Geser tabel ke kanan untuk melihat rincian & status →
         </div>
@@ -2603,6 +2675,134 @@ Database::initDatabase();
       `;
     }
 
+    let gradingStatusFilter = 'all';
+
+    function filterGradingTable() {
+      renderGradingTableRows(appState.currentGrades);
+    }
+
+    function filterGradingTableByStatus(status) {
+      if (gradingStatusFilter === status && status !== 'all') {
+        gradingStatusFilter = 'all';
+      } else {
+        gradingStatusFilter = status;
+      }
+
+      // Update highlight ring styling pada kartu statistik
+      document.querySelectorAll('.grading-stat-card').forEach(c => {
+        c.classList.remove('ring-2', 'ring-blue-500', 'ring-emerald-500', 'ring-amber-500', 'ring-rose-500');
+      });
+
+      const ringMap = {
+        'all': { id: 'statFilterAll', ring: 'ring-blue-500' },
+        'selesai': { id: 'statFilterSelesai', ring: 'ring-emerald-500' },
+        'belum': { id: 'statFilterBelum', ring: 'ring-blue-500' },
+        'belum_kumpul': { id: 'statFilterBelumKumpul', ring: 'ring-amber-500' },
+        'gagal': { id: 'statFilterGagal', ring: 'ring-rose-500' }
+      };
+
+      const cur = ringMap[gradingStatusFilter] || ringMap['all'];
+      const el = document.getElementById(cur.id);
+      if (el) el.classList.add('ring-2', cur.ring);
+
+      const labelMap = {
+        'all': '(Semua)',
+        'selesai': '(Hanya: Selesai)',
+        'belum': '(Hanya: Belum Dinilai)',
+        'belum_kumpul': '(Hanya: Belum Kumpul)',
+        'gagal': '(Hanya: Gagal/Error)'
+      };
+      const badge = document.getElementById('gradingFilterBadge');
+      if (badge) badge.textContent = labelMap[gradingStatusFilter] || '(Semua)';
+
+      renderGradingTableRows(appState.currentGrades);
+    }
+
+    function updateGradingStats(grades) {
+      const statsBar = document.getElementById('gradingStatsBar');
+      if (!statsBar) return;
+
+      if (!grades || grades.length === 0) {
+        statsBar.classList.add('hidden');
+        return;
+      }
+
+      statsBar.classList.remove('hidden');
+
+      const total = grades.length;
+      let countSelesai = 0;
+      let countBelum = 0;
+      let countBelumKumpul = 0;
+      let countGagal = 0;
+
+      grades.forEach(g => {
+        const st = (g.status || '').toLowerCase();
+        if (st === 'selesai') {
+          countSelesai++;
+        } else if (st.includes('belum mengumpulkan') || st.includes('tidak mengumpulkan')) {
+          countBelumKumpul++;
+        } else if (st.startsWith('gagal')) {
+          countGagal++;
+        } else {
+          countBelum++;
+        }
+      });
+
+      const calcPct = (cnt) => total > 0 ? Math.round((cnt / total) * 100) + '%' : '0%';
+
+      const elTotal = document.getElementById('statCountTotal');
+      if (elTotal) elTotal.textContent = total;
+
+      const elSelesai = document.getElementById('statCountSelesai');
+      if (elSelesai) elSelesai.textContent = countSelesai;
+      const elPctSelesai = document.getElementById('statPctSelesai');
+      if (elPctSelesai) elPctSelesai.textContent = `(${calcPct(countSelesai)})`;
+
+      const elBelum = document.getElementById('statCountBelum');
+      if (elBelum) elBelum.textContent = countBelum;
+      const elPctBelum = document.getElementById('statPctBelum');
+      if (elPctBelum) elPctBelum.textContent = `(${calcPct(countBelum)})`;
+
+      const elBelumKumpul = document.getElementById('statCountBelumKumpul');
+      if (elBelumKumpul) elBelumKumpul.textContent = countBelumKumpul;
+      const elPctBelumKumpul = document.getElementById('statPctBelumKumpul');
+      if (elPctBelumKumpul) elPctBelumKumpul.textContent = `(${calcPct(countBelumKumpul)})`;
+
+      const elGagal = document.getElementById('statCountGagal');
+      if (elGagal) elGagal.textContent = countGagal;
+      const elPctGagal = document.getElementById('statPctGagal');
+      if (elPctGagal) elPctGagal.textContent = `(${calcPct(countGagal)})`;
+    }
+
+    function getFilteredGradingStudents() {
+      const grades = appState.currentGrades || [];
+      const query = (document.getElementById('gradingSearchInput')?.value || '').trim().toLowerCase();
+
+      return grades.filter(g => {
+        const st = (g.status || '').toLowerCase();
+        let matchStatus = true;
+        if (gradingStatusFilter === 'selesai') {
+          matchStatus = st === 'selesai';
+        } else if (gradingStatusFilter === 'belum_kumpul') {
+          matchStatus = st.includes('belum mengumpulkan') || st.includes('tidak mengumpulkan');
+        } else if (gradingStatusFilter === 'gagal') {
+          matchStatus = st.startsWith('gagal');
+        } else if (gradingStatusFilter === 'belum') {
+          matchStatus = st !== 'selesai' && !st.includes('belum mengumpulkan') && !st.includes('tidak mengumpulkan') && !st.startsWith('gagal');
+        }
+
+        if (!matchStatus) return false;
+
+        if (query) {
+          const nim = (g.nim || '').toLowerCase();
+          const nama = (g.nama_mahasiswa || '').toLowerCase();
+          return nim.includes(query) || nama.includes(query);
+        }
+
+        return true;
+      });
+    }
+
     function loadGradingTable(taskId) {
       if (typeof gradingQueue !== 'undefined' && gradingQueue.isRunning) {
         alert('Penilaian sedang berlangsung. Harap hentikan atau tunggu antrean selesai sebelum mengganti tugas.');
@@ -2611,6 +2811,7 @@ Database::initDatabase();
 
       if (!taskId) {
         document.getElementById('gradingTaskInfo').classList.add('hidden');
+        document.getElementById('gradingStatsBar')?.classList.add('hidden');
         document.getElementById('gradingTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-slate-400">Pilih tugas terlebih dahulu</td></tr>';
         return;
       }
@@ -2618,6 +2819,17 @@ Database::initDatabase();
       appState.selectedGradingTaskId = taskId;
       appState.selectedStudentNims.clear();
       updateSelectedCountBadge();
+
+      // Reset filter status & pencarian saat tugas dimuat
+      gradingStatusFilter = 'all';
+      const searchInp = document.getElementById('gradingSearchInput');
+      if (searchInp) searchInp.value = '';
+      const filterBadge = document.getElementById('gradingFilterBadge');
+      if (filterBadge) filterBadge.textContent = '(Semua)';
+      document.querySelectorAll('.grading-stat-card').forEach(c => {
+        c.classList.remove('ring-2', 'ring-blue-500', 'ring-emerald-500', 'ring-amber-500', 'ring-rose-500');
+      });
+      document.getElementById('statFilterAll')?.classList.add('ring-2', 'ring-blue-500');
 
       const progressPanel = document.getElementById('gradingProgressPanel');
       if (progressPanel) progressPanel.classList.add('hidden');
@@ -2688,10 +2900,20 @@ Database::initDatabase();
       const tbody = document.getElementById('gradingTableBody');
       if (!grades || grades.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400">Belum ada mahasiswa di kelas ini.</td></tr>';
+        updateGradingStats([]);
         return;
       }
 
-      tbody.innerHTML = grades.map(g => {
+      updateGradingStats(grades);
+
+      const filtered = getFilteredGradingStudents();
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400">Tidak ada mahasiswa dengan filter atau kata kunci pencarian tersebut.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(g => {
         const isCompleted = g.status && g.status.toLowerCase() === 'selesai';
         const isFailed = g.status && g.status.toLowerCase().startsWith('gagal');
         const isGrading = g.status && g.status.toLowerCase().includes('sedang');
@@ -2755,7 +2977,8 @@ Database::initDatabase();
 
     function toggleSelectAll(checked) {
       if (checked) {
-        appState.currentGrades.forEach(g => appState.selectedStudentNims.add(g.nim));
+        const visibleStudents = getFilteredGradingStudents();
+        visibleStudents.forEach(g => appState.selectedStudentNims.add(g.nim));
       } else {
         appState.selectedStudentNims.clear();
       }
@@ -3005,6 +3228,9 @@ Database::initDatabase();
           appState.currentGrades[idx].catatan_ai = data.catatan_ai || cleanReason;
         }
       }
+
+      // Perbarui statistik secara instan setelah setiap evaluasi mahasiswa selesai
+      updateGradingStats(appState.currentGrades);
     }
 
     function updateGradingProgressUI() {
