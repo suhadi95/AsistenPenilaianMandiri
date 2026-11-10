@@ -461,6 +461,10 @@ Database::initDatabase();
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 <span>Reset Gagal</span>
               </button>
+              <button type="button" onclick="runIntegrityCheck()" id="btnIntegrityCheck" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs px-3 sm:px-3.5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs" title="Deteksi jawaban copy-paste antar mahasiswa dan temukan residu percakapan bot AI yang tertinggal">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                <span>🛡️ Cek Integritas (Plagiasi & AI)</span>
+              </button>
             </div>
 
             <!-- Baris Bawah: Sumber Berkas (Sinkron Drive, Upload ZIP, Folder Kelas, Buka Drive) -->
@@ -643,13 +647,14 @@ Database::initDatabase();
                 <th class="px-4 py-3 w-32">Berkas Jawaban</th>
                 <th class="px-4 py-3 w-20 text-center">Nilai</th>
                 <th class="px-4 py-3">Rincian Poin Soal</th>
+                <th class="px-4 py-3 w-36 text-center">Integritas (Plagiasi & AI)</th>
                 <th class="px-4 py-3 w-28 text-center">Status</th>
                 <th class="px-4 py-3 w-20 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody id="gradingTableBody" class="divide-y divide-slate-100">
               <tr>
-                <td colspan="8" class="text-center py-12 text-slate-400">Pilih tugas terlebih dahulu untuk menampilkan daftar mahasiswa</td>
+                <td colspan="9" class="text-center py-12 text-slate-400">Pilih tugas terlebih dahulu untuk menampilkan daftar mahasiswa</td>
               </tr>
             </tbody>
           </table>
@@ -1725,6 +1730,30 @@ Database::initDatabase();
         <p class="text-[11px] text-rose-700 bg-white/80 p-2 rounded-lg border border-rose-100" id="detailFailureAdvice">💡 Solusi: -</p>
       </div>
 
+      <!-- AI Bot Residue Alert Box -->
+      <div id="detailAiAlert" class="hidden p-3.5 bg-rose-50/90 border border-rose-300 rounded-xl space-y-2 shadow-2xs">
+        <div class="font-bold text-rose-900 text-xs flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <span>🤖</span> <span>Terindikasi AI (Residu Percakapan Bot Terlupa Dihapus):</span>
+          </span>
+          <button type="button" onclick="setZeroPenaltyGrade('ai')" class="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-bold cursor-pointer transition shadow-2xs" title="Terapkan nilai 0 karena bukti residu bot AI">Beri Nilai 0</button>
+        </div>
+        <p class="text-[11px] text-rose-800 font-semibold" id="detailAiSummary">-</p>
+        <div class="text-rose-950 text-xs font-mono bg-white p-2.5 rounded-lg border border-rose-200 whitespace-pre-wrap max-h-36 overflow-y-auto leading-relaxed" id="detailAiSnippets">-</div>
+      </div>
+
+      <!-- Plagiarism Alert Box -->
+      <div id="detailPlagiarismAlert" class="hidden p-3.5 bg-amber-50/90 border border-amber-300 rounded-xl space-y-2 shadow-2xs">
+        <div class="font-bold text-amber-900 text-xs flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <span>⚠️</span> <span>Indikasi Plagiarisme Antar Mahasiswa:</span>
+          </span>
+          <button type="button" onclick="setZeroPenaltyGrade('plagiarism')" class="px-2 py-0.5 bg-amber-700 hover:bg-amber-800 text-white rounded text-[10px] font-bold cursor-pointer transition shadow-2xs" title="Terapkan nilai 0 karena plagiasi">Beri Nilai 0</button>
+        </div>
+        <p class="text-amber-900 text-xs font-semibold" id="detailPlagiarismReason">-</p>
+        <div class="text-amber-950 text-[11px] font-mono bg-white p-2 rounded-lg border border-amber-200 max-h-24 overflow-y-auto space-y-1" id="detailPlagiarismSnippets">-</div>
+      </div>
+
       <div class="space-y-3.5 text-xs">
         <div>
           <label class="block font-semibold text-slate-700 mb-1">Nilai Total Akhir (0 - 100)</label>
@@ -1828,6 +1857,119 @@ Database::initDatabase();
           <button type="button" onclick="closeModal('classFolderOverrideModal')" class="px-3.5 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
           <button type="button" onclick="saveClassFolderOverride()" id="btnSaveOverride" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs flex items-center gap-1.5 shadow-sm">
             <span>💾 Simpan</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. MODAL ANALISIS INTEGRITAS: PLAGIARISME & RESIDU BOT AI -->
+  <div id="integrityReportModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center text-xl shrink-0">
+            🛡️
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+              <span>Laporan Integritas Akademik & Plagiarisme</span>
+            </h3>
+            <p class="text-xs text-slate-400" id="integrityModalSubtitle">Analisis kesamaan berkas antar mahasiswa dan residu percakapan chatbot AI</p>
+          </div>
+        </div>
+        <button onclick="closeModal('integrityReportModal')" class="text-slate-400 hover:text-slate-600 text-lg p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer">✕</button>
+      </div>
+
+      <!-- Ringkasan Statistik Kartu -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0" id="integrityStatsCards">
+        <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+          <span class="text-[11px] font-semibold text-slate-500">Total Diperiksa</span>
+          <p class="text-xl font-extrabold text-slate-800 mt-0.5" id="integStatTotal">0 Mhs</p>
+        </div>
+        <div class="bg-rose-50 border border-rose-200 p-3 rounded-xl cursor-pointer hover:bg-rose-100/70 transition" onclick="switchIntegrityTab('ai')">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-rose-800">🤖 Terindikasi AI</span>
+            <span class="text-[9px] bg-rose-200 text-rose-800 px-1.5 py-0.2 rounded font-bold">Pasti AI</span>
+          </div>
+          <p class="text-xl font-extrabold text-rose-700 mt-0.5" id="integStatAi">0 Mhs</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl cursor-pointer hover:bg-amber-100/70 transition" onclick="switchIntegrityTab('plag')">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-amber-900">⚠️ Plagiasi Kritis</span>
+            <span class="text-[9px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded font-bold">≥ 70%</span>
+          </div>
+          <p class="text-xl font-extrabold text-amber-800 mt-0.5" id="integStatHighPlag">0 Pasang</p>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
+          <span class="text-[11px] font-semibold text-emerald-800">✓ Kemiripan Wajar</span>
+          <p class="text-xl font-extrabold text-emerald-700 mt-0.5" id="integStatClean">0 Mhs</p>
+        </div>
+      </div>
+
+      <!-- Tab Navigasi Modal -->
+      <div class="flex items-center gap-1 border-b border-slate-200 text-xs shrink-0">
+        <button type="button" onclick="switchIntegrityTab('plag')" id="tabBtnIntegPlag" class="px-3.5 py-2 font-bold border-b-2 border-blue-600 text-blue-600 transition flex items-center gap-1.5 cursor-pointer">
+          <span>⚠️ Kemiripan Antar Mahasiswa</span>
+          <span id="badgeCountPlag" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800 font-mono">0</span>
+        </button>
+        <button type="button" onclick="switchIntegrityTab('ai')" id="tabBtnIntegAi" class="px-3.5 py-2 font-medium text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5 cursor-pointer">
+          <span>🤖 Residu Chatbot AI</span>
+          <span id="badgeCountAi" class="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-100 text-rose-800 font-mono">0</span>
+        </button>
+        <button type="button" onclick="switchIntegrityTab('all')" id="tabBtnIntegAll" class="px-3.5 py-2 font-medium text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5 cursor-pointer">
+          <span>📋 Rekap Seluruh Kelas</span>
+        </button>
+      </div>
+
+      <!-- Tab Konten: Scrollable Area -->
+      <div class="flex-1 overflow-y-auto space-y-3 text-xs pr-1">
+        <!-- 1. TAB KEMIRIPAN (PLAGIASI ANTAR MAHASISWA) -->
+        <div id="integTabPlagContent" class="space-y-3">
+          <div id="integPairsList" class="space-y-3">
+            <!-- Dynamic Pairs -->
+          </div>
+        </div>
+
+        <!-- 2. TAB RESIDU BOT AI -->
+        <div id="integTabAiContent" class="hidden space-y-3">
+          <div id="integAiList" class="space-y-3">
+            <!-- Dynamic AI Flagged Students -->
+          </div>
+        </div>
+
+        <!-- 3. TAB REKAP SELURUH KELAS -->
+        <div id="integTabAllContent" class="hidden">
+          <div class="overflow-x-auto border border-slate-200 rounded-xl">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="px-3.5 py-2.5">NIM</th>
+                  <th class="px-3.5 py-2.5">Nama Mahasiswa</th>
+                  <th class="px-3.5 py-2.5 text-center">Tingkat Kemiripan</th>
+                  <th class="px-3.5 py-2.5">Kemiripan Tertinggi Dengan</th>
+                  <th class="px-3.5 py-2.5 text-center">Residu AI</th>
+                  <th class="px-3.5 py-2.5 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="integAllTableBody" class="divide-y divide-slate-100">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex justify-between items-center pt-3 border-t border-slate-100 text-xs shrink-0">
+        <span class="text-slate-400 text-[11px]" id="integrityAnalyzedAtTime">Dipindai: -</span>
+        <div class="flex gap-2">
+          <button type="button" onclick="runIntegrityCheck()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition flex items-center gap-1 cursor-pointer">
+            <span>🔄 Pindai Ulang</span>
+          </button>
+          <button type="button" onclick="closeModal('integrityReportModal')" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition cursor-pointer">
+            Tutup
           </button>
         </div>
       </div>
@@ -2848,7 +2990,7 @@ Database::initDatabase();
       if (!taskId) {
         document.getElementById('gradingTaskInfo').classList.add('hidden');
         document.getElementById('gradingStatsBar')?.classList.add('hidden');
-        document.getElementById('gradingTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-slate-400">Pilih tugas terlebih dahulu</td></tr>';
+        document.getElementById('gradingTableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12 text-slate-400">Pilih tugas terlebih dahulu</td></tr>';
         return;
       }
 
@@ -2935,7 +3077,7 @@ Database::initDatabase();
     function renderGradingTableRows(grades) {
       const tbody = document.getElementById('gradingTableBody');
       if (!grades || grades.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400">Belum ada mahasiswa di kelas ini.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400">Belum ada mahasiswa di kelas ini.</td></tr>';
         updateGradingStats([]);
         return;
       }
@@ -2945,7 +3087,7 @@ Database::initDatabase();
       const filtered = getFilteredGradingStudents();
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400">Tidak ada mahasiswa dengan filter atau kata kunci pencarian tersebut.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400">Tidak ada mahasiswa dengan filter atau kata kunci pencarian tersebut.</td></tr>';
         return;
       }
 
@@ -2979,6 +3121,51 @@ Database::initDatabase();
           statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 animate-pulse">⏳ Menilai...</span>';
         }
 
+        // Render Lencana Integritas (Plagiasi & AI)
+        let integrityBadge = '<span class="text-slate-400 text-[10px]">-</span>';
+        const hasAi = Number(g.ai_detected) === 1;
+        const simScore = (g.similarity_score !== null && g.similarity_score !== undefined && g.similarity_score !== '') ? Number(g.similarity_score) : null;
+
+        if (hasAi && simScore !== null && simScore >= 70) {
+          integrityBadge = `
+            <button type="button" onclick="openIntegrityModalForStudent('${g.nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" title="Terdeteksi Residu Chatbot AI & Kemiripan ${simScore}%">
+              <span>🤖 AI & ⚠️ ${simScore}%</span>
+            </button>
+          `;
+        } else if (hasAi) {
+          integrityBadge = `
+            <button type="button" onclick="openIntegrityModalForStudent('${g.nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" title="Terdeteksi residu percakapan chatbot AI yang lupa dihapus mahasiswa">
+              <span>🤖 Terindikasi AI</span>
+            </button>
+          `;
+        } else if (simScore !== null) {
+          if (simScore >= 70) {
+            integrityBadge = `
+              <button type="button" onclick="openIntegrityModalForStudent('${g.nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" title="Kemiripan tinggi ${simScore}% dengan NIM ${g.similarity_target_nim || '-'}">
+                <span>⚠️ ${simScore}% Plagiasi</span>
+              </button>
+            `;
+          } else if (simScore >= 40) {
+            integrityBadge = `
+              <button type="button" onclick="openIntegrityModalForStudent('${g.nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" title="Kemiripan sedang ${simScore}% dengan NIM ${g.similarity_target_nim || '-'}">
+                <span>⚠️ ${simScore}% Mirip</span>
+              </button>
+            `;
+          } else {
+            integrityBadge = `
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-0.5" title="Tingkat kemiripan wajar (${simScore}%)">
+                <span>✓ Bersih (${simScore}%)</span>
+              </span>
+            `;
+          }
+        } else if (isCompleted) {
+          integrityBadge = `
+            <button type="button" onclick="runIntegrityCheck()" class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-500 transition cursor-pointer" title="Klik 'Cek Integritas' untuk memindai plagiasi & AI">
+              Belum Dicek
+            </button>
+          `;
+        }
+
         const isChecked = appState.selectedStudentNims.has(g.nim);
 
         return `
@@ -2991,6 +3178,7 @@ Database::initDatabase();
             <td id="file-cell-${g.nim}" class="px-4 py-2.5 text-slate-500 truncate max-w-[170px]" title="${g.file_name || '-'}">${isUnsubmitted ? '<span class="text-slate-400 text-xs">-</span>' : renderFileNameCell(g.file_name, g.drive_file_url)}</td>
             <td id="score-cell-${g.nim}" class="px-4 py-2.5 text-center font-bold text-sm ${isCompleted ? 'text-blue-700' : 'text-slate-400'}">${g.nilai_total !== null && g.nilai_total !== undefined ? g.nilai_total : '-'}</td>
             <td id="points-cell-${g.nim}" class="px-4 py-2.5 text-slate-600 line-clamp-1 max-w-[200px]" title="${g.rincian_poin || g.status || '-'}">${pointsContent}</td>
+            <td id="integrity-cell-${g.nim}" class="px-4 py-2.5 text-center">${integrityBadge}</td>
             <td id="status-cell-${g.nim}" class="px-4 py-2.5 text-center">${statusBadge}</td>
             <td class="px-4 py-2.5 text-center">
               <button onclick="openGradeDetailModal('${g.nim}')" class="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-600 font-medium transition" title="Lihat Ulasan & Koreksi Manual">
@@ -3183,6 +3371,7 @@ Database::initDatabase();
       const row = document.getElementById('row-student-' + nim);
       const scoreCell = document.getElementById('score-cell-' + nim);
       const pointsCell = document.getElementById('points-cell-' + nim);
+      const integrityCell = document.getElementById('integrity-cell-' + nim);
       const statusCell = document.getElementById('status-cell-' + nim);
       const fileCell = document.getElementById('file-cell-' + nim);
 
@@ -3233,6 +3422,15 @@ Database::initDatabase();
         if (statusCell) {
           statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">✓ Selesai</span>';
         }
+        if (data.ai_detected !== undefined && integrityCell) {
+          if (Number(data.ai_detected) === 1) {
+            integrityCell.innerHTML = `
+              <button type="button" onclick="openIntegrityModalForStudent('${nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" title="Terdeteksi residu percakapan chatbot AI yang lupa dihapus mahasiswa">
+                <span>🤖 Terindikasi AI</span>
+              </button>
+            `;
+          }
+        }
 
         const idx = appState.currentGrades.findIndex(g => g.nim === nim);
         if (idx !== -1) {
@@ -3242,6 +3440,10 @@ Database::initDatabase();
           appState.currentGrades[idx].file_name = data.fileName;
           appState.currentGrades[idx].drive_file_url = data.driveUrl || '';
           appState.currentGrades[idx].status = 'Selesai';
+          if (data.ai_detected !== undefined) {
+            appState.currentGrades[idx].ai_detected = data.ai_detected;
+            appState.currentGrades[idx].ai_detected_details = data.ai_detected_details;
+          }
         }
       } else if (state === 'failed' && data) {
         if (row) row.className = 'bg-rose-50/60 transition';
@@ -4407,7 +4609,75 @@ Database::initDatabase();
         failureBox.classList.add('hidden');
       }
 
+      // Cek Indikasi Residu Bot AI
+      const aiBox = document.getElementById('detailAiAlert');
+      const hasAi = Number(grade.ai_detected) === 1;
+      if (hasAi && aiBox) {
+        aiBox.classList.remove('hidden');
+        let aiDetails = null;
+        try {
+          aiDetails = typeof grade.ai_detected_details === 'string' ? JSON.parse(grade.ai_detected_details) : grade.ai_detected_details;
+        } catch (e) {}
+
+        const summaryEl = document.getElementById('detailAiSummary');
+        const snippetsEl = document.getElementById('detailAiSnippets');
+        if (summaryEl) summaryEl.textContent = (aiDetails && aiDetails.summary) || 'Terdeteksi residu percakapan chatbot AI yang lupa dihapus.';
+        
+        if (snippetsEl && aiDetails && aiDetails.matches && aiDetails.matches.length > 0) {
+          const matchTexts = aiDetails.matches.map(m => `[Baris ~${m.lineNumber || '-'}] ${m.category || 'Residu Bot'}:\n${m.snippet || m.matchedText}`).join('\n\n');
+          snippetsEl.textContent = matchTexts;
+        } else if (snippetsEl) {
+          snippetsEl.textContent = 'Ditemukan sisa percakapan bot AI pada berkas jawaban.';
+        }
+      } else if (aiBox) {
+        aiBox.classList.add('hidden');
+      }
+
+      // Cek Indikasi Plagiarisme Antar Mahasiswa
+      const plagBox = document.getElementById('detailPlagiarismAlert');
+      const simScore = (grade.similarity_score !== null && grade.similarity_score !== undefined && grade.similarity_score !== '') ? Number(grade.similarity_score) : null;
+      if (simScore !== null && simScore >= 40 && plagBox) {
+        plagBox.classList.remove('hidden');
+        let simDetails = null;
+        try {
+          simDetails = typeof grade.similarity_details === 'string' ? JSON.parse(grade.similarity_details) : grade.similarity_details;
+        } catch (e) {}
+
+        const reasonEl = document.getElementById('detailPlagiarismReason');
+        const snippetsEl = document.getElementById('detailPlagiarismSnippets');
+        const targetNim = grade.similarity_target_nim || (simDetails && simDetails.highestMatch && simDetails.highestMatch.targetNim) || '-';
+        const targetNama = (simDetails && simDetails.highestMatch && simDetails.highestMatch.targetNama) || '';
+        
+        if (reasonEl) {
+          reasonEl.textContent = `Tingkat kemiripan ${simScore}% dengan NIM ${targetNim} ${targetNama ? '(' + targetNama + ')' : ''}`;
+        }
+        
+        if (snippetsEl) {
+          const phrases = (simDetails && simDetails.matchingPhrases) || [];
+          if (phrases.length > 0) {
+            snippetsEl.innerHTML = phrases.map((p, idx) => `<div><span class="text-amber-800 font-bold">Kutipan Identik #${idx+1} (${p.wordCount} kata):</span><br><span class="bg-amber-100/80 px-1 py-0.5 rounded text-amber-950">"${p.phrase}"</span></div>`).join('');
+          } else {
+            snippetsEl.textContent = 'Ditemukan kesamaan struktur dan kalimat dengan rekan sekelas.';
+          }
+        }
+      } else if (plagBox) {
+        plagBox.classList.add('hidden');
+      }
+
       openModal('gradeDetailModal');
+    }
+
+    function setZeroPenaltyGrade(reason) {
+      const scoreInp = document.getElementById('detailGradeTotalScore');
+      const feedbackInp = document.getElementById('detailGradeFeedback');
+      if (scoreInp) scoreInp.value = 0;
+      if (feedbackInp) {
+        const penaltyNote = reason === 'ai'
+          ? '\n\n[PENALTI INTEGRITAS AKADEMIK]:\nNilai akhir ditetapkan 0 karena terbukti menyalin jawaban mentah dari Chatbot AI (ditemukan sisa percakapan bot yang tertinggal).'
+          : '\n\n[PENALTI INTEGRITAS AKADEMIK]:\nNilai akhir ditetapkan 0 karena terindikasi plagiarisme (kemiripan tinggi dengan jawaban mahasiswa lain).';
+        feedbackInp.value = feedbackInp.value.trim() + penaltyNote;
+      }
+      showGlobalAlert('Nilai total telah disesuaikan menjadi 0. Klik "Simpan Perubahan Nilai" untuk mencatat ke sistem.', 'warning');
     }
 
     function submitSaveManualGrade() {
@@ -4439,6 +4709,294 @@ Database::initDatabase();
           alert('Gagal menyimpan nilai: ' + err.message);
         })
         .apiSaveGradeManual(data);
+    }
+
+    // ==========================================
+    // INTEGRITAS AKADEMIK: PLAGIASI & AI BOT RESIDUE
+    // ==========================================
+
+    let lastIntegrityReportData = null;
+    let activeIntegrityTab = 'plag';
+
+    function runIntegrityCheck() {
+      const taskId = appState.selectedGradingTaskId;
+      const classId = appState.activeClassId;
+
+      if (!taskId) {
+        return alert('Pilih tugas terlebih dahulu pada menu dropdown.');
+      }
+      if (!classId) {
+        return alert('Pilih kelas terlebih dahulu.');
+      }
+
+      const btn = document.getElementById('btnIntegrityCheck');
+      const originalText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner inline-block w-3.5 h-3.5 border-2 border-rose-600 border-t-white"></span> <span>Memindai...</span>';
+      }
+
+      showGlobalAlert('Memindai seluruh berkas tugas kelas untuk mendeteksi plagiarisme dan residu bot AI...', 'info');
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+          }
+
+          if (!res || !res.success) {
+            showGlobalAlert('Gagal menjalankan analisis integritas: ' + ((res && res.message) || 'Kesalahan sistem'), 'error');
+            return;
+          }
+
+          lastIntegrityReportData = res;
+          showGlobalAlert(res.message || 'Analisis integritas selesai.', 'success');
+
+          // Muat ulang tabel penilaian agar badge terbaru tampil
+          loadGradingTable(taskId);
+
+          // Tampilkan modal hasil integritas
+          renderIntegrityReportModal(res);
+          openModal('integrityReportModal');
+        })
+        .withFailureHandler(function(err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+          }
+          showGlobalAlert('Gagal memeriksa integritas: ' + err.message, 'error');
+        })
+        .apiCheckTaskIntegrity(taskId, classId);
+    }
+
+    function switchIntegrityTab(tab) {
+      activeIntegrityTab = tab;
+      const tabPlag = document.getElementById('integTabPlagContent');
+      const tabAi = document.getElementById('integTabAiContent');
+      const tabAll = document.getElementById('integTabAllContent');
+
+      const btnPlag = document.getElementById('tabBtnIntegPlag');
+      const btnAi = document.getElementById('tabBtnIntegAi');
+      const btnAll = document.getElementById('tabBtnIntegAll');
+
+      [tabPlag, tabAi, tabAll].forEach(t => t?.classList.add('hidden'));
+      [btnPlag, btnAi, btnAll].forEach(b => {
+        b?.classList.remove('border-b-2', 'border-blue-600', 'text-blue-600', 'font-bold');
+        b?.classList.add('text-slate-500', 'font-medium');
+      });
+
+      if (tab === 'ai') {
+        tabAi?.classList.remove('hidden');
+        btnAi?.classList.add('border-b-2', 'border-blue-600', 'text-blue-600', 'font-bold');
+        btnAi?.classList.remove('text-slate-500', 'font-medium');
+      } else if (tab === 'all') {
+        tabAll?.classList.remove('hidden');
+        btnAll?.classList.add('border-b-2', 'border-blue-600', 'text-blue-600', 'font-bold');
+        btnAll?.classList.remove('text-slate-500', 'font-medium');
+      } else {
+        tabPlag?.classList.remove('hidden');
+        btnPlag?.classList.add('border-b-2', 'border-blue-600', 'text-blue-600', 'font-bold');
+        btnPlag?.classList.remove('text-slate-500', 'font-medium');
+      }
+    }
+
+    function openIntegrityModalForStudent(nim) {
+      const grade = appState.currentGrades.find(g => g.nim === nim);
+      if (!grade) return;
+
+      const hasAi = Number(grade.ai_detected) === 1;
+      const simScore = (grade.similarity_score !== null && grade.similarity_score !== undefined) ? Number(grade.similarity_score) : 0;
+
+      if (!lastIntegrityReportData) {
+        runIntegrityCheck();
+        return;
+      }
+
+      renderIntegrityReportModal(lastIntegrityReportData);
+      openModal('integrityReportModal');
+
+      if (hasAi && simScore < 70) {
+        switchIntegrityTab('ai');
+      } else {
+        switchIntegrityTab('plag');
+      }
+    }
+
+    function renderIntegrityReportModal(data) {
+      if (!data) return;
+      const stats = data.stats || {};
+
+      document.getElementById('integStatTotal').textContent = (stats.totalWithFiles ?? stats.totalStudents ?? 0) + ' Mhs';
+      document.getElementById('integStatAi').textContent = (stats.aiDetectedCount ?? 0) + ' Mhs';
+      document.getElementById('integStatHighPlag').textContent = (stats.highPlagiarismCount ?? 0) + ' Mhs';
+      document.getElementById('integStatClean').textContent = (stats.cleanCount ?? 0) + ' Mhs';
+
+      document.getElementById('badgeCountPlag').textContent = (data.suspiciousPairs || []).length;
+      document.getElementById('badgeCountAi').textContent = (data.aiFlaggedStudents || []).length;
+      document.getElementById('integrityAnalyzedAtTime').textContent = 'Dipindai pada: ' + (stats.analyzedAt || new Date().toLocaleString('id-ID'));
+
+      // Render 1: Pasangan Kemiripan Tinggi
+      const pairsContainer = document.getElementById('integPairsList');
+      const pairs = data.suspiciousPairs || [];
+      if (pairs.length === 0) {
+        pairsContainer.innerHTML = `
+          <div class="text-center py-8 bg-slate-50 rounded-xl border border-slate-200 text-slate-500 space-y-1">
+            <span class="text-2xl">🎉</span>
+            <p class="font-bold text-slate-700">Tidak Ditemukan Pasangan Kemiripan Mencurigakan</p>
+            <p class="text-[11px] text-slate-400">Seluruh berkas jawaban mahasiswa yang diunggah memiliki variasi kalimat unik di bawah ambang batas plagiasi 40%.</p>
+          </div>
+        `;
+      } else {
+        pairsContainer.innerHTML = pairs.map((pair, pIdx) => {
+          const isCritical = pair.percentage >= 70;
+          const badgeClass = isCritical ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-amber-100 text-amber-800 border-amber-300';
+          const phrases = pair.matchingPhrases || [];
+
+          return `
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-md font-bold text-xs border ${badgeClass}">
+                    ${pair.percentage}% Kesamaan (${pair.severity})
+                  </span>
+                  <span class="text-[11px] text-slate-400">Jaccard: ${pair.jaccard}%</span>
+                </div>
+                <button type="button" onclick="togglePairDiff(${pIdx})" id="btnToggleDiff-${pIdx}" class="text-blue-600 hover:text-blue-800 font-semibold text-xs inline-flex items-center gap-1 cursor-pointer">
+                  <span>🔍 Lihat Kutipan Identik (${phrases.length})</span> <span>▼</span>
+                </button>
+              </div>
+
+              <!-- Dua Mahasiswa yang Mirip -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div class="p-2.5 bg-white rounded-lg border border-slate-200">
+                  <div class="font-bold text-slate-900">${pair.namaA}</div>
+                  <div class="text-[11px] text-slate-500 font-mono">NIM: ${pair.nimA}</div>
+                  <div class="text-[10px] text-slate-400 truncate mt-0.5">Berkas: ${pair.fileNameA}</div>
+                </div>
+                <div class="p-2.5 bg-white rounded-lg border border-slate-200">
+                  <div class="font-bold text-slate-900">${pair.namaB}</div>
+                  <div class="text-[11px] text-slate-500 font-mono">NIM: ${pair.nimB}</div>
+                  <div class="text-[10px] text-slate-400 truncate mt-0.5">Berkas: ${pair.fileNameB}</div>
+                </div>
+              </div>
+
+              <!-- Kotak Kutipan Identik Collapsible -->
+              <div id="pairDiffBox-${pIdx}" class="hidden p-3 bg-amber-50/70 rounded-lg border border-amber-200 space-y-2">
+                <div class="font-bold text-amber-900 text-[11px] flex items-center gap-1">
+                  <span>📑</span> <span>Kalimat / Blok Teks yang Identik Antara Kedua Mahasiswa:</span>
+                </div>
+                ${phrases.length > 0 ? phrases.map((ph, phIdx) => `
+                  <div class="bg-white p-2 rounded border border-amber-100 text-[11px]">
+                    <span class="font-bold text-amber-800">#${phIdx + 1} (${ph.wordCount} kata sama persis):</span>
+                    <p class="font-mono text-slate-800 mt-0.5 bg-amber-100/60 p-1.5 rounded">"${ph.phrase}"</p>
+                  </div>
+                `).join('') : '<p class="text-slate-400 italic text-[11px]">Tidak ada blok kalimat panjang berturut-turut.</p>'}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render 2: Residu Chatbot AI
+      const aiContainer = document.getElementById('integAiList');
+      const aiStudents = data.aiFlaggedStudents || [];
+      if (aiStudents.length === 0) {
+        aiContainer.innerHTML = `
+          <div class="text-center py-8 bg-slate-50 rounded-xl border border-slate-200 text-slate-500 space-y-1">
+            <span class="text-2xl">✓</span>
+            <p class="font-bold text-slate-700">Tidak Ditemukan Residu Chatbot AI</p>
+            <p class="text-[11px] text-slate-400">Tidak ada mahasiswa yang kedapatan menyalin kalimat khas percakapan chatbot AI (seperti "Apakah jawaban ini sudah cukup?", "Semoga membantu", dsb).</p>
+          </div>
+        `;
+      } else {
+        aiContainer.innerHTML = aiStudents.map(st => {
+          const scan = st.aiScan || {};
+          const matches = scan.matches || [];
+
+          return `
+            <div class="p-3.5 bg-rose-50/70 rounded-xl border border-rose-200 space-y-2.5">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                    <span>🤖</span> <span>${st.nama}</span>
+                    <span class="text-slate-500 font-mono text-xs">(${st.nim})</span>
+                  </h4>
+                  <p class="text-[11px] text-slate-500 mt-0.5">Berkas: <span class="font-medium">${st.fileName}</span></p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-200 text-rose-900">
+                    ${matches.length} Residu Bot Terdeteksi
+                  </span>
+                  <button type="button" onclick="openGradeDetailModal('${st.nim}')" class="px-2.5 py-1 bg-white hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg font-semibold text-xs transition cursor-pointer">
+                    Koreksi Nilai ✏️
+                  </button>
+                </div>
+              </div>
+
+              <!-- Kutipan Residu Bot Yang Lupa Dihapus -->
+              <div class="space-y-1.5">
+                ${matches.map(m => `
+                  <div class="p-2.5 bg-white rounded-lg border border-rose-200 space-y-1 text-xs">
+                    <div class="flex items-center justify-between text-[11px]">
+                      <span class="font-bold text-rose-700">${m.category}</span>
+                      <span class="text-slate-400 font-mono">Baris ~${m.lineNumber}</span>
+                    </div>
+                    <div class="font-mono text-rose-950 bg-rose-50/60 p-2 rounded border border-rose-100 whitespace-pre-wrap text-[11px] leading-relaxed">${m.snippet || m.matchedText}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render 3: Tabel Rekap Seluruh Kelas
+      const allTbody = document.getElementById('integAllTableBody');
+      const allStudents = appState.currentGrades || [];
+      allTbody.innerHTML = allStudents.map(g => {
+        const hasAi = Number(g.ai_detected) === 1;
+        const sim = (g.similarity_score !== null && g.similarity_score !== undefined && g.similarity_score !== '') ? Number(g.similarity_score) : null;
+        let simBadge = '<span class="text-slate-400 text-xs">-</span>';
+        if (sim !== null) {
+          if (sim >= 70) simBadge = `<span class="px-2 py-0.5 rounded font-bold text-rose-700 bg-rose-100">${sim}%</span>`;
+          else if (sim >= 40) simBadge = `<span class="px-2 py-0.5 rounded font-bold text-amber-800 bg-amber-100">${sim}%</span>`;
+          else simBadge = `<span class="px-2 py-0.5 rounded font-medium text-emerald-700 bg-emerald-50">${sim}%</span>`;
+        }
+
+        const aiBadge = hasAi 
+          ? '<span class="px-2 py-0.5 rounded-full font-bold text-rose-700 bg-rose-100 text-[10px]">🤖 Terindikasi AI</span>'
+          : '<span class="text-slate-400 text-xs">Bersih</span>';
+
+        return `
+          <tr class="hover:bg-slate-50/80">
+            <td class="px-3.5 py-2 font-mono font-semibold text-slate-700">${g.nim}</td>
+            <td class="px-3.5 py-2 font-medium text-slate-900">${g.nama_mahasiswa}</td>
+            <td class="px-3.5 py-2 text-center">${simBadge}</td>
+            <td class="px-3.5 py-2 text-slate-600 font-mono text-[11px]">${g.similarity_target_nim || '-'}</td>
+            <td class="px-3.5 py-2 text-center">${aiBadge}</td>
+            <td class="px-3.5 py-2 text-center">
+              <button onclick="openGradeDetailModal('${g.nim}')" class="px-2 py-1 text-blue-600 hover:underline font-semibold cursor-pointer">
+                Detail
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function togglePairDiff(pIdx) {
+      const box = document.getElementById('pairDiffBox-' + pIdx);
+      const btn = document.getElementById('btnToggleDiff-' + pIdx);
+      if (!box) return;
+      const isHidden = box.classList.contains('hidden');
+      if (isHidden) {
+        box.classList.remove('hidden');
+        if (btn) btn.innerHTML = '<span>🔍 Tutup Kutipan Identik</span> <span>▲</span>';
+      } else {
+        box.classList.add('hidden');
+        if (btn) btn.innerHTML = '<span>🔍 Lihat Kutipan Identik</span> <span>▼</span>';
+      }
     }
 
     // ==========================================

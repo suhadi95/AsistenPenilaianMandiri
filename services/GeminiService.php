@@ -235,6 +235,7 @@ INSTRUKSI PENILAIAN:
 3. Hitung Nilai Total akumulatif (totalScore).
 4. Buat rangkuman masukan (summaryFeedback) yang menjelaskan justifikasi perolehan nilai: bagian mana yang sudah benar, bagian mana yang kurang/salah, dan apa solusi yang benar secara santun dan mendidik.
 5. Sebutkan poin-poin kelebihan (strengths) dan poin perbaikan (improvements).
+6. PEMERIKSAAN RESIDU BOT AI: Teliti apakah di berkas jawaban mahasiswa terdapat kalimat percakapan chatbot AI yang tertinggal karena mahasiswa teledor lupa menghapus (misal: 'Apakah jawaban ini sudah cukup?', 'Semoga membantu', 'Tentu, ini solusinya', 'Sebagai model AI', 'Is there anything else I can help with?'). Jika ada, tetapkan aiResidueDetected = true dan kutip kalimat persisnya di aiResidueQuotes.
 ";
         $parts[] = ['text' => $evalPrompt];
 
@@ -265,9 +266,11 @@ INSTRUKSI PENILAIAN:
                                 'required'   => ['criterion', 'score', 'maxScore', 'feedback']
                             ]
                         ],
-                        'summaryFeedback'=> ['type' => 'STRING', 'description' => 'Rangkuman ulasan komprehensif'],
-                        'strengths'      => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
-                        'improvements'   => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']]
+                        'summaryFeedback'   => ['type' => 'STRING', 'description' => 'Rangkuman ulasan komprehensif'],
+                        'strengths'         => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
+                        'improvements'      => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
+                        'aiResidueDetected' => ['type' => 'BOOLEAN', 'description' => 'True jika ditemukan kalimat residu percakapan bot AI yang lupa dihapus mahasiswa'],
+                        'aiResidueQuotes'   => ['type' => 'ARRAY', 'items' => ['type' => 'STRING'], 'description' => 'Kutipan persis kalimat percakapan bot AI yang tertinggal']
                     ],
                     'required'   => ['totalScore', 'criteriaScores', 'summaryFeedback']
                 ]

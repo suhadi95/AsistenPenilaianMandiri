@@ -248,24 +248,31 @@ class Database {
             // Kolom mungkin sudah ada
         }
 
-        // 3. Pastikan kolom drive_file_url ada di tabel grades
+        // 3. Pastikan kolom drive_file_url dan kolom integritas ada di tabel grades
         try {
+            $integrityCols = [
+                'drive_file_url'        => ['type' => 'TEXT NULL', 'default' => 'NULL'],
+                'similarity_score'      => ['type' => 'DECIMAL(5,2) NULL', 'default' => 'NULL'],
+                'similarity_target_nim' => ['type' => 'VARCHAR(64) NULL', 'default' => 'NULL'],
+                'similarity_details'    => ['type' => 'MEDIUMTEXT NULL', 'default' => 'NULL'],
+                'ai_detected'           => ['type' => 'INT DEFAULT 0', 'default' => '0'],
+                'ai_detected_details'   => ['type' => 'MEDIUMTEXT NULL', 'default' => 'NULL']
+            ];
+
             if ($driver === 'mysql') {
-                $colCheck = $pdo->query("SHOW COLUMNS FROM grades LIKE 'drive_file_url'")->fetch();
-                if (empty($colCheck)) {
-                    $pdo->exec("ALTER TABLE grades ADD COLUMN drive_file_url TEXT NULL AFTER file_name");
+                foreach ($integrityCols as $cName => $cDef) {
+                    $colCheck = $pdo->query("SHOW COLUMNS FROM grades LIKE '{$cName}'")->fetch();
+                    if (empty($colCheck)) {
+                        $pdo->exec("ALTER TABLE grades ADD COLUMN {$cName} {$cDef['type']}");
+                    }
                 }
             } else {
                 $cols = $pdo->query("PRAGMA table_info(grades)")->fetchAll();
-                $hasCol = false;
-                foreach ($cols as $col) {
-                    if ($col['name'] === 'drive_file_url') {
-                        $hasCol = true;
-                        break;
+                $existingNames = array_column($cols, 'name');
+                foreach ($integrityCols as $cName => $cDef) {
+                    if (!in_array($cName, $existingNames, true)) {
+                        $pdo->exec("ALTER TABLE grades ADD COLUMN {$cName} {$cDef['type']}");
                     }
-                }
-                if (!$hasCol) {
-                    $pdo->exec("ALTER TABLE grades ADD COLUMN drive_file_url TEXT NULL");
                 }
             }
         } catch (Exception $e) {

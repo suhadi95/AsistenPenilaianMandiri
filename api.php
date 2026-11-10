@@ -14,6 +14,7 @@ require_once __DIR__ . '/core/Helper.php';
 require_once __DIR__ . '/services/GeminiService.php';
 require_once __DIR__ . '/services/FileService.php';
 require_once __DIR__ . '/services/GradingService.php';
+require_once __DIR__ . '/services/IntegrityService.php';
 require_once __DIR__ . '/services/GoogleDriveService.php';
 require_once __DIR__ . '/services/UserService.php';
 
@@ -927,15 +928,20 @@ try {
                     return $item;
                 }
                 return array_merge($st, [
-                    'id_nilai'        => '',
-                    'id_tugas'        => $taskId,
-                    'file_name'       => '',
-                    'drive_file_url'  => '',
-                    'nilai_total'     => null,
-                    'rincian_poin'    => '',
-                    'catatan_ai'      => '',
-                    'status'          => 'Belum Dinilai',
-                    'waktu_penilaian' => ''
+                    'id_nilai'              => '',
+                    'id_tugas'              => $taskId,
+                    'file_name'             => '',
+                    'drive_file_url'        => '',
+                    'nilai_total'           => null,
+                    'rincian_poin'          => '',
+                    'catatan_ai'            => '',
+                    'similarity_score'      => null,
+                    'similarity_target_nim' => null,
+                    'similarity_details'    => null,
+                    'ai_detected'           => 0,
+                    'ai_detected_details'   => null,
+                    'status'                => 'Belum Dinilai',
+                    'waktu_penilaian'       => ''
                 ]);
             }, $students);
 
@@ -1066,6 +1072,17 @@ try {
             Helper::json(['success' => true, 'data' => $res]);
             break;
 
+        case 'checkTaskIntegrity':
+            UserService::requireAuth();
+            $taskId = trim($input['taskId'] ?? '');
+            $classId = trim($input['classId'] ?? '');
+            if (!$taskId || !$classId) {
+                throw new Exception("Parameter taskId dan classId wajib disertakan.");
+            }
+            $integrityRes = IntegrityService::checkTaskIntegrity($taskId, $classId);
+            Helper::json($integrityRes);
+            break;
+
         // ==========================================
         // REKAPITULASI & LAPORAN NILAI KELAS
         // ==========================================
@@ -1109,6 +1126,9 @@ try {
                         'nama_mahasiswa'  => $st['nama_mahasiswa'],
                         'file_name'       => $g ? ($g['file_name'] ?: '-') : '-',
                         'nilai_total'     => $scoreVal,
+                        'kemiripan'       => ($g && $g['similarity_score'] !== null) ? $g['similarity_score'] . '%' : '-',
+                        'rekan_mirip'     => ($g && !empty($g['similarity_target_nim'])) ? $g['similarity_target_nim'] : '-',
+                        'indikasi_ai'     => ($g && (int)($g['ai_detected'] ?? 0) === 1) ? 'Terindikasi AI' : 'Bersih',
                         'rincian_poin'    => $g ? ($g['rincian_poin'] ?: '-') : '-',
                         'catatan_ai'      => $g ? ($g['catatan_ai'] ?: '-') : '-',
                         'status'          => $g ? ($g['status'] ?: 'Belum Dinilai') : 'Belum Dinilai',

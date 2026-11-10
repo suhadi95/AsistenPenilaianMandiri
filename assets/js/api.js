@@ -79,6 +79,10 @@ const AppAPI = {
     return this.call('uploadSubmissionsZip', formData);
   },
 
+  async checkTaskIntegrity(taskId, classId) {
+    return this.call('checkTaskIntegrity', { taskId, classId });
+  },
+
   async uploadTaskQuestion(taskId, file) {
     const formData = new FormData();
     formData.append('action', 'uploadTaskQuestion');
@@ -289,6 +293,9 @@ async function dispatchGasApiMethod(methodName, args) {
     case 'apiSaveGradeManual':
       const saveGradeRes = await AppAPI.call('saveGradeManual', { gradeData: args[0] });
       return saveGradeRes.data;
+
+    case 'apiCheckTaskIntegrity':
+      return await AppAPI.checkTaskIntegrity(args[0], args[1]);
 
     case 'apiGetClassReport':
       const reportRes = await AppAPI.call('getClassReport', { classId: args[0] });
