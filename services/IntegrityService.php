@@ -25,15 +25,19 @@ class IntegrityService {
 
         $textResult = '';
 
-        // Tangkap objek stream beserta kamus (dictionary) pendahulunya
-        // Format standar PDF: << dictionary >> \r\n stream \r\n ... \r\n endstream
-        if (preg_match_all('#(<<[\s\S]*?>>)\s*stream[\r\n]+([\s\S]*?)[\r\n]+endstream#', $content, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $m) {
-                $dict = $m[1];
-                $streamData = $m[2];
+        // 1. Ekstraksi berbasis objek PDF standar (ISO 32000-1)
+        // Cari setiap blok objek: \d+ \d+ obj ... endobj
+        if (preg_match_all('#\d+\s+\d+\s+obj\b([\s\S]*?)\bendobj\b#', $content, $objects)) {
+            foreach ($objects[1] as $objBody) {
+                if (!preg_match('#(?:<<([\s\S]*?)>>)?\s*stream[\r\n]+([\s\S]*?)[\r\n]+endstream#', $objBody, $sm)) {
+                    continue;
+                }
 
-                // 1. Lewati stream biner non-teks: Font file, gambar, XRef, Metadata, ICC Profile
-                if (preg_match('#/(?:FontFile[123]?|Type\s*/\s*Font\b|Subtype\s*/\s*(?:Image|Type1C|TrueType|CIDFontType[02]|ICCBased)|Type\s*/\s*(?:XRef|Metadata|ObjStm))#i', $dict)) {
+                $dict = $sm[1] ?? '';
+                $streamData = $sm[2];
+
+                // Lewati stream biner non-teks: Font file, gambar, XRef, Metadata, ICC Profile
+                if (!empty($dict) && preg_match('#/(?:FontFile[123]?|Type\s*/\s*Font\b|Subtype\s*/\s*(?:Image|Type1C|TrueType|CIDFontType[02]|ICCBased)|Type\s*/\s*(?:XRef|Metadata|ObjStm))#i', $dict)) {
                     continue;
                 }
 
@@ -52,17 +56,17 @@ class IntegrityService {
                     $uncompressed = $streamData;
                 }
 
-                // 2. Ekstraksi teks HANYA dari blok BT ... ET (Begin Text ... End Text) sesuai standar ISO PDF
+                // Ekstraksi teks HANYA dari blok BT ... ET (Begin Text ... End Text)
                 if (preg_match_all('#\bBT\b([\s\S]*?)\bET\b#', $uncompressed, $btMatches)) {
                     foreach ($btMatches[1] as $textBlock) {
-                        // Ekstraksi operator Tj standar: (teks) Tj
+                        // (teks) Tj
                         if (preg_match_all('#\((.*?)\)\s*Tj#s', $textBlock, $tjMatches)) {
                             foreach ($tjMatches[1] as $tm) {
                                 $textResult .= ' ' . self::decodePdfString($tm);
                             }
                         }
 
-                        // Ekstraksi operator TJ array: [(teks1) 10 (teks2)] TJ
+                        // [(teks1) 10 (teks2)] TJ
                         if (preg_match_all('#\[(.*?)\]\s*TJ#s', $textBlock, $tjArrayMatches)) {
                             foreach ($tjArrayMatches[1] as $block) {
                                 if (preg_match_all('#\((.*?)\)#s', $block, $inner)) {
@@ -78,7 +82,7 @@ class IntegrityService {
                             }
                         }
 
-                        // Ekstraksi operator hex string langsung: <48656c6c6f> Tj
+                        // <hex> Tj
                         if (preg_match_all('#<([0-9a-fA-F]+)>\s*Tj#', $textBlock, $hexMatches)) {
                             foreach ($hexMatches[1] as $hexStr) {
                                 $textResult .= ' ' . self::decodeHexPdfString($hexStr);
@@ -89,6 +93,44 @@ class IntegrityService {
                         if (preg_match_all('#\((.*?)\)\s*[\'"]#s', $textBlock, $quoteMatches)) {
                             foreach ($quoteMatches[1] as $qm) {
                                 $textResult .= ' ' . self::decodePdfString($qm);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Fallback jika parsing per-objek tidak menemukan teks
+        if (empty(trim($textResult)) && preg_match_all('#stream[\r\n]+([\s\S]*?)[\r\n]+endstream#', $content, $allStreams)) {
+            foreach ($allStreams[1] as $streamData) {
+                $uncompressed = '';
+                if (function_exists('gzuncompress')) {
+                    $uncompressed = @gzuncompress($streamData);
+                }
+                if (!$uncompressed && function_exists('gzinflate')) {
+                    $uncompressed = @gzinflate($streamData);
+                    if (!$uncompressed && strlen($streamData) > 2) {
+                        $uncompressed = @gzinflate(substr($streamData, 2));
+                    }
+                }
+                if (!$uncompressed) {
+                    $uncompressed = $streamData;
+                }
+
+                if (preg_match_all('#\bBT\b([\s\S]*?)\bET\b#', $uncompressed, $btMatches)) {
+                    foreach ($btMatches[1] as $textBlock) {
+                        if (preg_match_all('#\((.*?)\)\s*Tj#s', $textBlock, $tjMatches)) {
+                            foreach ($tjMatches[1] as $tm) {
+                                $textResult .= ' ' . self::decodePdfString($tm);
+                            }
+                        }
+                        if (preg_match_all('#\[(.*?)\]\s*TJ#s', $textBlock, $tjArrayMatches)) {
+                            foreach ($tjArrayMatches[1] as $block) {
+                                if (preg_match_all('#\((.*?)\)#s', $block, $inner)) {
+                                    foreach ($inner[1] as $str) {
+                                        $textResult .= ' ' . self::decodePdfString($str);
+                                    }
+                                }
                             }
                         }
                     }
@@ -745,7 +787,8 @@ class IntegrityService {
         foreach ($students as $st) {
             $nim = $st['nim'];
             $nama = $st['nama_mahasiswa'];
-            $hasFile = !empty($studentTexts[$nim]);
+            // Mahasiswa dianggap memiliki berkas jika berkas fisiknya ditemukan di server
+            $hasFile = !empty($studentFiles[$nim]);
             if ($hasFile) $totalWithFiles++;
 
             $aiInfo = $aiScanResults[$nim];
@@ -753,12 +796,14 @@ class IntegrityService {
             if ($isAi) $aiDetectedCount++;
 
             $maxSim = $maxScores[$nim]['score'];
-            if ($maxSim >= 70.0) {
-                $highPlagCount++;
-            } elseif ($maxSim >= 40.0) {
-                $mediumPlagCount++;
-            } elseif ($hasFile) {
-                $cleanCount++;
+            if ($hasFile) {
+                if ($maxSim >= 70.0) {
+                    $highPlagCount++;
+                } elseif ($maxSim >= 40.0) {
+                    $mediumPlagCount++;
+                } else {
+                    $cleanCount++;
+                }
             }
 
             $aiDetailsJson = json_encode($aiInfo, JSON_UNESCAPED_UNICODE);
@@ -773,12 +818,16 @@ class IntegrityService {
                 [$taskId, $classId, $nim]
             );
 
+            // Jika mahasiswa memiliki berkas, simpan skor kemiripan (meskipun 0.0 agar terdata sebagai 'Bersih', bukan 'null/Belum Dicek')
+            $storedScore = $hasFile ? (float)$maxSim : null;
+            $storedTargetNim = ($hasFile && $maxSim > 0) ? ($maxScores[$nim]['targetNim'] ?: null) : null;
+
             if ($existing) {
                 Database::execute(
                     "UPDATE grades SET similarity_score = ?, similarity_target_nim = ?, similarity_details = ?, ai_detected = ?, ai_detected_details = ? WHERE id_nilai = ?",
                     [
-                        $maxSim > 0 ? $maxSim : null,
-                        $maxScores[$nim]['targetNim'] ?: null,
+                        $storedScore,
+                        $storedTargetNim,
                         $simDetailsJson,
                         $isAi,
                         $aiDetailsJson,
@@ -797,8 +846,8 @@ class IntegrityService {
                         $nim,
                         $nama,
                         $studentFiles[$nim] ?? '',
-                        $maxSim > 0 ? $maxSim : null,
-                        $maxScores[$nim]['targetNim'] ?: null,
+                        $storedScore,
+                        $storedTargetNim,
                         $simDetailsJson,
                         $isAi,
                         $aiDetailsJson,
