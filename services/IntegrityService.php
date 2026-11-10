@@ -23,19 +23,28 @@ class IntegrityService {
             return '';
         }
 
-        // Cari seluruh blok stream ... endstream
         $textResult = '';
-        if (preg_match_all('#stream[\r\n]+(.*?)[\r\n]+endstream#s', $content, $matches)) {
-            foreach ($matches[1] as $streamData) {
+
+        // Tangkap objek stream beserta kamus (dictionary) pendahulunya
+        // Format standar PDF: << dictionary >> \r\n stream \r\n ... \r\n endstream
+        if (preg_match_all('#(<<[\s\S]*?>>)\s*stream[\r\n]+([\s\S]*?)[\r\n]+endstream#', $content, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $m) {
+                $dict = $m[1];
+                $streamData = $m[2];
+
+                // 1. Lewati stream biner non-teks: Font file, gambar, XRef, Metadata, ICC Profile
+                if (preg_match('#/(?:FontFile[123]?|Type\s*/\s*Font\b|Subtype\s*/\s*(?:Image|Type1C|TrueType|CIDFontType[02]|ICCBased)|Type\s*/\s*(?:XRef|Metadata|ObjStm))#i', $dict)) {
+                    continue;
+                }
+
                 $uncompressed = '';
-                // 1. Coba decompress FlateDecode (zlib gzuncompress atau gzinflate)
+                // Coba decompress FlateDecode (zlib gzuncompress atau gzinflate)
                 if (function_exists('gzuncompress')) {
                     $uncompressed = @gzuncompress($streamData);
                 }
                 if (!$uncompressed && function_exists('gzinflate')) {
                     $uncompressed = @gzinflate($streamData);
                     if (!$uncompressed && strlen($streamData) > 2) {
-                        // Hilangkan header zlib 2-byte jika ada
                         $uncompressed = @gzinflate(substr($streamData, 2));
                     }
                 }
@@ -43,26 +52,45 @@ class IntegrityService {
                     $uncompressed = $streamData;
                 }
 
-                // 2. Ekstraksi string teks dari operator PDF: Tj, TJ, ', "
-                if (preg_match_all('#\((.*?)\)\s*Tj#s', $uncompressed, $tjMatches)) {
-                    foreach ($tjMatches[1] as $tm) {
-                        $textResult .= ' ' . self::decodePdfString($tm);
-                    }
-                }
-
-                if (preg_match_all('#\[(.*?)\]\s*TJ#s', $uncompressed, $tjArrayMatches)) {
-                    foreach ($tjArrayMatches[1] as $block) {
-                        if (preg_match_all('#\((.*?)\)#s', $block, $inner)) {
-                            foreach ($inner[1] as $str) {
-                                $textResult .= ' ' . self::decodePdfString($str);
+                // 2. Ekstraksi teks HANYA dari blok BT ... ET (Begin Text ... End Text) sesuai standar ISO PDF
+                if (preg_match_all('#\bBT\b([\s\S]*?)\bET\b#', $uncompressed, $btMatches)) {
+                    foreach ($btMatches[1] as $textBlock) {
+                        // Ekstraksi operator Tj standar: (teks) Tj
+                        if (preg_match_all('#\((.*?)\)\s*Tj#s', $textBlock, $tjMatches)) {
+                            foreach ($tjMatches[1] as $tm) {
+                                $textResult .= ' ' . self::decodePdfString($tm);
                             }
                         }
-                    }
-                }
 
-                if (preg_match_all('#\((.*?)\)\s*[\'"]#s', $uncompressed, $quoteMatches)) {
-                    foreach ($quoteMatches[1] as $qm) {
-                        $textResult .= ' ' . self::decodePdfString($qm);
+                        // Ekstraksi operator TJ array: [(teks1) 10 (teks2)] TJ
+                        if (preg_match_all('#\[(.*?)\]\s*TJ#s', $textBlock, $tjArrayMatches)) {
+                            foreach ($tjArrayMatches[1] as $block) {
+                                if (preg_match_all('#\((.*?)\)#s', $block, $inner)) {
+                                    foreach ($inner[1] as $str) {
+                                        $textResult .= ' ' . self::decodePdfString($str);
+                                    }
+                                }
+                                if (preg_match_all('#<([0-9a-fA-F]+)>#', $block, $innerHex)) {
+                                    foreach ($innerHex[1] as $hexStr) {
+                                        $textResult .= ' ' . self::decodeHexPdfString($hexStr);
+                                    }
+                                }
+                            }
+                        }
+
+                        // Ekstraksi operator hex string langsung: <48656c6c6f> Tj
+                        if (preg_match_all('#<([0-9a-fA-F]+)>\s*Tj#', $textBlock, $hexMatches)) {
+                            foreach ($hexMatches[1] as $hexStr) {
+                                $textResult .= ' ' . self::decodeHexPdfString($hexStr);
+                            }
+                        }
+
+                        // Operator ' dan "
+                        if (preg_match_all('#\((.*?)\)\s*[\'"]#s', $textBlock, $quoteMatches)) {
+                            foreach ($quoteMatches[1] as $qm) {
+                                $textResult .= ' ' . self::decodePdfString($qm);
+                            }
+                        }
                     }
                 }
             }
@@ -71,7 +99,62 @@ class IntegrityService {
         // Normalisasi spasi dan baris
         $cleaned = preg_replace('/[ \t]+/', ' ', $textResult);
         $cleaned = preg_replace('/[\r\n]+/', "\n", $cleaned);
-        return trim($cleaned);
+        $finalText = trim($cleaned);
+
+        // Jika teks hasil ekstraksi terdeteksi sebagai sampah karakter biner/font acak, kosongkan agar tidak memicu false positive
+        if (self::isGibberish($finalText)) {
+            return '';
+        }
+
+        return $finalText;
+    }
+
+    /**
+     * Decode string heksadesimal dalam PDF (e.g. <48656c6c6f> -> Hello)
+     */
+    private static function decodeHexPdfString(string $hex): string {
+        $cleanHex = preg_replace('/[^0-9a-fA-F]/', '', $hex);
+        if (strlen($cleanHex) % 2 !== 0) {
+            $cleanHex .= '0';
+        }
+        $bin = @hex2bin($cleanHex);
+        if (!$bin) return '';
+
+        // Deteksi UTF-16BE BOM (\xFE\xFF)
+        if (str_starts_with($bin, "\xFE\xFF")) {
+            return mb_convert_encoding(substr($bin, 2), 'UTF-8', 'UTF-16BE');
+        }
+        // Deteksi 2-byte ASCII (\x00A\x00B)
+        if (strlen($bin) >= 4 && substr($bin, 0, 1) === "\x00" && substr($bin, 2, 1) === "\x00") {
+            return @mb_convert_encoding($bin, 'UTF-8', 'UTF-16BE') ?: '';
+        }
+        return mb_check_encoding($bin, 'UTF-8') ? $bin : utf8_encode($bin);
+    }
+
+    /**
+     * Memeriksa apakah teks yang diekstrak merupakan sampah karakter biner / font terenkripsi (bukan teks bacaan alami)
+     */
+    public static function isGibberish(string $text): bool {
+        $trimmed = trim($text);
+        if (strlen($trimmed) < 20) return false;
+
+        $tokens = preg_split('/\s+/u', $trimmed);
+        $total = count($tokens);
+        if ($total < 10) return false;
+
+        $singleLetters = 0;
+        $vowelDeficient = 0;
+        foreach ($tokens as $t) {
+            $len = mb_strlen($t);
+            if ($len === 1 && !is_numeric($t)) {
+                $singleLetters++;
+            } elseif ($len >= 6 && !preg_match('/[aiueo]/i', $t)) {
+                $vowelDeficient++;
+            }
+        }
+
+        $ratio = ($singleLetters + $vowelDeficient) / $total;
+        return $ratio > 0.30;
     }
 
     /**
@@ -330,6 +413,19 @@ class IntegrityService {
      * Menghitung kemiripan teks antar dua dokumen menggunakan Word Shingling & Jaccard/Dice Index
      */
     public static function calculateSimilarity(string $textA, string $textB, int $k = 4): array {
+        // Cek jika salah satu teks adalah sampah biner/font PDF khusus
+        if (self::isGibberish($textA) || self::isGibberish($textB)) {
+            return [
+                'percentage'      => 0.0,
+                'jaccard'         => 0.0,
+                'containmentA'    => 0.0,
+                'containmentB'    => 0.0,
+                'matchingPhrases' => [],
+                'isGibberish'     => true,
+                'note'            => 'Teks berkas terdeteksi sebagai artefak biner/font PDF khusus dan diabaikan dari pemindaian plagiasi teks.'
+            ];
+        }
+
         $cleanA = self::tokenizeAndFilter($textA);
         $cleanB = self::tokenizeAndFilter($textB);
 
@@ -396,8 +492,16 @@ class IntegrityService {
         $clean = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $lower);
         $words = preg_split('/\s+/', trim($clean));
 
-        // Filter kata yang kosong
-        return array_values(array_filter($words, fn($w) => strlen(trim($w)) > 0));
+        // Filter kata yang kosong, abaikan huruf tunggal acak (noise), dan karakter berulang ekstrem
+        return array_values(array_filter($words, function ($w) {
+            $w = trim($w);
+            if ($w === '') return false;
+            // Abaikan huruf tunggal alfabet acak (a-z) kecuali angka, karena di n-gram shingling huruf tunggal acak menciptakan false-positive
+            if (mb_strlen($w) === 1 && !is_numeric($w)) return false;
+            // Abaikan kata berulang tidak wajar (misal: sssssssssssssssssss)
+            if (preg_match('/(.)\1{3,}/u', $w)) return false;
+            return true;
+        }));
     }
 
     /**
