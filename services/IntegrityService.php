@@ -174,6 +174,23 @@ class IntegrityService {
     }
 
     /**
+     * Menghitung hash dari seluruh aliran konten/gambar di dalam PDF (untuk mendeteksi duplikasi gambar/diagram)
+     */
+    public static function getPdfStreamsHash(string $filePath): string {
+        if (!file_exists($filePath) || !is_readable($filePath)) return '';
+        $content = @file_get_contents($filePath);
+        if (!$content) return '';
+
+        // Tangkap seluruh blok stream ... endstream
+        if (preg_match_all('#stream[\r\n]+([\s\S]*?)[\r\n]+endstream#', $content, $matches)) {
+            if (!empty($matches[1])) {
+                return sha1(implode('|', $matches[1]));
+            }
+        }
+        return '';
+    }
+
+    /**
      * Memeriksa apakah teks yang diekstrak merupakan sampah karakter biner / font terenkripsi (bukan teks bacaan alami)
      */
     public static function isGibberish(string $text): bool {
@@ -455,6 +472,39 @@ class IntegrityService {
      * Menghitung kemiripan teks antar dua dokumen menggunakan Word Shingling & Jaccard/Dice Index
      */
     public static function calculateSimilarity(string $textA, string $textB, int $k = 4): array {
+        $cleanA = self::tokenizeAndFilter($textA);
+        $cleanB = self::tokenizeAndFilter($textB);
+
+        $lenA = count($cleanA);
+        $lenB = count($cleanB);
+
+        // Jika salah satu dokumen terlalu pendek (< 3 kata)
+        if ($lenA < 3 || $lenB < 3) {
+            return [
+                'percentage'      => 0.0,
+                'jaccard'         => 0.0,
+                'containmentA'    => 0.0,
+                'containmentB'    => 0.0,
+                'matchingPhrases' => []
+            ];
+        }
+
+        // Jika kedua teks identik persis
+        if ($cleanA === $cleanB) {
+            return [
+                'percentage'      => 100.0,
+                'jaccard'         => 100.0,
+                'containmentA'    => 100.0,
+                'containmentB'    => 100.0,
+                'matchingPhrases' => [
+                    [
+                        'wordCount' => $lenA,
+                        'phrase'    => implode(' ', array_slice($cleanA, 0, 50))
+                    ]
+                ]
+            ];
+        }
+
         // Cek jika salah satu teks adalah sampah biner/font PDF khusus
         if (self::isGibberish($textA) || self::isGibberish($textB)) {
             return [
@@ -468,20 +518,21 @@ class IntegrityService {
             ];
         }
 
-        $cleanA = self::tokenizeAndFilter($textA);
-        $cleanB = self::tokenizeAndFilter($textB);
-
-        $lenA = count($cleanA);
-        $lenB = count($cleanB);
-
-        // Jika salah satu dokumen terlalu pendek (< 15 kata penting)
-        if ($lenA < 15 || $lenB < 15) {
+        // Jika dokumen antara 3 sampai 4 kata (di bawah k-gram)
+        if ($lenA < $k || $lenB < $k) {
+            $intersection = count(array_intersect($cleanA, $cleanB));
+            $pct = round(($intersection / max($lenA, $lenB)) * 100, 1);
             return [
-                'percentage'      => 0.0,
-                'jaccard'         => 0.0,
-                'containmentA'    => 0.0,
-                'containmentB'    => 0.0,
-                'matchingPhrases' => []
+                'percentage'      => $pct,
+                'jaccard'         => $pct,
+                'containmentA'    => $pct,
+                'containmentB'    => $pct,
+                'matchingPhrases' => [
+                    [
+                        'wordCount' => $intersection,
+                        'phrase'    => implode(' ', array_intersect($cleanA, $cleanB))
+                    ]
+                ]
             ];
         }
 
@@ -513,8 +564,9 @@ class IntegrityService {
         $effectiveScore = max($dice, ($containmentA + $containmentB) / 2);
         $percentage = round($effectiveScore * 100, 1);
 
-        // Temukan kalimat/blok teks identik (minimal 5 kata berturut-turut)
-        $matchingPhrases = self::findMatchingPhrases($cleanA, $cleanB, 5);
+        // Temukan kalimat/blok teks identik (minimal 5 kata berturut-turut, atau 3 jika dokumen pendek)
+        $minPhraseLen = ($lenA < 10 || $lenB < 10) ? 3 : 5;
+        $matchingPhrases = self::findMatchingPhrases($cleanA, $cleanB, $minPhraseLen);
 
         return [
             'percentage'      => $percentage,
@@ -636,6 +688,9 @@ class IntegrityService {
 
         $studentTexts = [];
         $studentFiles = [];
+        $studentFilePaths = [];
+        $studentFileHashes = [];
+        $studentStreamHashes = [];
         $aiScanResults = [];
         $studentNameMap = [];
 
@@ -679,14 +734,27 @@ class IntegrityService {
             }
 
             if ($targetFilePath && file_exists($targetFilePath)) {
+                $studentFilePaths[$nim] = $targetFilePath;
+                $studentFiles[$nim] = $targetFileName;
+                $studentFileHashes[$nim] = @hash_file('sha256', $targetFilePath) ?: '';
+
+                $ext = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
+                if ($ext === 'pdf') {
+                    $studentStreamHashes[$nim] = self::getPdfStreamsHash($targetFilePath);
+                } else {
+                    $studentStreamHashes[$nim] = '';
+                }
+
                 $extractedText = self::extractTextFromFile($targetFilePath);
                 $studentTexts[$nim] = $extractedText;
-                $studentFiles[$nim] = $targetFileName;
 
                 // Pindai Residu Bot AI
                 $aiScan = self::detectAiBotResidue($extractedText);
                 $aiScanResults[$nim] = $aiScan;
             } else {
+                $studentFilePaths[$nim] = '';
+                $studentFileHashes[$nim] = '';
+                $studentStreamHashes[$nim] = '';
                 $studentTexts[$nim] = '';
                 $studentFiles[$nim] = '';
                 $aiScanResults[$nim] = [
@@ -703,7 +771,7 @@ class IntegrityService {
         $suspiciousPairs = []; // Pasangan yang terindikasi plagiasi
         $maxScores = [];      // [nim] => ['score' => float, 'targetNim' => str, 'targetNama' => str, 'phrases' => array]
 
-        $nims = array_keys($studentTexts);
+        $nims = array_keys($studentFiles);
         $totalStudents = count($nims);
 
         // Inisialisasi max score
@@ -719,15 +787,70 @@ class IntegrityService {
         // Pembandingan N * (N-1) / 2
         for ($i = 0; $i < $totalStudents; $i++) {
             $nimA = $nims[$i];
-            $textA = $studentTexts[$nimA];
-            if (empty($textA)) continue;
+            $pathA = $studentFilePaths[$nimA] ?? '';
+            if (empty($pathA)) continue;
+
+            $hashA = $studentFileHashes[$nimA] ?? '';
+            $streamHashA = $studentStreamHashes[$nimA] ?? '';
+            $textA = $studentTexts[$nimA] ?? '';
 
             for ($j = $i + 1; $j < $totalStudents; $j++) {
                 $nimB = $nims[$j];
-                $textB = $studentTexts[$nimB];
-                if (empty($textB)) continue;
+                $pathB = $studentFilePaths[$nimB] ?? '';
+                if (empty($pathB)) continue;
 
-                $sim = self::calculateSimilarity($textA, $textB);
+                $hashB = $studentFileHashes[$nimB] ?? '';
+                $streamHashB = $studentStreamHashes[$nimB] ?? '';
+                $textB = $studentTexts[$nimB] ?? '';
+
+                $sim = null;
+
+                // Prioritas 1: Duplikasi Berkas Persis 100% (Salinan Langsung File / Copy-Paste Berkas)
+                if (!empty($hashA) && !empty($hashB) && $hashA === $hashB) {
+                    $sim = [
+                        'percentage'      => 100.0,
+                        'jaccard'         => 100.0,
+                        'containmentA'    => 100.0,
+                        'containmentB'    => 100.0,
+                        'matchingPhrases' => [
+                            [
+                                'wordCount' => '100% Duplikat Berkas',
+                                'phrase'    => 'Berkas 100% identik persis (salinan langsung file dari mahasiswa lain / copy-paste berkas).'
+                            ]
+                        ],
+                        'detectionType'   => 'exact_file_hash'
+                    ];
+                }
+                // Prioritas 2: Duplikasi Objek / Diagram / Gambar PDF Persis 100% (Stream Hash)
+                elseif (!empty($streamHashA) && !empty($streamHashB) && $streamHashA === $streamHashB) {
+                    $sim = [
+                        'percentage'      => 100.0,
+                        'jaccard'         => 100.0,
+                        'containmentA'    => 100.0,
+                        'containmentB'    => 100.0,
+                        'matchingPhrases' => [
+                            [
+                                'wordCount' => '100% Objek PDF',
+                                'phrase'    => 'Seluruh objek diagram/gambar dalam PDF identik persis (salinan gambar/vektor yang sama).'
+                            ]
+                        ],
+                        'detectionType'   => 'pdf_stream_hash'
+                    ];
+                }
+                // Prioritas 3: Analisis Kesamaan Teks Dokumen (Shingling & Jaccard/Dice)
+                elseif (!empty($textA) && !empty($textB)) {
+                    $sim = self::calculateSimilarity($textA, $textB);
+                }
+                else {
+                    $sim = [
+                        'percentage'      => 0.0,
+                        'jaccard'         => 0.0,
+                        'containmentA'    => 0.0,
+                        'containmentB'    => 0.0,
+                        'matchingPhrases' => []
+                    ];
+                }
+
                 $pct = $sim['percentage'];
 
                 $pairwiseScores[$nimA][$nimB] = $sim;
