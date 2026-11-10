@@ -1314,10 +1314,21 @@ function getTasksByCourseList(string $courseId): array {
     $tasks = Database::fetchAll("SELECT * FROM tasks WHERE id_mata_kuliah = ? ORDER BY created_at DESC", [$courseId]);
     $grades = Database::fetchAll("SELECT id_tugas, nilai_total, status FROM grades WHERE status = 'Selesai'");
 
-    return array_map(function ($task) use ($grades) {
+    // Hitung total mahasiswa terdaftar di seluruh kelas mata kuliah ini
+    $stCount = Database::fetchOne(
+        "SELECT COUNT(s.id_mahasiswa) as total 
+         FROM students s 
+         JOIN classes c ON s.id_kelas = c.id_kelas 
+         WHERE TRIM(c.id_mata_kuliah) = ?",
+        [trim($courseId)]
+    );
+    $totalStudents = $stCount ? (int)$stCount['total'] : 0;
+
+    return array_map(function ($task) use ($grades, $totalStudents) {
         $tId = $task['id_tugas'];
         $taskGrades = array_filter($grades, fn($g) => $g['id_tugas'] === $tId);
         $gradedCount = count($taskGrades);
+        $effectiveTotal = max($totalStudents, $gradedCount);
         $totalScore = array_reduce($taskGrades, fn($sum, $g) => $sum + (float)$g['nilai_total'], 0);
         $avg = $gradedCount > 0 ? round($totalScore / $gradedCount, 1) : 0;
 
@@ -1344,6 +1355,7 @@ function getTasksByCourseList(string $courseId): array {
         }
 
         return array_merge($task, [
+            'totalStudents'   => $effectiveTotal,
             'gradedCount'     => $gradedCount,
             'averageScore'    => $avg,
             'submissionCount' => $subCount

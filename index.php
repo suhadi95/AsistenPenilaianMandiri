@@ -2458,7 +2458,12 @@ Database::initDatabase();
       }
 
       listContainer.innerHTML = appState.currentTasks.map(t => {
-        const pct = t.totalStudents > 0 ? Math.round((t.gradedCount / t.totalStudents) * 100) : 0;
+        const course = appState.courses ? appState.courses.find(c => c.id_mata_kuliah === (t.id_mata_kuliah || appState.activeCourseId)) : null;
+        const total = (typeof t.totalStudents !== 'undefined' && t.totalStudents > 0)
+          ? t.totalStudents
+          : ((course && course.studentCount) ? course.studentCount : (appState.currentStudents ? appState.currentStudents.length : 0));
+        const effectiveTotal = Math.max(total, t.gradedCount || 0);
+        const pct = effectiveTotal > 0 ? Math.min(100, Math.round(((t.gradedCount || 0) / effectiveTotal) * 100)) : 0;
         return `
           <div class="p-3.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition">
             <div class="flex items-center space-x-3">
@@ -2472,7 +2477,7 @@ Database::initDatabase();
               <div class="w-28 sm:w-36">
                 <div class="flex justify-between text-[11px] mb-1">
                   <span class="text-slate-400 font-medium">Dinilai</span>
-                  <span class="font-bold text-slate-700">${t.gradedCount}/${t.totalStudents || 0} (${pct}%)</span>
+                  <span class="font-bold text-slate-700">${t.gradedCount || 0}/${effectiveTotal} (${pct}%)</span>
                 </div>
                 <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                   <div class="bg-blue-600 h-full rounded-full transition-all" style="width: ${pct}%"></div>
@@ -2635,7 +2640,11 @@ Database::initDatabase();
       const courseName = course ? course.nama_mata_kuliah : 'Mata Kuliah';
 
       container.innerHTML = appState.currentTasks.map(t => {
-        const pct = t.totalStudents > 0 ? Math.round((t.gradedCount / t.totalStudents) * 100) : 0;
+        const total = (typeof t.totalStudents !== 'undefined' && t.totalStudents > 0)
+          ? t.totalStudents
+          : ((course && course.studentCount) ? course.studentCount : (appState.currentStudents ? appState.currentStudents.length : 0));
+        const effectiveTotal = Math.max(total, t.gradedCount || 0);
+        const pct = effectiveTotal > 0 ? Math.min(100, Math.round(((t.gradedCount || 0) / effectiveTotal) * 100)) : 0;
         return `
           <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
             <div>
@@ -2686,7 +2695,7 @@ Database::initDatabase();
               <div>
                 <div class="flex justify-between text-[11px] mb-1">
                   <span class="text-slate-400">Progres Penilaian</span>
-                  <span class="font-bold text-slate-700">${t.gradedCount}/${t.totalStudents || 0} (${pct}%)</span>
+                  <span class="font-bold text-slate-700">${t.gradedCount || 0}/${effectiveTotal} (${pct}%)</span>
                 </div>
                 <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                   <div class="bg-emerald-500 h-full rounded-full transition-all" style="width: ${pct}%"></div>
