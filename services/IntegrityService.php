@@ -703,35 +703,10 @@ class IntegrityService {
             $nim = trim($st['nim']);
             $nama = trim($st['nama_mahasiswa']);
 
-            // Cari berkas jawaban mahasiswa
-            $targetFilePath = '';
-            $targetFileName = '';
-
-            // Cari di folder kelas
-            if (is_dir($submissionsDir)) {
-                $files = array_diff(scandir($submissionsDir), ['.', '..', 'drive_files_map.json']);
-                foreach ($files as $f) {
-                    $fLower = strtolower($f);
-                    if (str_contains($fLower, strtolower($nim)) || (!empty($nama) && str_contains($fLower, strtolower(explode(' ', $nama)[0])))) {
-                        $targetFilePath = "{$submissionsDir}/{$f}";
-                        $targetFileName = $f;
-                        break;
-                    }
-                }
-            }
-
-            // Fallback shared dir
-            if (!$targetFilePath && is_dir($sharedDir)) {
-                $files = array_diff(scandir($sharedDir), ['.', '..', 'drive_files_map.json']);
-                foreach ($files as $f) {
-                    $fLower = strtolower($f);
-                    if (str_contains($fLower, strtolower($nim)) || (!empty($nama) && str_contains($fLower, strtolower(explode(' ', $nama)[0])))) {
-                        $targetFilePath = "{$sharedDir}/{$f}";
-                        $targetFileName = $f;
-                        break;
-                    }
-                }
-            }
+            // Cari berkas jawaban mahasiswa secara cerdas & presisi
+            $subFile = FileService::findStudentSubmissionFile($taskId, $classId, $nim, $nama);
+            $targetFilePath = ($subFile && !empty($subFile['path']) && file_exists($subFile['path'])) ? $subFile['path'] : '';
+            $targetFileName = $subFile['name'] ?? '';
 
             if ($targetFilePath && file_exists($targetFilePath)) {
                 $studentFilePaths[$nim] = $targetFilePath;

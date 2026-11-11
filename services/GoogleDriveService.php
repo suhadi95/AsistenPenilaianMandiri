@@ -924,25 +924,41 @@ class GoogleDriveService {
         $cleanNama = strtolower(trim($nama));
         $nameWords = array_filter(explode(' ', $cleanNama), fn($w) => strlen(trim($w)) >= 3);
 
+        // Pass 1: Prioritas NIM pada seluruh berkas
         foreach ($files as $f) {
             $fLower = strtolower($f);
             $sanitizedF = preg_replace('/[^0-9a-z]/', '', $fLower);
             if (!empty($cleanNim) && (str_contains($fLower, $cleanNim) || (strlen($sanitizedNim) >= 4 && str_contains($sanitizedF, $sanitizedNim)))) {
                 return $f;
             }
-            if (!empty($cleanNama) && str_contains($fLower, $cleanNama)) {
-                return $f;
-            }
-            if (count($nameWords) >= 2) {
-                $matchedWords = 0;
-                foreach ($nameWords as $w) {
-                    if (str_contains($fLower, $w)) $matchedWords++;
+        }
+
+        // Pass 2: Prioritas Nama (hanya jika NIM tidak ada di berkas mana pun)
+        if (!empty($cleanNama) && strlen($cleanNama) >= 4) {
+            foreach ($files as $f) {
+                // Hindari berkas yang memuat NIM mahasiswa lain
+                if (preg_match('/\b\d{6,}\b/', $f, $digits)) {
+                    if (!empty($sanitizedNim) && !str_contains($digits[0], $sanitizedNim) && !str_contains($sanitizedNim, $digits[0])) {
+                        continue;
+                    }
                 }
-                if ($matchedWords >= 2 && $matchedWords >= (count($nameWords) * 0.6)) {
+
+                $fLower = strtolower($f);
+                if (str_contains($fLower, $cleanNama)) {
                     return $f;
+                }
+                if (count($nameWords) >= 2) {
+                    $matchedWords = 0;
+                    foreach ($nameWords as $w) {
+                        if (str_contains($fLower, $w)) $matchedWords++;
+                    }
+                    if ($matchedWords >= 2 && $matchedWords >= (count($nameWords) * 0.6)) {
+                        return $f;
+                    }
                 }
             }
         }
+
         return null;
     }
 

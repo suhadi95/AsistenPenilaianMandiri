@@ -626,6 +626,116 @@ class FileService {
     }
 
     /**
+     * Mencari dan menemukan berkas tugas mahasiswa secara cerdas dan akurat:
+     * 1. Cek riwayat berkas di tabel grades (jika sudah ada dan berkas fisik masih ada di disk).
+     * 2. Cari berdasarkan NIM mahasiswa (Prioritas Utama, Pass 1 - memeriksa seluruh berkas).
+     * 3. Cari berdasarkan Nama Lengkap (Pass 2 - hanya jika NIM tidak ada sama sekali, minimal 2 kata & tanpa NIM mahasiswa lain).
+     *
+     * @return array|null ['name' => string, 'path' => string, 'isShared' => bool] atau null
+     */
+    public static function findStudentSubmissionFile(string $taskId, string $classId, string $nim, string $nama): ?array {
+        $classDir = self::getSubmissionsDir($taskId, $classId);
+        $sharedDir = self::getSharedSubmissionsDir($taskId);
+
+        // 1. Cek riwayat berkas di tabel grades jika sudah tercatat sebelumnya
+        try {
+            $grade = Database::fetchOne(
+                "SELECT file_name FROM grades WHERE id_tugas = ? AND id_kelas = ? AND LOWER(nim) = LOWER(?)",
+                [$taskId, $classId, $nim]
+            );
+            if ($grade && !empty($grade['file_name']) && $grade['file_name'] !== '-') {
+                $fName = $grade['file_name'];
+                if (file_exists("{$classDir}/{$fName}")) {
+                    return ['name' => $fName, 'path' => "{$classDir}/{$fName}", 'isShared' => false];
+                }
+                if (file_exists("{$sharedDir}/{$fName}")) {
+                    return ['name' => $fName, 'path' => "{$sharedDir}/{$fName}", 'isShared' => true];
+                }
+            }
+        } catch (Throwable $e) {}
+
+        // Kumpulkan semua berkas kandidat di kelas dan shared
+        $classFiles = is_dir($classDir) ? array_diff(scandir($classDir), ['.', '..', 'drive_files_map.json']) : [];
+        $sharedFiles = is_dir($sharedDir) ? array_diff(scandir($sharedDir), ['.', '..', 'drive_files_map.json']) : [];
+
+        $allCandidates = [];
+        $knownClassFiles = [];
+        foreach ($classFiles as $f) {
+            $allCandidates[] = ['name' => $f, 'dir' => $classDir, 'isShared' => false];
+            $knownClassFiles[] = $f;
+        }
+        foreach ($sharedFiles as $f) {
+            if (!in_array($f, $knownClassFiles, true)) {
+                $allCandidates[] = ['name' => $f, 'dir' => $sharedDir, 'isShared' => true];
+            }
+        }
+
+        if (empty($allCandidates)) {
+            return null;
+        }
+
+        $cleanNim = strtolower(trim($nim));
+        $sanitizedNim = preg_replace('/[^0-9a-z]/', '', $cleanNim);
+        $cleanNama = strtolower(trim($nama));
+
+        $matchedCandidates = [];
+
+        // 2. Pass 1: Prioritas NIM pada seluruh nama berkas
+        foreach ($allCandidates as $cand) {
+            $fileLower = strtolower($cand['name']);
+            $sanitizedFile = preg_replace('/[^0-9a-z]/', '', $fileLower);
+
+            if (!empty($cleanNim) && (str_contains($fileLower, $cleanNim) || (strlen($sanitizedNim) >= 4 && str_contains($sanitizedFile, $sanitizedNim)))) {
+                $matchedCandidates[] = $cand;
+            }
+        }
+
+        // 3. Pass 2: Prioritas Nama (hanya jika NIM tidak cocok pada seluruh berkas yang ada)
+        if (empty($matchedCandidates) && !empty($cleanNama) && strlen($cleanNama) >= 4) {
+            $nameWords = array_filter(explode(' ', $cleanNama), fn($w) => strlen(trim($w)) >= 3);
+            foreach ($allCandidates as $cand) {
+                $fileName = $cand['name'];
+                $fileLower = strtolower($fileName);
+
+                // Hindari mencocokkan berkas yang memuat NIM mahasiswa lain
+                if (preg_match('/\b\d{6,}\b/', $fileName, $digits)) {
+                    if (!empty($sanitizedNim) && !str_contains($digits[0], $sanitizedNim) && !str_contains($sanitizedNim, $digits[0])) {
+                        continue;
+                    }
+                }
+
+                if (str_contains($fileLower, $cleanNama)) {
+                    $matchedCandidates[] = $cand;
+                    continue;
+                }
+
+                if (count($nameWords) >= 2) {
+                    $matchedWords = 0;
+                    foreach ($nameWords as $w) {
+                        if (str_contains($fileLower, $w)) $matchedWords++;
+                    }
+                    if ($matchedWords >= 2 && $matchedWords >= (count($nameWords) * 0.6)) {
+                        $matchedCandidates[] = $cand;
+                    }
+                }
+            }
+        }
+
+        if (!empty($matchedCandidates)) {
+            $target = self::selectLatestCandidate($matchedCandidates, $taskId, $classId);
+            if ($target) {
+                return [
+                    'name'     => $target['name'],
+                    'path'     => "{$target['dir']}/{$target['name']}",
+                    'isShared' => $target['isShared']
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Mencari berkas tugas mahasiswa berdasarkan NIM, Nama, atau kecocokan isi
      */
     public static function getStudentSubmission(
