@@ -428,21 +428,18 @@ class GoogleDriveService {
             throw new Exception("ID Folder Google Drive tidak valid ('{$folderId}').");
         }
 
-        $files = self::listFilesInFolder($cleanFolderId, $userId);
-        if (empty($files)) {
-            return [
-                'success'      => true,
-                'totalInDrive' => 0,
-                'syncedCount'  => 0,
-                'skippedCount' => 0,
-                'files'        => [],
-                'message'      => "Folder Google Drive terhubung, namun saat ini belum ada berkas tugas mahasiswa di dalamnya."
-            ];
-        }
-
         $destDir = FileService::getSubmissionsDir($taskId, $classId);
         if (!is_dir($destDir)) {
             @mkdir($destDir, 0755, true);
+        }
+        $sharedDir = FileService::getSharedSubmissionsDir($taskId);
+
+        // Ambil daftar pemetaan lama sebelum download untuk mendeteksi berkas yang telah dihapus di Drive
+        $oldMap = self::getDriveFileMap($taskId, $classId);
+
+        $files = self::listFilesInFolder($cleanFolderId, $userId);
+        if (!is_array($files)) {
+            $files = [];
         }
 
         $syncedCount = 0;
@@ -450,6 +447,7 @@ class GoogleDriveService {
         $syncedFiles = [];
         $driveMap = [];
         $seenFiles = [];
+        $currentDriveKeysLower = [];
 
         foreach ($files as $file) {
             $name = $file['name'] ?? '';
@@ -493,6 +491,7 @@ class GoogleDriveService {
                 'mimeType'     => $mimeType,
                 'modifiedTime' => $modifiedTime
             ];
+            $currentDriveKeysLower[strtolower($cleanName)] = true;
 
             $targetPath = "{$destDir}/{$cleanName}";
 
@@ -522,15 +521,132 @@ class GoogleDriveService {
             }
         }
 
-        // Simpan pemetaan Drive URL ke disk dan perbarui grades
-        if (!empty($driveMap)) {
-            self::saveDriveFileMap($taskId, $classId, $driveMap);
-            foreach ($driveMap as $fn => $item) {
-                Database::execute(
-                    "UPDATE grades SET drive_file_url = ? WHERE id_tugas = ? AND id_kelas = ? AND LOWER(file_name) = LOWER(?)",
-                    [$item['driveUrl'], $taskId, $classId, $fn]
-                );
+        // Deteksi dan bersihkan berkas lokal yang telah dihapus di Google Drive
+        $deletedCount = 0;
+        $deletedFileNames = [];
+
+        // 1. Periksa berkas yang ada di folder lokal $destDir
+        $localFiles = is_dir($destDir) ? array_diff(scandir($destDir), ['.', '..', 'drive_files_map.json']) : [];
+        $oldMapLower = [];
+        foreach ($oldMap as $k => $v) {
+            $oldMapLower[strtolower($k)] = $k;
+        }
+
+        foreach ($localFiles as $lf) {
+            $lfLower = strtolower($lf);
+            // Jika berkas lokal ini tidak ada di Google Drive saat ini
+            if (!isset($currentDriveKeysLower[$lfLower])) {
+                // Pastikan berkas ini memang berasal dari Drive (ada di oldMap atau grades memiliki drive_file_url)
+                $isFromDrive = isset($oldMapLower[$lfLower]);
+                if (!$isFromDrive) {
+                    $gradeCheck = Database::fetchOne(
+                        "SELECT id_nilai FROM grades WHERE id_tugas = ? AND id_kelas = ? AND LOWER(file_name) = ? AND drive_file_url IS NOT NULL AND drive_file_url != ''",
+                        [$taskId, $classId, $lfLower]
+                    );
+                    if ($gradeCheck) {
+                        $isFromDrive = true;
+                    }
+                }
+
+                if ($isFromDrive) {
+                    @unlink("{$destDir}/{$lf}");
+                    $deletedFileNames[] = $lf;
+                    $deletedCount++;
+                }
             }
+        }
+
+        // 2. Periksa juga jika ada entri di oldMap yang berkasnya sudah terhapus di Drive
+        foreach ($oldMap as $oldName => $oldItem) {
+            $oldLower = strtolower($oldName);
+            if (!isset($currentDriveKeysLower[$oldLower])) {
+                if (!in_array($oldName, $deletedFileNames, true)) {
+                    $deletedFileNames[] = $oldName;
+                }
+                $targetOld = "{$destDir}/{$oldName}";
+                if (file_exists($targetOld)) {
+                    @unlink($targetOld);
+                    $deletedCount++;
+                }
+            }
+        }
+
+        // 3. Bersihkan juga dari sharedDir jika ada berkas yang telah dihapus
+        if (is_dir($sharedDir) && !empty($deletedFileNames)) {
+            $sharedFiles = array_diff(scandir($sharedDir), ['.', '..', 'drive_files_map.json']);
+            foreach ($deletedFileNames as $df) {
+                foreach ($sharedFiles as $sf) {
+                    if (strcasecmp($sf, $df) === 0) {
+                        @unlink("{$sharedDir}/{$sf}");
+                    }
+                }
+            }
+        }
+
+        // 4. Perbarui catatan nilai mahasiswa di database untuk berkas yang terhapus dari Drive
+        if (!empty($deletedFileNames)) {
+            foreach ($deletedFileNames as $df) {
+                $affected = Database::fetchAll(
+                    "SELECT id_nilai, nim, nama_mahasiswa FROM grades WHERE id_tugas = ? AND id_kelas = ? AND LOWER(file_name) = LOWER(?)",
+                    [$taskId, $classId, $df]
+                );
+
+                Database::execute(
+                    "UPDATE grades 
+                     SET file_name = '',
+                         drive_file_url = NULL,
+                         nilai_total = NULL,
+                         rincian_poin = '',
+                         catatan_ai = 'Berkas tugas telah dihapus dari Google Drive.',
+                         similarity_score = NULL,
+                         similarity_target_nim = NULL,
+                         similarity_details = NULL,
+                         ai_detected = 0,
+                         ai_detected_details = NULL,
+                         status = 'Belum Mengumpulkan',
+                         waktu_penilaian = ''
+                     WHERE id_tugas = ? AND id_kelas = ? AND LOWER(file_name) = LOWER(?)",
+                    [$taskId, $classId, $df]
+                );
+
+                // Cek apakah mahasiswa yang bersangkutan masih memiliki berkas lain di folder yang masih tersisa
+                foreach ($affected as $st) {
+                    $nim = $st['nim'];
+                    $nama = $st['nama_mahasiswa'];
+                    $remainingFile = self::findRemainingLocalFileForStudent($destDir, $nim, $nama);
+                    if ($remainingFile) {
+                        $remDriveUrl = $driveMap[$remainingFile]['driveUrl'] ?? null;
+                        Database::execute(
+                            "UPDATE grades 
+                             SET file_name = ?,
+                                 drive_file_url = ?,
+                                 status = 'Belum Dinilai',
+                                 catatan_ai = ''
+                             WHERE id_tugas = ? AND id_kelas = ? AND nim = ?",
+                            [$remainingFile, $remDriveUrl, $taskId, $classId, $nim]
+                        );
+                    }
+                }
+            }
+        }
+
+        // 5. Simpan pemetaan Drive URL ke disk
+        self::saveDriveFileMap($taskId, $classId, $driveMap, $deletedFileNames);
+
+        // 6. Perbarui drive_file_url untuk berkas-berkas yang aktif
+        foreach ($driveMap as $fn => $item) {
+            Database::execute(
+                "UPDATE grades SET drive_file_url = ? WHERE id_tugas = ? AND id_kelas = ? AND LOWER(file_name) = LOWER(?)",
+                [$item['driveUrl'], $taskId, $classId, $fn]
+            );
+        }
+
+        $msg = "Berhasil menyinkronkan {$syncedCount} berkas dari Google Drive!";
+        if ($deletedCount > 0) {
+            $msg .= " ({$deletedCount} berkas yang telah dihapus di Drive berhasil dibersihkan dari server).";
+        }
+        if (empty($files) && $deletedCount === 0) {
+            $msg = "Folder Google Drive terhubung, namun saat ini belum ada berkas tugas mahasiswa di dalamnya.";
         }
 
         return [
@@ -538,8 +654,9 @@ class GoogleDriveService {
             'totalInDrive' => count($files),
             'syncedCount'  => $syncedCount,
             'skippedCount' => $skippedCount,
+            'deletedCount' => $deletedCount,
             'files'        => $syncedFiles,
-            'message'      => "Berhasil menyinkronkan {$syncedCount} berkas langsung dari Google Drive!"
+            'message'      => $msg
         ];
     }
 
@@ -555,27 +672,24 @@ class GoogleDriveService {
             throw new Exception("ID Folder Google Drive tugas belum diisi atau tidak valid.");
         }
 
-        $files = self::listFilesInFolder($cleanFolderId, $userId);
-        if (empty($files)) {
-            return [
-                'success'      => true,
-                'totalInDrive' => 0,
-                'syncedCount'  => 0,
-                'files'        => [],
-                'message'      => "Folder Google Drive terhubung, namun saat ini belum ada berkas tugas mahasiswa di dalamnya."
-            ];
-        }
-
         // Simpan ke direktori bersama (shared)
         $sharedDir = FileService::getSharedSubmissionsDir($taskId);
         if (!is_dir($sharedDir)) {
             @mkdir($sharedDir, 0755, true);
         }
 
+        $oldMap = self::getDriveFileMap($taskId, null);
+
+        $files = self::listFilesInFolder($cleanFolderId, $userId);
+        if (!is_array($files)) {
+            $files = [];
+        }
+
         $syncedCount = 0;
         $syncedFiles = [];
         $driveMap = [];
         $seenFiles = [];
+        $currentDriveKeysLower = [];
 
         foreach ($files as $file) {
             $name = $file['name'] ?? '';
@@ -613,6 +727,7 @@ class GoogleDriveService {
                 'mimeType'     => $mimeType,
                 'modifiedTime' => $modifiedTime
             ];
+            $currentDriveKeysLower[strtolower($cleanName)] = true;
 
             $targetPath = "{$sharedDir}/{$cleanName}";
 
@@ -638,27 +753,129 @@ class GoogleDriveService {
             }
         }
 
-        // Simpan pemetaan Drive URL
-        if (!empty($driveMap)) {
-            self::saveDriveFileMap($taskId, null, $driveMap);
-            foreach ($driveMap as $fn => $item) {
-                Database::execute(
-                    "UPDATE grades SET drive_file_url = ? WHERE id_tugas = ? AND LOWER(file_name) = LOWER(?)",
-                    [$item['driveUrl'], $taskId, $fn]
-                );
+        // Ambil kelas-kelas di bawah mata kuliah ini
+        $classes = Database::fetchAll("SELECT id_kelas, nama_kelas FROM classes WHERE id_mata_kuliah = ?", [$courseId]);
+
+        // Deteksi dan bersihkan berkas yang telah dihapus di Drive
+        $deletedCount = 0;
+        $deletedFileNames = [];
+
+        // 1. Periksa berkas di $sharedDir
+        $existingShared = is_dir($sharedDir) ? array_diff(scandir($sharedDir), ['.', '..', 'drive_files_map.json']) : [];
+        foreach ($existingShared as $sf) {
+            $sfLower = strtolower($sf);
+            if (!isset($currentDriveKeysLower[$sfLower])) {
+                @unlink("{$sharedDir}/{$sf}");
+                $deletedFileNames[] = $sf;
+                $deletedCount++;
             }
         }
 
-        // Ambil kelas-kelas di bawah mata kuliah ini
-        $classes = Database::fetchAll("SELECT id_kelas, nama_kelas FROM classes WHERE id_mata_kuliah = ?", [$courseId]);
-        $updatedClasses = [];
+        // 2. Periksa entri di oldMap
+        foreach ($oldMap as $oldName => $oldItem) {
+            $oldLower = strtolower($oldName);
+            if (!isset($currentDriveKeysLower[$oldLower])) {
+                if (!in_array($oldName, $deletedFileNames, true)) {
+                    $deletedFileNames[] = $oldName;
+                }
+                $targetOld = "{$sharedDir}/{$oldName}";
+                if (file_exists($targetOld)) {
+                    @unlink($targetOld);
+                    $deletedCount++;
+                }
+            }
+        }
 
+        // 3. Bersihkan berkas terhapus dari setiap folder kelas yang menggunakan folder bersama ini
         foreach ($classes as $c) {
             $cId = $c['id_kelas'];
-            // Cek apakah kelas ini punya folder khusus sendiri
             $override = Database::fetchOne("SELECT drive_folder_id FROM class_task_folders WHERE id_tugas = ? AND id_kelas = ?", [$taskId, $cId]);
             if (!empty($override['drive_folder_id']) && trim($override['drive_folder_id']) !== $cleanFolderId) {
-                continue; // Jangan timpa kelas yang punya folder terpisah
+                continue;
+            }
+
+            $cDir = FileService::getSubmissionsDir($taskId, $cId);
+            if (is_dir($cDir) && !empty($deletedFileNames)) {
+                $cFiles = array_diff(scandir($cDir), ['.', '..', 'drive_files_map.json']);
+                foreach ($deletedFileNames as $df) {
+                    foreach ($cFiles as $cf) {
+                        if (strcasecmp($cf, $df) === 0) {
+                            @unlink("{$cDir}/{$cf}");
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Perbarui catatan nilai mahasiswa di database untuk berkas yang terhapus dari Drive
+        if (!empty($deletedFileNames)) {
+            foreach ($deletedFileNames as $df) {
+                $affected = Database::fetchAll(
+                    "SELECT id_nilai, id_kelas, nim, nama_mahasiswa FROM grades WHERE id_tugas = ? AND LOWER(file_name) = LOWER(?)",
+                    [$taskId, $df]
+                );
+
+                Database::execute(
+                    "UPDATE grades 
+                     SET file_name = '',
+                         drive_file_url = NULL,
+                         nilai_total = NULL,
+                         rincian_poin = '',
+                         catatan_ai = 'Berkas tugas telah dihapus dari Google Drive.',
+                         similarity_score = NULL,
+                         similarity_target_nim = NULL,
+                         similarity_details = NULL,
+                         ai_detected = 0,
+                         ai_detected_details = NULL,
+                         status = 'Belum Mengumpulkan',
+                         waktu_penilaian = ''
+                     WHERE id_tugas = ? AND LOWER(file_name) = LOWER(?)",
+                    [$taskId, $df]
+                );
+
+                // Cek apakah mahasiswa masih memiliki berkas lain yang tersisa di folder kelas atau shared
+                foreach ($affected as $st) {
+                    $nim = $st['nim'];
+                    $nama = $st['nama_mahasiswa'];
+                    $stClassId = $st['id_kelas'];
+                    $stClassDir = FileService::getSubmissionsDir($taskId, $stClassId);
+                    $remainingFile = self::findRemainingLocalFileForStudent($stClassDir, $nim, $nama)
+                                  ?: self::findRemainingLocalFileForStudent($sharedDir, $nim, $nama);
+
+                    if ($remainingFile) {
+                        $remDriveUrl = $driveMap[$remainingFile]['driveUrl'] ?? null;
+                        Database::execute(
+                            "UPDATE grades 
+                             SET file_name = ?,
+                                 drive_file_url = ?,
+                                 status = 'Belum Dinilai',
+                                 catatan_ai = ''
+                             WHERE id_tugas = ? AND id_kelas = ? AND nim = ?",
+                            [$remainingFile, $remDriveUrl, $taskId, $stClassId, $nim]
+                        );
+                    }
+                }
+            }
+        }
+
+        // 5. Simpan pemetaan Drive URL ke disk
+        self::saveDriveFileMap($taskId, null, $driveMap, $deletedFileNames);
+
+        // 6. Perbarui drive_file_url untuk berkas-berkas yang aktif
+        foreach ($driveMap as $fn => $item) {
+            Database::execute(
+                "UPDATE grades SET drive_file_url = ? WHERE id_tugas = ? AND LOWER(file_name) = LOWER(?)",
+                [$item['driveUrl'], $taskId, $fn]
+            );
+        }
+
+        // 7. Salin berkas hasil sinkronisasi ke kelas-kelas terkait
+        $updatedClasses = [];
+        foreach ($classes as $c) {
+            $cId = $c['id_kelas'];
+            $override = Database::fetchOne("SELECT drive_folder_id FROM class_task_folders WHERE id_tugas = ? AND id_kelas = ?", [$taskId, $cId]);
+            if (!empty($override['drive_folder_id']) && trim($override['drive_folder_id']) !== $cleanFolderId) {
+                continue;
             }
 
             $cDir = FileService::getSubmissionsDir($taskId, $cId);
@@ -671,25 +888,68 @@ class GoogleDriveService {
                     @copy($src, $dst);
                 }
             }
+            self::saveDriveFileMap($taskId, $cId, $driveMap, $deletedFileNames);
             $updatedClasses[] = $c['nama_kelas'];
         }
 
         $classListText = !empty($updatedClasses) ? implode(', ', $updatedClasses) : 'seluruh kelas';
 
+        $msg = "Berhasil menyinkronkan {$syncedCount} berkas dari Google Drive untuk kelas: {$classListText}!";
+        if ($deletedCount > 0) {
+            $msg .= " ({$deletedCount} berkas yang dihapus di Drive telah dibersihkan dari server).";
+        }
+        if (empty($files) && $deletedCount === 0) {
+            $msg = "Folder Google Drive terhubung, namun saat ini belum ada berkas tugas mahasiswa di dalamnya.";
+        }
+
         return [
             'success'        => true,
             'totalInDrive'   => count($files),
             'syncedCount'    => $syncedCount,
+            'deletedCount'   => $deletedCount,
             'files'          => $syncedFiles,
             'updatedClasses' => $updatedClasses,
-            'message'        => "Berhasil menyinkronkan {$syncedCount} berkas dari Google Drive untuk kelas: {$classListText}!"
+            'message'        => $msg
         ];
+    }
+
+    /**
+     * Mencari apakah mahasiswa masih memiliki berkas jawaban lain di folder lokal
+     */
+    public static function findRemainingLocalFileForStudent(string $dir, string $nim, string $nama): ?string {
+        if (!is_dir($dir)) return null;
+        $files = array_diff(scandir($dir), ['.', '..', 'drive_files_map.json']);
+        $cleanNim = strtolower(trim($nim));
+        $sanitizedNim = preg_replace('/[^0-9a-z]/', '', $cleanNim);
+        $cleanNama = strtolower(trim($nama));
+        $nameWords = array_filter(explode(' ', $cleanNama), fn($w) => strlen(trim($w)) >= 3);
+
+        foreach ($files as $f) {
+            $fLower = strtolower($f);
+            $sanitizedF = preg_replace('/[^0-9a-z]/', '', $fLower);
+            if (!empty($cleanNim) && (str_contains($fLower, $cleanNim) || (strlen($sanitizedNim) >= 4 && str_contains($sanitizedF, $sanitizedNim)))) {
+                return $f;
+            }
+            if (!empty($cleanNama) && str_contains($fLower, $cleanNama)) {
+                return $f;
+            }
+            if (count($nameWords) >= 2) {
+                $matchedWords = 0;
+                foreach ($nameWords as $w) {
+                    if (str_contains($fLower, $w)) $matchedWords++;
+                }
+                if ($matchedWords >= 2 && $matchedWords >= (count($nameWords) * 0.6)) {
+                    return $f;
+                }
+            }
+        }
+        return null;
     }
 
     /**
      * Menyimpan pemetaan nama berkas ke Google Drive File ID & URL
      */
-    public static function saveDriveFileMap(string $taskId, ?string $classId, array $fileMap): void {
+    public static function saveDriveFileMap(string $taskId, ?string $classId, array $fileMap, array $deletedFileNames = []): void {
         $cleanTask = preg_replace('/[^a-zA-Z0-9_-]/', '', $taskId);
         $taskDir = FileService::getUploadDir() . "/tasks/{$cleanTask}";
         if (!is_dir($taskDir)) @mkdir($taskDir, 0755, true);
@@ -699,13 +959,29 @@ class GoogleDriveService {
         if (file_exists($mainMapFile)) {
             $existing = json_decode(file_get_contents($mainMapFile), true) ?: [];
         }
-        $merged = array_merge($existing, $fileMap);
+
+        // Hapus berkas yang telah dihapus di Drive dari map utama
+        if (!empty($deletedFileNames)) {
+            $deletedLower = array_map('strtolower', $deletedFileNames);
+            foreach (array_keys($existing) as $k) {
+                if (in_array(strtolower($k), $deletedLower, true)) {
+                    unset($existing[$k]);
+                }
+            }
+        }
+
+        if ($classId === null) {
+            // Jika sinkronisasi di tingkat tugas utama (shared), map utama adalah fileMap aktif
+            $merged = $fileMap;
+        } else {
+            $merged = array_merge($existing, $fileMap);
+        }
         @file_put_contents($mainMapFile, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
         if (!empty($classId)) {
             $classDir = FileService::getSubmissionsDir($taskId, $classId);
             $classMapFile = "{$classDir}/drive_files_map.json";
-            @file_put_contents($classMapFile, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            @file_put_contents($classMapFile, json_encode($fileMap, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         }
     }
 
