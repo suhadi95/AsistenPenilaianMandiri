@@ -219,7 +219,7 @@ TUGAS ANDA:
 
         // 3. Prompt Evaluasi Objektif
         $evalPrompt = "
-Lakukan penilaian tugas mahasiswa secara seksama, adil, dan objektif.
+Lakukan penilaian tugas mahasiswa secara seksama, adil, transparan, dan objektif.
 
 IDENTITAS MAHASISWA:
 • NIM  : " . ($studentInfo['nim'] ?? '-') . "
@@ -229,12 +229,20 @@ IDENTITAS MAHASISWA:
 PANDUAN PORSI NILAI & RUBRIK:
 {$rubricText}
 
-INSTRUKSI PENILAIAN:
-1. Bacalah jawaban mahasiswa dan bandingkan dengan SOAL TUGAS / PANDUAN JAWABAN di atas.
-2. Nilai setiap butir soal/kriteria secara ketat berdasarkan PORSI POIN MAKSIMAL yang telah ditentukan.
-3. Hitung Nilai Total akumulatif (totalScore).
-4. Buat rangkuman masukan (summaryFeedback) yang menjelaskan justifikasi perolehan nilai: bagian mana yang sudah benar, bagian mana yang kurang/salah, dan apa solusi yang benar secara santun dan mendidik.
-5. Sebutkan poin-poin kelebihan (strengths) dan poin perbaikan (improvements).
+INSTRUKSI PENILAIAN KRUSIAL:
+1. Bacalah jawaban mahasiswa dan bandingkan dengan SOAL TUGAS / PETUNJUK PENILAIAN / PANDUAN JAWABAN di atas.
+2. Nilai setiap butir soal/kriteria secara ketat berdasarkan PORSI POIN MAKSIMAL yang telah ditentukan (score / maxScore).
+3. ATURAN WAJIB FEEDBACK PER BUTIR KRITERIA (criteriaScores.feedback):
+   - Jika perolehan nilai MAKSIMAL (score == maxScore): Tuliskan feedback yang mengapresiasi dan membuktikan bahwa butir kriteria ini telah dijawab secara lengkap dan tepat tanpa celah.
+   - Jika perolehan nilai TIDAK MAKSIMAL (score < maxScore): Anda WAJIB SECARA EKSPLISIT menjelaskan alasan pemotongan nilai dan bagian mana yang kurang/salah/belum lengkap!
+     Contoh format: '[Bagian yang sudah benar], namun terdapat pengurangan X poin karena [sebutkan kekurangan/kesalahan spesifik mengapa tidak mendapat poin maksimal]'.
+     JANGAN PERNAH memberikan nilai tidak maksimal (seperti 22.5/25) hanya dengan kalimat pujian tanpa menyebutkan penyebab kekurangannya!
+4. Hitung Nilai Total akumulatif (totalScore) secara matematis akurat dari penjumlahan skor butir kriteria (skala 0 - 100).
+5. Buat Ulasan Evaluasi Terstruktur:
+   - summaryFeedback: Rangkuman umum performa dan capaian mahasiswa dalam mengerjakan tugas ini.
+   - strengths: 2-4 butir poin kelebihan dan aspek positif yang menonjol dari jawaban mahasiswa.
+   - weaknesses: 2-4 butir poin kekurangan, kekeliruan, atau hal yang belum lengkap dari jawaban mahasiswa (terutama yang menyebabkan pengurangan nilai).
+   - revisions: 2-4 butir langkah konkret, spesifik, dan actionable apa yang harus diperbaiki/ditambahkan mahasiswa jika ingin melakukan perbaikan nilai atau revisi tugas.
 6. PEMERIKSAAN RESIDU BOT AI: Teliti apakah di berkas jawaban mahasiswa terdapat kalimat percakapan chatbot AI yang tertinggal karena mahasiswa teledor lupa menghapus (misal: 'Apakah jawaban ini sudah cukup?', 'Semoga membantu', 'Tentu, ini solusinya', 'Sebagai model AI', 'Is there anything else I can help with?'). Jika ada, tetapkan aiResidueDetected = true dan kutip kalimat persisnya di aiResidueQuotes.
 ";
         $parts[] = ['text' => $evalPrompt];
@@ -261,18 +269,20 @@ INSTRUKSI PENILAIAN:
                                     'criterion' => ['type' => 'STRING'],
                                     'score'     => ['type' => 'NUMBER'],
                                     'maxScore'  => ['type' => 'NUMBER'],
-                                    'feedback'  => ['type' => 'STRING']
+                                    'feedback'  => ['type' => 'STRING', 'description' => 'Justifikasi nilai butir soal. WAJIB menyebutkan alasan pemotongan nilai jika score < maxScore.']
                                 ],
                                 'required'   => ['criterion', 'score', 'maxScore', 'feedback']
                             ]
                         ],
                         'summaryFeedback'   => ['type' => 'STRING', 'description' => 'Rangkuman ulasan komprehensif'],
-                        'strengths'         => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
-                        'improvements'      => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
+                        'strengths'         => ['type' => 'ARRAY', 'items' => ['type' => 'STRING'], 'description' => 'Poin-poin kelebihan jawaban mahasiswa'],
+                        'weaknesses'        => ['type' => 'ARRAY', 'items' => ['type' => 'STRING'], 'description' => 'Poin-poin kekurangan, ketidaklengkapan, atau kekeliruan jawaban mahasiswa'],
+                        'revisions'         => ['type' => 'ARRAY', 'items' => ['type' => 'STRING'], 'description' => 'Langkah konkret perbaikan/revisi yang perlu dilakukan jika ingin perbaikan nilai'],
+                        'improvements'      => ['type' => 'ARRAY', 'items' => ['type' => 'STRING'], 'description' => 'Rekomendasi pengembangan kompetensi mahasiswa'],
                         'aiResidueDetected' => ['type' => 'BOOLEAN', 'description' => 'True jika ditemukan kalimat residu percakapan bot AI yang lupa dihapus mahasiswa'],
                         'aiResidueQuotes'   => ['type' => 'ARRAY', 'items' => ['type' => 'STRING'], 'description' => 'Kutipan persis kalimat percakapan bot AI yang tertinggal']
                     ],
-                    'required'   => ['totalScore', 'criteriaScores', 'summaryFeedback']
+                    'required'   => ['totalScore', 'criteriaScores', 'summaryFeedback', 'strengths', 'weaknesses', 'revisions']
                 ]
             ]
         ];

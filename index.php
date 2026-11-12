@@ -1707,13 +1707,13 @@ Database::initDatabase();
 
   <!-- 5. MODAL DETAIL / KOREKSI MANUAL NILAI -->
   <div id="gradeDetailModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <div>
-          <h3 class="font-bold text-slate-900 text-base" id="detailModalStudentName">Detail Penilaian Mahasiswa</h3>
-          <p class="text-xs text-slate-400" id="detailModalStudentNim">NIM: -</p>
+          <h3 class="font-bold text-slate-900 text-base sm:text-lg" id="detailModalStudentName">Detail Penilaian Mahasiswa</h3>
+          <p class="text-xs text-slate-400 mt-0.5" id="detailModalStudentNim">NIM: -</p>
         </div>
-        <button onclick="closeModal('gradeDetailModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+        <button onclick="closeModal('gradeDetailModal')" class="text-slate-400 hover:text-slate-600 text-lg p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer">✕</button>
       </div>
 
       <input type="hidden" id="detailGradeTaskId">
@@ -1736,7 +1736,7 @@ Database::initDatabase();
           <span class="flex items-center gap-1.5">
             <span>🤖</span> <span>Terindikasi AI (Residu Percakapan Bot Terlupa Dihapus):</span>
           </span>
-          <button type="button" onclick="setZeroPenaltyGrade('ai')" class="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-bold cursor-pointer transition shadow-2xs" title="Terapkan nilai 0 karena bukti residu bot AI">Beri Nilai 0</button>
+          <button type="button" onclick="setZeroPenaltyGrade('ai')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold cursor-pointer transition shadow-2xs" title="Terapkan nilai 0 karena bukti residu bot AI">Beri Nilai 0</button>
         </div>
         <p class="text-[11px] text-rose-800 font-semibold" id="detailAiSummary">-</p>
         <div class="text-rose-950 text-xs font-mono bg-white p-2.5 rounded-lg border border-rose-200 whitespace-pre-wrap max-h-36 overflow-y-auto leading-relaxed" id="detailAiSnippets">-</div>
@@ -1748,32 +1748,49 @@ Database::initDatabase();
           <span class="flex items-center gap-1.5">
             <span>⚠️</span> <span>Indikasi Plagiarisme Antar Mahasiswa:</span>
           </span>
-          <button type="button" onclick="setZeroPenaltyGrade('plagiarism')" class="px-2 py-0.5 bg-amber-700 hover:bg-amber-800 text-white rounded text-[10px] font-bold cursor-pointer transition shadow-2xs" title="Terapkan nilai 0 karena plagiasi">Beri Nilai 0</button>
+          <button type="button" onclick="setZeroPenaltyGrade('plagiarism')" class="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition shadow-2xs" title="Terapkan nilai 0 karena plagiasi">Beri Nilai 0</button>
         </div>
         <p class="text-amber-900 text-xs font-semibold" id="detailPlagiarismReason">-</p>
         <div class="text-amber-950 text-[11px] font-mono bg-white p-2 rounded-lg border border-amber-200 max-h-24 overflow-y-auto space-y-1" id="detailPlagiarismSnippets">-</div>
       </div>
 
-      <div class="space-y-3.5 text-xs">
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Nilai Total Akhir (0 - 100)</label>
-          <input type="number" id="detailGradeTotalScore" min="0" max="100" class="w-32 text-base font-bold p-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 text-center">
+      <div class="space-y-4 text-xs">
+        <!-- Nilai Total Akhir Banner Card -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-slate-50 to-blue-50/40 p-3.5 rounded-xl border border-slate-200">
+          <div>
+            <label class="block font-bold text-slate-800 text-sm">Nilai Total Akhir (Skala 0 - 100)</label>
+            <p class="text-[11px] text-slate-500 mt-0.5">Nilai akumulatif dari butir kriteria rubrik. Anda dapat mengoreksi nilai ini secara manual.</p>
+          </div>
+          <div class="flex items-center gap-2 self-start sm:self-auto">
+            <input type="number" step="0.1" id="detailGradeTotalScore" min="0" max="100" class="w-28 text-xl font-extrabold text-blue-700 p-2 bg-white border-2 border-blue-300 rounded-xl focus:outline-none focus:border-blue-600 text-center shadow-xs">
+            <span class="text-xs font-bold text-slate-400">/ 100</span>
+          </div>
         </div>
 
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Rincian Skor Per Butir Soal</label>
-          <textarea id="detailGradeCriteria" rows="4" class="w-full font-mono text-[11px] p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"></textarea>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block font-bold text-slate-800 text-xs flex items-center gap-1.5">
+              <span>📊</span> <span>Rincian Skor Per Butir Soal & Alasan Penilaian</span>
+            </label>
+            <span class="text-[11px] text-slate-400 font-mono hidden sm:inline">Format: • Kriteria: Skor/Maks Poin (Alasan/Kekurangan)</span>
+          </div>
+          <textarea id="detailGradeCriteria" rows="6" class="w-full font-mono text-[11px] sm:text-xs p-3 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition leading-relaxed text-slate-800"></textarea>
         </div>
 
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Catatan, Justifikasi & Saran AI</label>
-          <textarea id="detailGradeFeedback" rows="5" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500"></textarea>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block font-bold text-slate-800 text-xs flex items-center gap-1.5">
+              <span>📝</span> <span>Catatan, Justifikasi & Saran AI</span>
+            </label>
+            <span class="text-[11px] text-slate-400 hidden sm:inline">Termasuk Kelebihan Jawaban, Poin Kekurangan & Saran Revisi</span>
+          </div>
+          <textarea id="detailGradeFeedback" rows="9" class="w-full text-xs p-3.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white transition leading-relaxed text-slate-800"></textarea>
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-        <button onclick="closeModal('gradeDetailModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Tutup</button>
-        <button onclick="submitSaveManualGrade()" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold text-xs">Simpan Perubahan Nilai</button>
+      <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+        <button type="button" onclick="closeModal('gradeDetailModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition cursor-pointer">Tutup</button>
+        <button type="button" onclick="submitSaveManualGrade()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition cursor-pointer shadow-xs">Simpan Perubahan Nilai</button>
       </div>
     </div>
   </div>

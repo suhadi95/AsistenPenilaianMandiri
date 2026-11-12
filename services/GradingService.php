@@ -168,18 +168,42 @@ class GradingService {
             if (!empty($data['criteriaScores']) && is_array($data['criteriaScores'])) {
                 $lines = [];
                 foreach ($data['criteriaScores'] as $c) {
-                    $lines[] = "• {$c['criterion']}: {$c['score']}/{$c['maxScore']} poin ({$c['feedback']})";
+                    $cScore = isset($c['score']) ? (float)$c['score'] : 0;
+                    $cMax = isset($c['maxScore']) ? (float)$c['maxScore'] : 0;
+                    $cFeedback = trim($c['feedback'] ?? '');
+                    $lines[] = "• {$c['criterion']}: {$cScore}/{$cMax} poin ({$cFeedback})";
                 }
                 $formattedCriteria = implode("\n", $lines);
             }
 
             // 4. Format catatan evaluasi AI
-            $fullFeedback = $data['summaryFeedback'] ?? '';
+            $fullFeedback = trim($data['summaryFeedback'] ?? '');
+
+            // 4a. Kelebihan Jawaban
             if (!empty($data['strengths']) && is_array($data['strengths'])) {
-                $fullFeedback .= "\n\n[Kelebihan Jawaban]:\n" . implode("\n", array_map(fn($s) => "✓ {$s}", $data['strengths']));
+                $fullFeedback .= "\n\n[Kelebihan Jawaban]:\n" . implode("\n", array_map(fn($s) => "✓ " . trim($s), $data['strengths']));
             }
-            if (!empty($data['improvements']) && is_array($data['improvements'])) {
-                $fullFeedback .= "\n\n[Catatan & Rekomendasi]:\n" . implode("\n", array_map(fn($im) => "⚠ {$im}", $data['improvements']));
+
+            // 4b. Poin Kekurangan
+            $weaknessesList = [];
+            if (!empty($data['weaknesses']) && is_array($data['weaknesses'])) {
+                $weaknessesList = $data['weaknesses'];
+            } elseif (!empty($data['improvements']) && is_array($data['improvements'])) {
+                $weaknessesList = $data['improvements'];
+            }
+            if (!empty($weaknessesList)) {
+                $fullFeedback .= "\n\n[Poin Kekurangan]:\n" . implode("\n", array_map(fn($w) => "✗ " . trim($w), $weaknessesList));
+            }
+
+            // 4c. Saran Revisi & Perbaikan Nilai
+            $revisionsList = [];
+            if (!empty($data['revisions']) && is_array($data['revisions'])) {
+                $revisionsList = $data['revisions'];
+            } elseif (!empty($data['recommendations']) && is_array($data['recommendations'])) {
+                $revisionsList = $data['recommendations'];
+            }
+            if (!empty($revisionsList)) {
+                $fullFeedback .= "\n\n[Saran Revisi & Perbaikan Nilai]:\n" . implode("\n", array_map(fn($r) => "🛠 " . trim($r), $revisionsList));
             }
 
             // 5. Pindai Residu Bot AI secara deterministik lokal & integrasi multimodal
