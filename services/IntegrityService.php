@@ -191,6 +191,33 @@ class IntegrityService {
     }
 
     /**
+     * Mengambil sidik jari gabungan seluruh berkas media/gambar di dalam berkas Word (.docx)
+     */
+    public static function getDocxMediaHash(string $filePath): string {
+        if (!class_exists('ZipArchive') || !file_exists($filePath) || !is_readable($filePath)) {
+            return '';
+        }
+        $zip = new ZipArchive();
+        if ($zip->open($filePath) !== true) {
+            return '';
+        }
+        $hashes = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if (str_starts_with($name, 'word/media/')) {
+                $bytes = $zip->getFromIndex($i);
+                if ($bytes && strlen($bytes) > 100) {
+                    $hashes[] = sha1($bytes);
+                }
+            }
+        }
+        $zip->close();
+        if (empty($hashes)) return '';
+        sort($hashes);
+        return sha1(implode('|', $hashes));
+    }
+
+    /**
      * Memeriksa apakah teks yang diekstrak merupakan sampah karakter biner / font terenkripsi (bukan teks bacaan alami)
      */
     public static function isGibberish(string $text): bool {
@@ -716,6 +743,8 @@ class IntegrityService {
                 $ext = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
                 if ($ext === 'pdf') {
                     $studentStreamHashes[$nim] = self::getPdfStreamsHash($targetFilePath);
+                } elseif ($ext === 'docx') {
+                    $studentStreamHashes[$nim] = self::getDocxMediaHash($targetFilePath);
                 } else {
                     $studentStreamHashes[$nim] = '';
                 }

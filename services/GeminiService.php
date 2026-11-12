@@ -88,6 +88,17 @@ class GeminiService {
 
         if (!empty($taskQuestionData['isTextOnly'])) {
             $parts[] = ['text' => "=== DOKUMEN SOAL TUGAS ===\n" . ($taskQuestionData['textContent'] ?? '') . "\n=== AKHIR DOKUMEN SOAL ==="];
+            if (!empty($taskQuestionData['embeddedImages']) && is_array($taskQuestionData['embeddedImages'])) {
+                foreach ($taskQuestionData['embeddedImages'] as $qIdx => $qImg) {
+                    $parts[] = ['text' => "Gambar/Diagram Acuan Soal #" . ($qIdx + 1) . " (" . ($qImg['name'] ?? 'gambar') . "):"];
+                    $parts[] = [
+                        'inline_data' => [
+                            'mime_type' => $qImg['mimeType'] ?? 'image/png',
+                            'data'      => $qImg['base64Data']
+                        ]
+                    ];
+                }
+            }
         } elseif (!empty($taskQuestionData['base64Data'])) {
             $parts[] = [
                 'inline_data' => [
@@ -192,6 +203,17 @@ TUGAS ANDA:
             $parts[] = ['text' => "=== DOKUMEN ACUAN: SOAL TUGAS / PETUNJUK PENILAIAN (" . ($taskQuestionData['fileName'] ?? 'Soal Tugas') . ") ==="];
             if (!empty($taskQuestionData['isTextOnly'])) {
                 $parts[] = ['text' => $taskQuestionData['textContent'] ?? ''];
+                if (!empty($taskQuestionData['embeddedImages']) && is_array($taskQuestionData['embeddedImages'])) {
+                    foreach ($taskQuestionData['embeddedImages'] as $qIdx => $qImg) {
+                        $parts[] = ['text' => "Gambar/Diagram Acuan Soal #" . ($qIdx + 1) . " (" . ($qImg['name'] ?? 'gambar') . "):"];
+                        $parts[] = [
+                            'inline_data' => [
+                                'mime_type' => $qImg['mimeType'] ?? 'image/png',
+                                'data'      => $qImg['base64Data']
+                            ]
+                        ];
+                    }
+                }
             } elseif (!empty($taskQuestionData['base64Data'])) {
                 $parts[] = [
                     'inline_data' => [
@@ -207,6 +229,22 @@ TUGAS ANDA:
         $parts[] = ['text' => "=== BERKAS JAWABAN MAHASISWA: " . ($studentInfo['nama'] ?? '-') . " (NIM: " . ($studentInfo['nim'] ?? '-') . ") - File: " . ($submissionData['fileName'] ?? '') . " ==="];
         if (!empty($submissionData['isTextOnly'])) {
             $parts[] = ['text' => $submissionData['textContent'] ?? ''];
+
+            // Lampirkan seluruh gambar/diagram yang diekstrak dari dokumen Word (.docx) secara multimodal
+            if (!empty($submissionData['embeddedImages']) && is_array($submissionData['embeddedImages'])) {
+                $parts[] = ['text' => "\n=== LAMPIRAN GAMBAR / DIAGRAM DARI DOKUMEN WORD (.DOCX) MAHASISWA ==="];
+                $parts[] = ['text' => "Catatan Penting Penilai: Di bawah ini adalah gambar/diagram visual yang disematkan atau ditempelkan oleh mahasiswa di dalam berkas dokumen Word tugasnya. Periksalah gambar diagram visual ini secara seksama untuk menilai pemenuhan kriteria pembuatan diagram (Class Diagram, Use Case, Activity Diagram, ERD, relasi antarkelas, notasi UML, multiplicity, atribut, dan tipe data)."];
+                foreach ($submissionData['embeddedImages'] as $sIdx => $sImg) {
+                    $parts[] = ['text' => "Gambar / Diagram Mahasiswa #" . ($sIdx + 1) . " (" . ($sImg['name'] ?? 'gambar') . "):"];
+                    $parts[] = [
+                        'inline_data' => [
+                            'mime_type' => $sImg['mimeType'] ?? 'image/png',
+                            'data'      => $sImg['base64Data']
+                        ]
+                    ];
+                }
+                $parts[] = ['text' => "=== AKHIR LAMPIRAN GAMBAR DARI DOKUMEN WORD (.DOCX) ===\n"];
+            }
         } elseif (!empty($submissionData['base64Data'])) {
             $parts[] = [
                 'inline_data' => [
@@ -244,6 +282,11 @@ INSTRUKSI PENILAIAN KRUSIAL:
    - weaknesses: 2-4 butir poin kekurangan, kekeliruan, atau hal yang belum lengkap dari jawaban mahasiswa (terutama yang menyebabkan pengurangan nilai).
    - revisions: 2-4 butir langkah konkret, spesifik, dan actionable apa yang harus diperbaiki/ditambahkan mahasiswa jika ingin melakukan perbaikan nilai atau revisi tugas.
 6. PEMERIKSAAN RESIDU BOT AI: Teliti apakah di berkas jawaban mahasiswa terdapat kalimat percakapan chatbot AI yang tertinggal karena mahasiswa teledor lupa menghapus (misal: 'Apakah jawaban ini sudah cukup?', 'Semoga membantu', 'Tentu, ini solusinya', 'Sebagai model AI', 'Is there anything else I can help with?'). Jika ada, tetapkan aiResidueDetected = true dan kutip kalimat persisnya di aiResidueQuotes.
+7. PEMERIKSAAN DIAGRAM & GAMBAR VISUAL (SANGAT PENTING):
+   - Mahasiswa dapat melampirkan diagram baik di dalam dokumen PDF maupun disematkan di dalam dokumen Word (.docx). Seluruh gambar/diagram dari dokumen telah dilampirkan secara multimodal untuk Anda periksa (baik pada halaman PDF maupun pada bagian [LAMPIRAN GAMBAR / DIAGRAM DARI DOKUMEN WORD (.DOCX) MAHASISWA]).
+   - Periksa secara teliti keberadaan diagram visual pada berkas jawaban mahasiswa (misalnya Class Diagram, Use Case Diagram, Activity Diagram, Sequence Diagram, ERD, Flowchart, sketsa rancangan, dsb).
+   - JANGAN PERNAH menyimpulkan bahwa gambar diagram 'kosong', 'tidak dilampirkan', atau 'belum ditempelkan' apabila terdapat gambar/diagram yang relevan di berkas PDF maupun pada lampiran gambar dokumen Word tersebut!
+   - Periksalah ketepatan notasi UML, nama kelas, atribut, tipe data, relasi (association, dependency, inheritance, aggregation, composition), dan multiplicity yang tertera pada diagram visual tersebut secara objektif sesuai rubrik.
 ";
         $parts[] = ['text' => $evalPrompt];
 

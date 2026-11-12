@@ -205,6 +205,7 @@ class FileService {
 
     /**
      * Ekstraksi teks dari berkas Word (.docx) melalui pembongkaran XML arsip zip
+     * Mempertahankan struktur baris paragraf, pemisah kolom tabel, serta posisi gambar diagram.
      */
     public static function extractTextFromDocx(string $filePath): string {
         if (!class_exists('ZipArchive') || !file_exists($filePath)) {
@@ -216,19 +217,105 @@ class FileService {
             return '';
         }
 
-        $fullText = '';
+        $sections = [];
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = $zip->getNameIndex($i);
-            if (str_starts_with($name, 'word/') && (str_contains($name, 'document') || str_contains($name, 'header') || str_contains($name, 'footer'))) {
+            // Ambil konten utama dokumen (word/document.xml) dan header/footer jika ada
+            if ($name === 'word/document.xml' || (str_starts_with($name, 'word/') && (str_contains($name, 'header') || str_contains($name, 'footer')))) {
                 $xml = $zip->getFromIndex($i);
                 if ($xml) {
-                    $fullText .= ' ' . strip_tags($xml);
+                    // Tandai posisi gambar atau diagram yang disematkan di dalam teks
+                    $xml = preg_replace('/<w:drawing\b[^>]*>.*?<\/w:drawing>/is', "\n[GAMBAR / DIAGRAM TERSEMAT DI DOKUMEN]\n", $xml);
+                    $xml = preg_replace('/<w:pict\b[^>]*>.*?<\/w:pict>/is', "\n[GAMBAR / DIAGRAM TERSEMAT DI DOKUMEN]\n", $xml);
+
+                    // Konversi batas baris, paragraf, dan sel tabel agar tidak dempet
+                    $xml = str_ireplace(['</w:p>', '</w:tr>', '<w:br/>', '<w:cr/>'], "\n", $xml);
+                    $xml = str_ireplace(['</w:tc>'], "\t | ", $xml);
+
+                    $clean = strip_tags($xml);
+                    $clean = html_entity_decode($clean, ENT_QUOTES | ENT_XML1, 'UTF-8');
+                    $sections[] = $clean;
                 }
             }
         }
         $zip->close();
 
-        return trim(preg_replace('/\s+/', ' ', $fullText));
+        $combined = implode("\n", $sections);
+        $lines = explode("\n", $combined);
+        $cleanLines = [];
+        foreach ($lines as $line) {
+            $trimmed = trim(preg_replace('/[ \t]+/', ' ', $line));
+            if ($trimmed !== '') {
+                $cleanLines[] = $trimmed;
+            }
+        }
+
+        return implode("\n", $cleanLines);
+    }
+
+    /**
+     * Mengekstrak seluruh gambar atau diagram yang disematkan di dalam berkas Word (.docx)
+     * Gambar tersimpan di dalam folder word/media/ pada arsip zip DOCX.
+     */
+    public static function extractImagesFromDocx(string $filePath): array {
+        if (!class_exists('ZipArchive') || !file_exists($filePath)) {
+            return [];
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($filePath) !== true) {
+            return [];
+        }
+
+        $images = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entryName = $zip->getNameIndex($i);
+            // Berkas gambar tersemat selalu berada pada path 'word/media/'
+            if (str_starts_with($entryName, 'word/media/')) {
+                $baseName = basename($entryName);
+                $imgBytes = $zip->getFromIndex($i);
+                if (!$imgBytes) continue;
+
+                $info = @getimagesizefromstring($imgBytes);
+                if (!$info) {
+                    continue;
+                }
+
+                $w = $info[0] ?? 0;
+                $h = $info[1] ?? 0;
+                $mime = $info['mime'] ?? '';
+
+                // Abaikan ikon dekoratif super mini (< 15x15 px)
+                if ($w < 15 || $h < 15) continue;
+
+                // Konversi BMP ke PNG menggunakan GD jika tersedia
+                if ($mime === 'image/bmp' && extension_loaded('gd')) {
+                    $gdImg = @imagecreatefromstring($imgBytes);
+                    if ($gdImg) {
+                        ob_start();
+                        imagepng($gdImg);
+                        $imgBytes = ob_get_clean();
+                        imagedestroy($gdImg);
+                        $mime = 'image/png';
+                        $baseName = pathinfo($baseName, PATHINFO_FILENAME) . '.png';
+                    }
+                }
+
+                if (in_array($mime, ['image/png', 'image/jpeg', 'image/webp', 'image/gif'], true)) {
+                    $images[] = [
+                        'name'       => $baseName,
+                        'path'       => $entryName,
+                        'mimeType'   => $mime,
+                        'width'      => $w,
+                        'height'     => $h,
+                        'base64Data' => base64_encode($imgBytes),
+                        'sizeBytes'  => strlen($imgBytes)
+                    ];
+                }
+            }
+        }
+        $zip->close();
+        return $images;
     }
 
     /**
@@ -255,28 +342,31 @@ class FileService {
         $textExtensions = ['txt', 'py', 'js', 'html', 'css', 'java', 'cpp', 'c', 'php', 'json', 'csv', 'md', 'sql'];
         if (in_array($ext, $textExtensions, true)) {
             return [
-                'success'     => true,
-                'fileName'    => $fileName,
-                'mimeType'    => 'text/plain',
-                'isTextOnly'  => true,
-                'textContent' => file_get_contents($filePath),
-                'base64Data'  => null,
-                'sizeBytes'   => $fileSize
+                'success'        => true,
+                'fileName'       => $fileName,
+                'mimeType'       => 'text/plain',
+                'isTextOnly'     => true,
+                'textContent'    => file_get_contents($filePath),
+                'embeddedImages' => [],
+                'base64Data'     => null,
+                'sizeBytes'      => $fileSize
             ];
         }
 
-        // Word .docx: Ekstrak teks langsung dari XML agar ringan dan cepat
+        // Word .docx: Ekstrak teks terstruktur dan seluruh gambar/diagram yang tertanam di dalamnya
         if ($ext === 'docx') {
             $text = self::extractTextFromDocx($filePath);
-            if (!empty($text)) {
+            $embeddedImages = self::extractImagesFromDocx($filePath);
+            if (!empty($text) || !empty($embeddedImages)) {
                 return [
-                    'success'     => true,
-                    'fileName'    => $fileName,
-                    'mimeType'    => 'text/plain',
-                    'isTextOnly'  => true,
-                    'textContent' => $text,
-                    'base64Data'  => null,
-                    'sizeBytes'   => $fileSize
+                    'success'        => true,
+                    'fileName'       => $fileName,
+                    'mimeType'       => 'text/plain',
+                    'isTextOnly'     => true,
+                    'textContent'    => $text,
+                    'embeddedImages' => $embeddedImages,
+                    'base64Data'     => null,
+                    'sizeBytes'      => $fileSize
                 ];
             }
         }
@@ -340,8 +430,9 @@ class FileService {
 
         $candidateUrls = [];
         if ($isGoogleDoc) {
-            $candidateUrls[] = ['url' => "https://docs.google.com/document/d/{$fileId}/export?format=txt", 'type' => 'txt'];
+            // Utamakan ekspor PDF agar seluruh diagram/gambar visual yang digambar/ditempel di Google Docs tetap utuh
             $candidateUrls[] = ['url' => "https://docs.google.com/document/d/{$fileId}/export?format=pdf", 'type' => 'pdf'];
+            $candidateUrls[] = ['url' => "https://docs.google.com/document/d/{$fileId}/export?format=txt", 'type' => 'txt'];
         } elseif ($isGoogleSheet) {
             $candidateUrls[] = ['url' => "https://docs.google.com/spreadsheets/d/{$fileId}/export?format=pdf", 'type' => 'pdf'];
         } elseif ($isGoogleSlide) {
