@@ -99,7 +99,7 @@ class GradingService {
             'nim'             => $nim,
             'nama_mahasiswa'  => $nama,
             'file_name'       => '',
-            'status'          => '⏳ Sedang Menilai...',
+            'status'          => 'Sedang Menilai...',
             'waktu_penilaian' => date('d/m/Y H:i:s')
         ]);
 
@@ -181,7 +181,7 @@ class GradingService {
 
             // 4a. Kelebihan Jawaban
             if (!empty($data['strengths']) && is_array($data['strengths'])) {
-                $fullFeedback .= "\n\n[Kelebihan Jawaban]:\n" . implode("\n", array_map(fn($s) => "✓ " . trim($s), $data['strengths']));
+                $fullFeedback .= "\n\n[Kelebihan Jawaban]:\n" . implode("\n", array_map(fn($s) => "• " . trim($s), $data['strengths']));
             }
 
             // 4b. Poin Kekurangan
@@ -192,7 +192,7 @@ class GradingService {
                 $weaknessesList = $data['improvements'];
             }
             if (!empty($weaknessesList)) {
-                $fullFeedback .= "\n\n[Poin Kekurangan]:\n" . implode("\n", array_map(fn($w) => "✗ " . trim($w), $weaknessesList));
+                $fullFeedback .= "\n\n[Poin Kekurangan]:\n" . implode("\n", array_map(fn($w) => "• " . trim($w), $weaknessesList));
             }
 
             // 4c. Saran Revisi & Perbaikan Nilai
@@ -203,7 +203,7 @@ class GradingService {
                 $revisionsList = $data['recommendations'];
             }
             if (!empty($revisionsList)) {
-                $fullFeedback .= "\n\n[Saran Revisi & Perbaikan Nilai]:\n" . implode("\n", array_map(fn($r) => "🛠 " . trim($r), $revisionsList));
+                $fullFeedback .= "\n\n[Saran Revisi & Perbaikan Nilai]:\n" . implode("\n", array_map(fn($r) => "• " . trim($r), $revisionsList));
             }
 
             // 5. Pindai Residu Bot AI secara deterministik lokal & integrasi multimodal
@@ -238,7 +238,7 @@ class GradingService {
                         'label'       => $q,
                         'matchedText' => $q,
                         'lineNumber'  => 1,
-                        'snippet'     => "👉 {$q}"
+                        'snippet'     => "- {$q}"
                     ];
                 }
                 $aiDetails['detected'] = true;
@@ -248,7 +248,7 @@ class GradingService {
 
             if ($aiDetected) {
                 $quotesList = array_map(fn($m) => "• \"{$m['matchedText']}\" ({$m['category']})", $aiDetails['matches']);
-                $fullFeedback .= "\n\n🚨 [INDIKASI AI - RESIDU PERCAKAPAN BOT]:\nDitemukan sisa percakapan chatbot AI yang tertinggal dalam dokumen tugas:\n" . implode("\n", array_slice($quotesList, 0, 4));
+                $fullFeedback .= "\n\n[INDIKASI AI - RESIDU PERCAKAPAN BOT]:\nDitemukan sisa percakapan chatbot AI yang tertinggal dalam dokumen tugas:\n" . implode("\n", array_slice($quotesList, 0, 4));
             }
 
             // 6. Simpan nilai ke basis data
@@ -308,7 +308,7 @@ class GradingService {
                 $advice = "Minta mahasiswa mengompres berkas atau mengubahnya ke PDF ringkas.";
             }
 
-            $fullFailureNote = "[PENILAIAN GAGAL]:\n{$categorizedReason}" . ($advice ? "\n\n💡 Rekomendasi Solusi:\n{$advice}" : '');
+            $fullFailureNote = "[PENILAIAN GAGAL]:\n{$categorizedReason}" . ($advice ? "\n\n[Rekomendasi Solusi]:\n{$advice}" : '');
 
             self::saveGrade([
                 'id_tugas'        => $taskId,

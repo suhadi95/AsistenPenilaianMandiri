@@ -436,7 +436,7 @@ class IntegrityService {
                 $endLine = min($totalLines - 1, $targetLineIndex + 1);
                 $contextLines = [];
                 for ($li = $startLine; $li <= $endLine; $li++) {
-                    $prefix = ($li === $targetLineIndex) ? '👉 ' : '   ';
+                    $prefix = ($li === $targetLineIndex) ? '> ' : '   ';
                     $contextLines[] = $prefix . trim($lines[$li]);
                 }
                 $snippet = implode("\n", array_filter($contextLines));

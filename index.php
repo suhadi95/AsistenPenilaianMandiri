@@ -8,7 +8,8 @@ Database::initDatabase();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🎓 Asisten Penilaian Mahasiswa - Portal Akademik</title>
+  <title>Asisten Penilaian Mahasiswa - Portal Akademik</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS CDN untuk Ekspor Excel (.xlsx) Multi-Sheet -->
@@ -62,7 +63,7 @@ Database::initDatabase();
   <div id="loginScreenContainer" class="hidden min-h-screen bg-slate-900 flex flex-col justify-center items-center p-4">
     <div class="max-w-md w-full bg-slate-800 border border-slate-700/80 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
       <div class="text-center space-y-2">
-        <div class="inline-flex bg-blue-600 text-white p-3 rounded-2xl text-2xl shadow-lg shadow-blue-500/30">🎓</div>
+        <img src="assets/img/logo.svg" alt="Logo" class="w-16 h-16 mx-auto mb-2 shadow-lg shadow-blue-500/25 rounded-2xl" />
         <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Asisten Penilaian Mandiri</h2>
         <p class="text-xs text-slate-400">Portal Evaluasi Akademik &amp; Penilaian AI Multimodal</p>
       </div>
@@ -105,9 +106,7 @@ Database::initDatabase();
           
           <!-- Logo & Brand -->
           <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
-            <div class="bg-blue-600 text-white p-2 rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5" /></svg>
-            </div>
+            <img src="assets/img/logo.svg" alt="Logo" class="w-9 h-9 rounded-xl shadow-md shadow-blue-500/20 shrink-0" />
             <div>
               <h1 class="font-bold text-sm sm:text-base tracking-tight leading-none text-white">Asisten Penilaian</h1>
               <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5 hidden xs:block">Portal Akademik</p>
@@ -157,7 +156,7 @@ Database::initDatabase();
     <!-- IMPERSONATION / LOGIN AS WARNING BAR (ADMIN ONLY) -->
     <div id="impersonationBanner" class="hidden bg-amber-500 text-slate-950 px-3 sm:px-6 py-2 text-xs font-semibold shadow-md border-b border-amber-600 flex items-center justify-between gap-3 sticky top-0 sm:top-0 z-40">
       <div class="flex items-center gap-2 truncate">
-        <span class="text-sm shrink-0">⚠️</span>
+        <svg class="w-4 h-4 text-slate-950 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
         <span class="truncate">Mode Penyamaran: Anda sedang masuk sebagai <strong id="impersonatedUserName" class="underline">Dosen</strong> (<span id="impersonatedUserEmail">email</span>).</span>
       </div>
       <button onclick="exitImpersonation()" class="px-2.5 sm:px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer shrink-0">
@@ -209,10 +208,10 @@ Database::initDatabase();
     <!-- GLOBAL NOTIFICATION BANNER -->
     <div id="globalAlert" class="hidden mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm">
       <div class="flex items-center space-x-2">
-        <span id="globalAlertIcon" class="text-lg">ℹ️</span>
+        <span id="globalAlertIcon" class="w-5 h-5 shrink-0 flex items-center"></span>
         <span id="globalAlertMsg" class="font-medium"></span>
       </div>
-      <button onclick="hideGlobalAlert()" class="text-slate-400 hover:text-slate-600 ml-4">✕</button>
+      <button onclick="hideGlobalAlert()" class="text-slate-400 hover:text-slate-600 ml-4 p-1 rounded-lg hover:bg-slate-100 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
     </div>
 
     <!-- ======================================================== -->
@@ -360,7 +359,7 @@ Database::initDatabase();
               </div>
               <div class="flex items-center space-x-2">
                 <button onclick="openImportStudentsModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5">
-                  📋 Impor Massal
+                  <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> <span>Impor Massal</span>
                 </button>
                 <button onclick="openAddStudentModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5">
                   + Mahasiswa
@@ -463,7 +462,7 @@ Database::initDatabase();
               </button>
               <button type="button" onclick="runIntegrityCheck()" id="btnIntegrityCheck" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-xs px-3 sm:px-3.5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs" title="Deteksi jawaban copy-paste antar mahasiswa dan temukan residu percakapan bot AI yang tertinggal">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                <span>🛡️ Cek Integritas (Plagiasi & AI)</span>
+                <span>Cek Integritas (Plagiasi & AI)</span>
               </button>
             </div>
 
@@ -502,7 +501,7 @@ Database::initDatabase();
           <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
             <div class="flex items-center justify-between">
               <span class="text-slate-400 font-medium">Folder Jawaban Mahasiswa:</span>
-              <button type="button" onclick="openClassFolderOverrideModal()" class="text-[10px] text-blue-600 hover:underline font-semibold" title="Atur Folder Drive Khusus Kelas">Atur ⚙️</button>
+              <button type="button" onclick="openClassFolderOverrideModal()" class="text-[10px] text-blue-600 hover:underline font-semibold" title="Atur Folder Drive Khusus Kelas"><span class="inline-flex items-center gap-1"><span>Atur</span><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span></button>
             </div>
             <p class="font-semibold text-slate-800 truncate mt-0.5" id="taskInfoFolder">Terhubung</p>
           </div>
@@ -514,7 +513,7 @@ Database::initDatabase();
           <button type="button" onclick="filterGradingTableByStatus('all')" id="statFilterAll" class="grading-stat-card text-left p-3 rounded-2xl border transition cursor-pointer bg-slate-50 hover:bg-slate-100/80 border-slate-200 ring-2 ring-blue-500 shadow-2xs" title="Tampilkan seluruh mahasiswa">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-slate-600">Total Mahasiswa</span>
-              <span class="text-xs bg-slate-200/70 text-slate-700 px-1.5 py-0.5 rounded-md font-mono">👥</span>
+              <span class="p-1 rounded-md bg-slate-200/70 text-slate-700 flex items-center justify-center"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></span>
             </div>
             <div class="flex items-baseline gap-1 mt-1.5">
               <span class="text-xl font-extrabold text-slate-900" id="statCountTotal">0</span>
@@ -526,7 +525,7 @@ Database::initDatabase();
           <button type="button" onclick="filterGradingTableByStatus('selesai')" id="statFilterSelesai" class="grading-stat-card text-left p-3 rounded-2xl border transition cursor-pointer bg-emerald-50/70 hover:bg-emerald-100/80 border-emerald-200 shadow-2xs" title="Klik untuk memfilter: Hanya yang sudah selesai dinilai">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-emerald-800">Selesai Dinilai</span>
-              <span class="text-xs bg-emerald-200/70 text-emerald-800 px-1.5 py-0.5 rounded-md font-bold">✓</span>
+              <span class="p-1 rounded-md bg-emerald-200/70 text-emerald-800 flex items-center justify-center"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></span>
             </div>
             <div class="flex items-baseline gap-1 mt-1.5">
               <span class="text-xl font-extrabold text-emerald-700" id="statCountSelesai">0</span>
@@ -538,7 +537,7 @@ Database::initDatabase();
           <button type="button" onclick="filterGradingTableByStatus('belum')" id="statFilterBelum" class="grading-stat-card text-left p-3 rounded-2xl border transition cursor-pointer bg-blue-50/70 hover:bg-blue-100/80 border-blue-200 shadow-2xs" title="Klik untuk memfilter: Mahasiswa yang belum dinilai">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-blue-800">Belum Dinilai</span>
-              <span class="text-xs bg-blue-200/70 text-blue-800 px-1.5 py-0.5 rounded-md">⏳</span>
+              <span class="p-1 rounded-md bg-blue-200/70 text-blue-800 flex items-center justify-center"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
             </div>
             <div class="flex items-baseline gap-1 mt-1.5">
               <span class="text-xl font-extrabold text-blue-700" id="statCountBelum">0</span>
@@ -550,7 +549,7 @@ Database::initDatabase();
           <button type="button" onclick="filterGradingTableByStatus('belum_kumpul')" id="statFilterBelumKumpul" class="grading-stat-card text-left p-3 rounded-2xl border transition cursor-pointer bg-amber-50/70 hover:bg-amber-100/80 border-amber-200 shadow-2xs" title="Klik untuk memfilter: Mahasiswa belum mengumpulkan jawaban">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-amber-800">Belum Kumpul</span>
-              <span class="text-xs bg-amber-200/70 text-amber-800 px-1.5 py-0.5 rounded-md">⚠️</span>
+              <span class="p-1 rounded-md bg-amber-200/70 text-amber-800 flex items-center justify-center"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></span>
             </div>
             <div class="flex items-baseline gap-1 mt-1.5">
               <span class="text-xl font-extrabold text-amber-700" id="statCountBelumKumpul">0</span>
@@ -562,7 +561,7 @@ Database::initDatabase();
           <button type="button" onclick="filterGradingTableByStatus('gagal')" id="statFilterGagal" class="grading-stat-card text-left p-3 rounded-2xl border transition cursor-pointer bg-rose-50/70 hover:bg-rose-100/80 border-rose-200 shadow-2xs col-span-2 sm:col-span-1" title="Klik untuk memfilter: Penilaian yang gagal/error">
             <div class="flex items-center justify-between">
               <span class="text-[11px] font-bold text-rose-800">Gagal / Error</span>
-              <span class="text-xs bg-rose-200/70 text-rose-800 px-1.5 py-0.5 rounded-md font-bold">❌</span>
+              <span class="p-1 rounded-md bg-rose-200/70 text-rose-800 flex items-center justify-center"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></span>
             </div>
             <div class="flex items-baseline gap-1 mt-1.5">
               <span class="text-xl font-extrabold text-rose-700" id="statCountGagal">0</span>
@@ -586,7 +585,7 @@ Database::initDatabase();
             <div class="flex items-center space-x-2.5">
               <span id="progressPanelCounter" class="bg-blue-800/80 border border-blue-700/60 px-3 py-1 rounded-xl text-xs font-mono font-bold text-blue-200">0 / 0 (0%)</span>
               <button type="button" onclick="abortGradingQueue()" id="btnAbortGrading" class="px-3 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white font-semibold rounded-xl text-xs transition flex items-center gap-1 shadow-sm">
-                <span>⏹️</span> <span>Hentikan</span>
+                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 5h10v10H5V5z" clip-rule="evenodd"/></svg> <span>Hentikan</span>
               </button>
             </div>
           </div>
@@ -603,7 +602,7 @@ Database::initDatabase();
         <!-- Completion Alert Banner -->
         <div id="gradingCompletionBanner" class="hidden p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
           <div class="flex items-center space-x-3.5">
-            <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl shrink-0">🎉</div>
+            <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center shrink-0"><svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
             <div>
               <h4 class="font-bold text-emerald-950 text-sm" id="completionTitle">Penilaian Selesai!</h4>
               <p class="text-xs text-emerald-800 mt-0.5" id="completionDesc">Seluruh mahasiswa dalam antrean telah berhasil dievaluasi dan dicatat ke sistem.</p>
@@ -611,10 +610,10 @@ Database::initDatabase();
           </div>
           <div class="flex items-center space-x-2 shrink-0">
             <button type="button" onclick="switchTab('tab-reports')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
-              <span>📊</span> <span>Buka Rekapitulasi</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg> <span>Buka Rekapitulasi</span>
             </button>
             <button type="button" onclick="document.getElementById('gradingCompletionBanner').classList.add('hidden')" class="px-2.5 py-2 text-slate-400 hover:text-slate-600 text-xs rounded-xl hover:bg-emerald-100 transition">
-              ✕ Tutup
+              <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg><span>Tutup</span></span>
             </button>
           </div>
         </div>
@@ -633,7 +632,7 @@ Database::initDatabase();
           </div>
         </div>
         <div class="block sm:hidden text-[10px] text-slate-400 bg-slate-50 text-center py-1.5 border-b border-slate-100">
-          👉 Geser tabel ke kanan untuk melihat rincian & status →
+          <span class="inline-flex items-center gap-1"><span>Geser tabel ke kanan untuk melihat rincian &amp; status</span><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></span>
         </div>
         <div class="overflow-x-auto table-scroll-container">
           <table class="w-full text-left text-xs">
@@ -676,10 +675,10 @@ Database::initDatabase();
         </div>
         <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
           <button type="button" onclick="copyAllReportData()" id="btnCopyAllReport" class="bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-3 sm:px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5" title="Salin seluruh tabel matriks nilai untuk dipaste ke Excel atau Word">
-            <span>📋</span> <span>Salin Semua</span>
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> <span>Salin Semua</span>
           </button>
           <button type="button" onclick="downloadClassReportExcel()" id="btnDownloadExcel" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 sm:px-4 py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Download file Excel (.xlsx)">
-            <span>📥</span> <span id="btnDownloadExcelText">Download Excel</span>
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg> <span id="btnDownloadExcelText">Download Excel</span>
           </button>
         </div>
       </div>
@@ -687,19 +686,19 @@ Database::initDatabase();
       <!-- Search & Helper Hint -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-sm text-xs">
         <div class="flex items-center gap-2 flex-1 max-w-sm">
-          <span class="text-slate-400">🔍</span>
+          <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           <input type="text" id="reportSearchInput" oninput="filterReportTable(this.value)" placeholder="Cari mahasiswa di rekapitulasi (NIM atau Nama)..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-blue-500 text-xs text-slate-800">
         </div>
         <div class="text-[11px] text-slate-500 flex items-center gap-2">
           <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono text-[10px]">Tips</span>
-          <span>Klik judul kolom untuk urutkan (sort). Klik ikon 📋 untuk salin nilai kolom ke SIAKAD/Excel.</span>
+          <span>Klik judul kolom untuk urutkan (sort). Klik ikon salin pada judul kolom untuk menyalin nilai ke SIAKAD/Excel.</span>
         </div>
       </div>
 
       <!-- Report Matrix Table -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="block sm:hidden text-[10px] text-slate-400 bg-slate-50 text-center py-1.5 border-b border-slate-100">
-          👉 Geser tabel ke kanan untuk melihat seluruh nilai tugas →
+          <span class="inline-flex items-center gap-1"><span>Geser tabel ke kanan untuk melihat seluruh nilai tugas</span><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></span>
         </div>
         <div class="overflow-x-auto table-scroll-container" id="reportTableContainer">
           <div class="text-center py-12 text-slate-400 text-sm">Memuat rekapitulasi nilai...</div>
@@ -716,7 +715,7 @@ Database::initDatabase();
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <span>👨‍💼</span> <span>Manajemen Pengguna &amp; Dosen</span>
+              <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg> <span>Manajemen Pengguna &amp; Dosen</span>
             </h2>
             <p class="text-xs text-slate-500 mt-0.5">Kelola akun pengajar, hak akses peran sistem, dan status aktivasi</p>
           </div>
@@ -760,7 +759,7 @@ Database::initDatabase();
       <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div>
           <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <span>👤</span> <span>Profil Akun Saya</span>
+            <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg> <span>Profil Akun Saya</span>
           </h2>
           <p class="text-xs text-slate-500 mt-0.5">Perbarui nama tampilan dan kata sandi akun Anda</p>
         </div>
@@ -799,7 +798,7 @@ Database::initDatabase();
       <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
         <div>
           <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <span>🤖</span> <span>Pengaturan AI Gemini Saya</span>
+            <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg> <span>Pengaturan AI Gemini Saya</span>
           </h2>
           <p class="text-xs text-slate-500 mt-0.5">Konfigurasi Gemini API Key pribadi Anda (Bring Your Own Key) untuk evaluasi tugas mahasiswa</p>
         </div>
@@ -810,7 +809,7 @@ Database::initDatabase();
             <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Gemini API Key Pribadi</label>
             <div class="flex gap-2">
               <input type="password" id="inputApiKey" placeholder="AIzaSy... / AQ.Ab8..." class="flex-1 text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono">
-              <button type="button" onclick="toggleApiKeyInputVisibility()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-medium">👁️</button>
+              <button type="button" onclick="toggleApiKeyInputVisibility()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-medium" title="Tampilkan/Sembunyikan API Key"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
             </div>
             <p class="text-xs text-slate-400 mt-1.5">
               API key tersimpan aman di profil akun Anda. Dapatkan kuota gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 underline font-medium">Google AI Studio</a>.
@@ -831,7 +830,7 @@ Database::initDatabase();
 
           <!-- Fitur Cerdas: Content-Based Matching Info -->
           <div class="p-4 bg-blue-50/70 rounded-xl border border-blue-100 flex items-start gap-3">
-            <span class="text-xl">🔍</span>
+            <svg class="w-5 h-5 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <div class="text-xs">
               <p class="font-bold text-blue-900">Pencocokan Cerdas Isi Dokumen (Aktif)</p>
               <p class="text-slate-600 mt-1 leading-relaxed">
@@ -843,7 +842,7 @@ Database::initDatabase();
           <!-- Test Connection Button -->
           <div>
             <button onclick="testApiConnection()" id="btnTestApi" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
-              🔍 Uji Koneksi API Key
+              <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>Uji Koneksi API Key</span>
             </button>
             <div id="testApiAlert" class="hidden mt-2 p-3 rounded-xl text-xs"></div>
           </div>
@@ -851,7 +850,7 @@ Database::initDatabase();
           <!-- Save Settings -->
           <div class="pt-4 border-t border-slate-100">
             <button onclick="saveAppSettings()" id="btnSaveSettings" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
-              💾 Simpan Pengaturan AI
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> <span>Simpan Pengaturan AI</span>
             </button>
             <div id="saveSettingsAlert" class="hidden mt-2 p-3 rounded-xl text-xs"></div>
           </div>
@@ -863,7 +862,7 @@ Database::initDatabase();
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <span>📁</span> <span>Google Drive Saya</span>
+              <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg> <span>Google Drive Saya</span>
             </h2>
             <p class="text-xs text-slate-500 mt-0.5">Hubungkan akun Google Drive Anda dengan 1-klik untuk menyinkronkan berkas tugas mahasiswa langsung dari folder Drive Anda</p>
           </div>
@@ -873,7 +872,7 @@ Database::initDatabase();
         </div>
 
         <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 leading-relaxed">
-          💡 <strong>Praktis &amp; Aman:</strong> Anda cukup menekan tombol di bawah dan memilih akun Google kampus Anda. Sistem tidak memerlukan konfigurasi teknis apa pun dari Anda.
+          <strong>Praktis &amp; Aman:</strong> Anda cukup menekan tombol di bawah dan memilih akun Google kampus Anda. Sistem tidak memerlukan konfigurasi teknis apa pun dari Anda.
         </div>
 
         <div id="googleOAuthAlert" class="hidden p-3 rounded-xl text-xs"></div>
@@ -881,13 +880,13 @@ Database::initDatabase();
         <!-- Tombol Aksi OAuth Pengguna -->
         <div class="flex flex-col sm:flex-row items-center gap-2 pt-2">
           <button type="button" onclick="startGoogleOAuthFlow()" id="btnConnectGoogle" class="w-full sm:flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center justify-center gap-2">
-            <span>🔗</span> <span>Hubungkan Google Drive Saya</span>
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg> <span>Hubungkan Google Drive Saya</span>
           </button>
           <button type="button" onclick="testGoogleDriveAccess()" id="btnTestGoogleDrive" class="hidden w-full sm:w-auto px-4 py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
-            <span>🔍</span> <span>Uji Akses Drive</span>
+            <svg class="w-4 h-4 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> <span>Uji Akses Drive</span>
           </button>
           <button type="button" onclick="disconnectGoogleOAuth()" id="btnDisconnectGoogle" class="hidden w-full sm:w-auto px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
-            <span>✕</span> <span>Putuskan Sambungan</span>
+            <svg class="w-4 h-4 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg> <span>Putuskan Sambungan</span>
           </button>
         </div>
       </div>
@@ -897,7 +896,7 @@ Database::initDatabase();
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-lg font-bold text-indigo-950 flex items-center gap-2">
-              <span>🏢</span> <span>Kredensial Global Google OAuth (Khusus Admin)</span>
+              <svg class="w-5 h-5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg> <span>Kredensial Global Google OAuth (Khusus Admin)</span>
             </h2>
             <p class="text-xs text-slate-500 mt-0.5">Konfigurasi pusat Client ID &amp; Secret agar seluruh dosen dapat menghubungkan Google Drive dengan 1-klik</p>
           </div>
@@ -907,7 +906,7 @@ Database::initDatabase();
         <!-- Panduan Singkat Google Cloud Console -->
         <div class="p-4 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-2 text-xs">
           <p class="font-bold text-indigo-950 flex items-center gap-1.5">
-            <span>💡</span> Cara Menyiapkan OAuth Client ID Institusi di Google Cloud:
+            <svg class="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> <span>Cara Menyiapkan OAuth Client ID Institusi di Google Cloud:</span>
           </p>
           <ol class="list-decimal list-inside space-y-1 text-slate-600 text-[11px] leading-relaxed">
             <li>Buka <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-blue-600 font-semibold underline">Google Cloud Console &gt; Credentials</a>.</li>
@@ -918,7 +917,7 @@ Database::initDatabase();
           <div class="flex items-center gap-2 pt-1">
             <input type="text" id="oauthRedirectUriText" readonly value="https://apm.suhadip.com/oauth_callback.php" class="flex-1 text-[11px] font-mono px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-slate-700 select-all">
             <button type="button" onclick="copyOauthRedirectUri()" id="btnCopyUri" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition shrink-0">
-              📋 Salin URI
+              <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>Salin URI
             </button>
           </div>
         </div>
@@ -935,7 +934,7 @@ Database::initDatabase();
             <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Global Google OAuth Client Secret</label>
             <div class="flex gap-2">
               <input type="password" id="inputGoogleClientSecret" placeholder="GOCSPX-..." class="flex-1 text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono">
-              <button type="button" onclick="toggleClientSecretVisibility()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-medium">👁️</button>
+              <button type="button" onclick="toggleClientSecretVisibility()" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-medium" title="Tampilkan/Sembunyikan Client Secret"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
             </div>
           </div>
 
@@ -943,7 +942,7 @@ Database::initDatabase();
 
           <div class="pt-2">
             <button type="button" onclick="saveAdminGlobalOAuth()" id="btnSaveAdminOAuth" class="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center justify-center gap-1.5">
-              💾 Simpan Kredensial Global Institusi
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> <span>Simpan Kredensial Global Institusi</span>
             </button>
           </div>
         </div>
@@ -952,13 +951,13 @@ Database::initDatabase();
       <!-- 5. KARTU ADMIN: ZONA PEMELIHARAAN & RESET DATABASE (KHUSUS ADMIN) -->
       <div id="adminResetDbSection" class="hidden bg-white p-6 rounded-2xl border border-rose-200 shadow-sm space-y-4">
         <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider text-rose-600 flex items-center gap-1.5">
-          <span>⚠️</span> Pemeliharaan &amp; Reset Basis Data (Khusus Admin)
+          <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> <span>Pemeliharaan &amp; Reset Basis Data (Khusus Admin)</span>
         </h4>
         <div class="p-3 bg-rose-50/80 border border-rose-200 rounded-xl text-xs text-rose-900 leading-relaxed">
           Jika basis data lama bermasalah, Administrator dapat mengosongkan dan menginisialisasi ulang database dengan struktur baru yang bersih.
         </div>
         <button onclick="confirmResetDatabase()" id="btnResetDatabase" class="w-full bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 font-bold text-xs py-2.5 rounded-xl shadow-xs transition flex items-center justify-center gap-2">
-          🗑️ Reset / Mulai Bersih Database
+          <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> <span>Reset / Mulai Bersih Database</span>
         </button>
         <div id="resetDbAlert" class="hidden mt-2 p-3 rounded-xl text-xs font-medium"></div>
       </div>
@@ -997,22 +996,22 @@ Database::initDatabase();
       <!-- Guide Sub-Navigation Pills -->
       <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-xs flex items-center space-x-1.5 overflow-x-auto no-scrollbar text-xs font-semibold">
         <button type="button" onclick="switchGuideTopic('guide-api')" id="btn-guide-api" class="guide-nav-btn px-3.5 py-2 rounded-xl text-blue-700 bg-blue-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer active">
-          <span>🚀</span> <span>1. Persiapan &amp; API Key</span>
+          <svg class="w-4 h-4 shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>1. Persiapan &amp; API Key</span>
         </button>
         <button type="button" onclick="switchGuideTopic('guide-courses')" id="btn-guide-courses" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>📚</span> <span>2. Mata Kuliah</span>
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg> <span>2. Mata Kuliah</span>
         </button>
         <button type="button" onclick="switchGuideTopic('guide-classes')" id="btn-guide-classes" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>👥</span> <span>3. Kelola Kelas &amp; Mahasiswa</span>
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg> <span>3. Kelola Kelas &amp; Mahasiswa</span>
         </button>
         <button type="button" onclick="switchGuideTopic('guide-grading')" id="btn-guide-grading" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>🎓</span> <span>4. Cara Memberikan Penilaian</span>
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z"/></svg> <span>4. Cara Memberikan Penilaian</span>
         </button>
         <button type="button" onclick="switchGuideTopic('guide-reports')" id="btn-guide-reports" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>📊</span> <span>5. Rekapitulasi &amp; Ekspor</span>
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg> <span>5. Rekapitulasi &amp; Ekspor</span>
         </button>
         <button type="button" onclick="switchGuideTopic('guide-faq')" id="btn-guide-faq" class="guide-nav-btn px-3.5 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
-          <span>❓</span> <span>6. Tanya Jawab (FAQ)</span>
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> <span>6. Tanya Jawab (FAQ)</span>
         </button>
       </div>
 
@@ -1025,7 +1024,7 @@ Database::initDatabase();
             <div>
               <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 1</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
-                <span>🚀</span> <span>Persiapan Akun, Gemini API Key &amp; Google Drive</span>
+                <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>Persiapan Akun, Gemini API Key &amp; Google Drive</span>
               </h3>
             </div>
             <span class="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-emerald-200">100% Gratis</span>
@@ -1048,10 +1047,10 @@ Database::initDatabase();
                 <li>Klik tombol biru <strong>"Create API key"</strong>.</li>
                 <li>Salin kode kunci API yang dihasilkan (diawali teks <code class="bg-slate-200 px-1 py-0.5 rounded text-[11px]">AIzaSy...</code>).</li>
                 <li>Buka tab <button type="button" onclick="switchTab('tab-settings')" class="text-blue-600 underline font-semibold cursor-pointer">Pengaturan</button> &rarr; tempel ke kolom <strong>Gemini API Key Pribadi</strong> &rarr; klik <strong>Simpan API Key</strong>.</li>
-                <li>Klik tombol <strong>🧪 Uji Koneksi</strong> untuk memastikan status aktif.</li>
+                <li>Klik tombol <strong>Uji Koneksi</strong> untuk memastikan status aktif.</li>
               </ol>
               <div class="p-2.5 bg-blue-50 border border-blue-200/60 rounded-xl text-[11px] text-blue-900 leading-relaxed">
-                💡 <strong>Rekomendasi Model:</strong> Pilih <strong><code class="font-bold">gemini-3.5-flash-lite</code></strong>. Model ini sangat cepat, hemat kuota gratis (hingga 1.500 request/hari), dan akurat membaca berkas PDF/gambar tugas.
+                <strong>Rekomendasi Model:</strong> Pilih <strong><code class="font-bold">gemini-3.5-flash-lite</code></strong>. Model ini sangat cepat, hemat kuota gratis (hingga 1.500 request/hari), dan akurat membaca berkas PDF/gambar tugas.
               </div>
             </div>
 
@@ -1067,13 +1066,13 @@ Database::initDatabase();
               <ol class="list-decimal list-inside text-xs text-slate-700 space-y-1.5 pl-1 leading-relaxed">
                 <li>Buka menu <button type="button" onclick="switchTab('tab-settings')" class="text-blue-600 underline font-semibold cursor-pointer">Pengaturan</button>.</li>
                 <li>Gulir ke kartu <strong>Integrasi Akun Google Drive (OAuth 2.0)</strong>.</li>
-                <li>Klik tombol hijau <strong>"🔗 Hubungkan Google Drive Saya"</strong>.</li>
+                <li>Klik tombol hijau <strong>"Hubungkan Google Drive Saya"</strong>.</li>
                 <li>Pilih akun Google tempat Anda menyimpan folder tugas mahasiswa.</li>
                 <li>Klik <strong>Lanjutkan / Izinkan</strong> pada halaman persetujuan Google.</li>
-                <li>Selesai! Status akan berubah menjadi <span class="text-emerald-700 font-bold">✓ Terhubung: email_anda@kampus.ac.id</span>.</li>
+                <li>Selesai! Status akan berubah menjadi <span class="text-emerald-700 font-bold">Terhubung: email_anda@kampus.ac.id</span>.</li>
               </ol>
               <div class="p-2.5 bg-emerald-50 border border-emerald-200/60 rounded-xl text-[11px] text-emerald-900 leading-relaxed">
-                🔒 <strong>Privasi Aman:</strong> Sistem hanya meminta izin baca (<i>drive.readonly</i>) untuk mengambil berkas tugas mahasiswa Anda. Dosen lain tidak dapat mengakses folder Drive Anda.
+                <strong>Privasi Aman:</strong> Sistem hanya meminta izin baca (<i>drive.readonly</i>) untuk mengambil berkas tugas mahasiswa Anda. Dosen lain tidak dapat mengakses folder Drive Anda.
               </div>
             </div>
           </div>
@@ -1081,7 +1080,7 @@ Database::initDatabase();
           <!-- Note Khusus Administrator -->
           <div class="p-4 bg-purple-50/70 border border-purple-200 rounded-xl text-xs space-y-2">
             <div class="flex items-center gap-2 text-purple-950 font-bold">
-              <span>👑</span> <span>Catatan Khusus Administrator Sistem</span>
+              <svg class="w-4 h-4 text-purple-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138z"/></svg> <span>Catatan Khusus Administrator Sistem</span>
             </div>
             <p class="text-purple-900 leading-relaxed">
               Dosen lain <strong>TIDAK PERLU</strong> membuka Google Cloud Console. Administrator cukup sekali membuat <strong>OAuth 2.0 Web Client ID</strong> di Google Cloud Console, lalu memasukkan <i>Client ID</i> dan <i>Client Secret</i> di tab Pengaturan &rarr; <i>Pengaturan Global OAuth</i>. Seluruh dosen tinggal menekan 1 tombol untuk menghubungkan Drive mereka masing-masing.
@@ -1099,7 +1098,7 @@ Database::initDatabase();
             <div>
               <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 2</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
-                <span>📚</span> <span>Manajemen Mata Kuliah (MK) Induk</span>
+                <svg class="w-5 h-5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg> <span>Manajemen Mata Kuliah (MK) Induk</span>
               </h3>
             </div>
             <button type="button" onclick="switchTab('tab-classes')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Kelola MK &rarr;</button>
@@ -1138,7 +1137,7 @@ Database::initDatabase();
             <div>
               <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 3</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
-                <span>👥</span> <span>Kelola Kelas dan Data Mahasiswa</span>
+                <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg> <span>Kelola Kelas dan Data Mahasiswa</span>
               </h3>
             </div>
             <button type="button" onclick="switchTab('tab-classes')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Kelola Kelas &rarr;</button>
@@ -1168,7 +1167,7 @@ Database::initDatabase();
                   Anda <strong>TIDAK PERLU</strong> mengetik nama mahasiswa satu per satu! Cukup salin dua kolom (NIM dan Nama) langsung dari portal akademik kampus atau Microsoft Excel:
                 </p>
                 <ol class="list-decimal list-inside space-y-1.5 text-indigo-900 pl-1 leading-relaxed">
-                  <li>Buka kelas yang dituju &rarr; klik tombol ungu <strong>"📋 Tambah Masal"</strong>.</li>
+                  <li>Buka kelas yang dituju &rarr; klik tombol ungu <strong>"Tambah Masal"</strong>.</li>
                   <li>Buka file Excel daftar hadir atau halaman SIAKAD &rarr; blok kolom <strong>NIM</strong> dan <strong>Nama</strong> &rarr; tekan <kbd class="bg-white px-1.5 py-0.5 rounded border border-indigo-200 font-mono font-bold">Ctrl + C</kbd> (Salin).</li>
                   <li>Kembali ke kotak dialog sistem &rarr; tekan <kbd class="bg-white px-1.5 py-0.5 rounded border border-indigo-200 font-mono font-bold">Ctrl + V</kbd> (Tempel).</li>
                   <li>Klik tombol <strong>"Simpan Mahasiswa"</strong>. Puluhan mahasiswa langsung masuk dalam 3 detik!</li>
@@ -1191,7 +1190,7 @@ Database::initDatabase();
               <div class="space-y-1.5 w-full">
                 <h4 class="font-bold text-slate-900 text-sm">Tambah Manual &amp; Perubahan Data Mahasiswa</h4>
                 <p class="text-slate-600 leading-relaxed">
-                  Jika ada mahasiswa susulan atau perbaikan nama, klik tombol <strong>"+ Tambah Mahasiswa"</strong> untuk menambah 1 orang. Untuk mengedit atau menghapus data mahasiswa yang salah, klik tombol aksi <strong>✏️ Edit</strong> atau <strong>🗑️ Hapus</strong> pada baris nama mahasiswa yang bersangkutan.
+                  Jika ada mahasiswa susulan atau perbaikan nama, klik tombol <strong>"+ Tambah Mahasiswa"</strong> untuk menambah 1 orang. Untuk mengedit atau menghapus data mahasiswa yang salah, klik tombol aksi <strong>Edit</strong> atau <strong>Hapus</strong> pada baris nama mahasiswa yang bersangkutan.
                 </p>
               </div>
             </div>
@@ -1208,7 +1207,7 @@ Database::initDatabase();
             <div>
               <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 4</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
-                <span>🎓</span> <span>Cara Memberikan Penilaian Tugas (Panduan Lengkap)</span>
+                <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138z"/></svg> <span>Cara Memberikan Penilaian Tugas (Panduan Lengkap)</span>
               </h3>
             </div>
             <button type="button" onclick="switchTab('tab-grading')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Penilaian &rarr;</button>
@@ -1219,12 +1218,12 @@ Database::initDatabase();
             <span class="text-xs font-bold uppercase tracking-wider text-blue-400">Alur Kerja 4 Langkah Penilaian:</span>
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-center text-xs">
               <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
-                <div class="text-lg mb-1">📝</div>
+                <div class="w-6 h-6 mx-auto mb-1 flex items-center justify-center text-blue-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
                 <div class="font-bold text-white">1. Siapkan Tugas</div>
                 <div class="text-[10px] text-slate-400 mt-0.5">Buat soal &amp; rubrik AI</div>
               </div>
               <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
-                <div class="text-lg mb-1">🔄</div>
+                <div class="w-6 h-6 mx-auto mb-1 flex items-center justify-center text-sky-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></div>
                 <div class="font-bold text-white">2. Sinkron Drive</div>
                 <div class="text-[10px] text-slate-400 mt-0.5">Unduh berkas jawaban</div>
               </div>
@@ -1234,7 +1233,7 @@ Database::initDatabase();
                 <div class="text-[10px] text-slate-400 mt-0.5">Antrean AI mengevaluasi</div>
               </div>
               <div class="p-2.5 bg-slate-800 rounded-xl border border-slate-700">
-                <div class="text-lg mb-1">👁️</div>
+                <div class="w-6 h-6 mx-auto mb-1 flex items-center justify-center text-indigo-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></div>
                 <div class="font-bold text-white">4. Tinjau &amp; Koreksi</div>
                 <div class="text-[10px] text-slate-400 mt-0.5">Otoritas dosen penuh</div>
               </div>
@@ -1253,7 +1252,7 @@ Database::initDatabase();
               </p>
               <div class="py-1">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-xs">
-                  <span>✨</span> <span>Ekstrak dari Soal</span>
+                  <svg class="w-4 h-4 text-purple-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg> <span>Ekstrak dari Soal</span>
                 </span>
               </div>
               <p class="text-slate-600 leading-relaxed">
@@ -1271,9 +1270,9 @@ Database::initDatabase();
                 Sebelum memulai penilaian, Anda perlu mengunduh berkas jawaban mahasiswa ke server dengan salah satu cara berikut:
               </p>
               <ul class="list-disc list-inside space-y-1.5 pl-1 text-slate-700">
-                <li><strong>Dari Tab Kelola Tugas (Rekomendasi):</strong> Klik tombol <strong>"🔄 Sinkron Drive"</strong> pada kartu tugas. Berkas otomatis disebarkan ke semua kelas paralel di bawah mata kuliah tersebut.</li>
-                <li><strong>Dari Tab Penilaian:</strong> Pilih tugas &rarr; klik tombol <strong>"🔄 Sinkron Drive"</strong> di bilah tombol atas.</li>
-                <li><strong>Tanpa Google Drive (Upload ZIP):</strong> Jika tugas dikumpulkan via flashdisk/email, klik tombol <strong>"📦 Upload ZIP Tugas"</strong> untuk mengunggah arsip berkas sekaligus.</li>
+                <li><strong>Dari Tab Kelola Tugas (Rekomendasi):</strong> Klik tombol <strong>"Sinkron Drive"</strong> pada kartu tugas. Berkas otomatis disebarkan ke semua kelas paralel di bawah mata kuliah tersebut.</li>
+                <li><strong>Dari Tab Penilaian:</strong> Pilih tugas &rarr; klik tombol <strong>"Sinkron Drive"</strong> di bilah tombol atas.</li>
+                <li><strong>Tanpa Google Drive (Upload ZIP):</strong> Jika tugas dikumpulkan via flashdisk/email, klik tombol <strong>"Upload ZIP Tugas"</strong> untuk mengunggah arsip berkas sekaligus.</li>
               </ul>
             </div>
 
@@ -1293,11 +1292,11 @@ Database::initDatabase();
                 </div>
                 <div class="p-3 bg-white rounded-xl border border-blue-200 space-y-1">
                   <span class="font-bold text-purple-700">2. Nilai Pilihan</span>
-                  <p class="text-slate-600">Centang kotak beberapa mahasiswa tertentu, lalu klik tombol <i>🎯 Pilihan (N)</i> untuk menilai hanya yang ditandai.</p>
+                  <p class="text-slate-600">Centang kotak beberapa mahasiswa tertentu, lalu klik tombol <i>Pilihan (N)</i> untuk menilai hanya yang ditandai.</p>
                 </div>
                 <div class="p-3 bg-white rounded-xl border border-blue-200 space-y-1">
                   <span class="font-bold text-blue-700">3. Penilaian Satuan</span>
-                  <p class="text-slate-600">Klik tombol <i>👁️ Detail</i> pada baris mahasiswa untuk menilai atau mengevaluasi ulang secara individual.</p>
+                  <p class="text-slate-600">Klik tombol <i>Detail</i> pada baris mahasiswa untuk menilai atau mengevaluasi ulang secara individual.</p>
                 </div>
               </div>
             </div>
@@ -1310,20 +1309,20 @@ Database::initDatabase();
               </h4>
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                 <div class="p-2.5 bg-white rounded-xl border border-emerald-200">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">✓ Selesai</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Selesai</span>
                   <p class="text-[11px] text-slate-600 mt-1">Tugas selesai dievaluasi AI. Nilai total dan rincian poin per butir soal otomatis tercatat.</p>
                 </div>
                 <div class="p-2.5 bg-white rounded-xl border border-amber-200">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">⚠️ Belum Kumpul</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">Belum Kumpul</span>
                   <p class="text-[11px] text-slate-600 mt-1">Mahasiswa tidak mengumpulkan berkas atau nama file tidak memuat identitas. Nilai tercatat <code class="font-bold">-</code>.</p>
                 </div>
                 <div class="p-2.5 bg-white rounded-xl border border-rose-200">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">❌ Gagal</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">Gagal</span>
                   <p class="text-[11px] text-slate-600 mt-1">Kendala kuota API/jaringan. Klik tombol <i>Reset Gagal</i> lalu klik <i>Nilai Semua</i> lagi.</p>
                 </div>
               </div>
               <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-900 mt-2 space-y-1">
-                <strong>📄 Fitur 1-Klik Buka Berkas:</strong> Pada kolom <i>Berkas Jawaban</i>, klik nama file (misal: <code class="bg-indigo-100 px-1 py-0.5 rounded font-bold">2488010001_Tugas1.pdf ↗</code>) untuk membuka dan membaca langsung dokumen asli mahasiswa di Google Drive / peramban.
+                <strong>Fitur 1-Klik Buka Berkas:</strong> Pada kolom <i>Berkas Jawaban</i>, klik nama file (misal: <code class="bg-indigo-100 px-1 py-0.5 rounded font-bold">2488010001_Tugas1.pdf ↗</code>) untuk membuka dan membaca langsung dokumen asli mahasiswa di Google Drive / peramban.
               </div>
             </div>
 
@@ -1334,7 +1333,7 @@ Database::initDatabase();
                 <span>Langkah 5: Otoritas Dosen &amp; Koreksi Manual Nilai</span>
               </h4>
               <p class="text-emerald-900 leading-relaxed">
-                AI bertindak sebagai asisten pemeriksa awal. <strong>Dosen memiliki kendali mutlak atas nilai mahasiswa</strong>. Jika Anda ingin merevisi nilai, klik tombol <strong>👁️ Detail</strong> pada baris mahasiswa &rarr; ubah angka nilai atau deskripsi evaluasi sesuka Anda &rarr; klik <strong>"Simpan Perubahan Nilai"</strong>.
+                AI bertindak sebagai asisten pemeriksa awal. <strong>Dosen memiliki kendali mutlak atas nilai mahasiswa</strong>. Jika Anda ingin merevisi nilai, klik tombol <strong>Detail</strong> pada baris mahasiswa &rarr; ubah angka nilai atau deskripsi evaluasi sesuka Anda &rarr; klik <strong>"Simpan Perubahan Nilai"</strong>.
               </p>
             </div>
           </div>
@@ -1350,7 +1349,7 @@ Database::initDatabase();
             <div>
               <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 5</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
-                <span>📊</span> <span>Rekapitulasi Nilai Akhir &amp; Ekspor Laporan Resmi</span>
+                <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg> <span>Rekapitulasi Nilai Akhir &amp; Ekspor Laporan Resmi</span>
               </h3>
             </div>
             <button type="button" onclick="switchTab('tab-reports')" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Buka Rekapitulasi &rarr;</button>
@@ -1367,19 +1366,19 @@ Database::initDatabase();
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
                 <h4 class="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <span>📥</span> <span>Ekspor Data ke File Excel (CSV)</span>
+                  <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg> <span>Ekspor Data ke File Excel</span>
                 </h4>
                 <p class="text-emerald-900 leading-relaxed">
-                  Klik tombol <strong>"📥 Ekspor Excel (CSV)"</strong> untuk mengunduh rekapitulasi nilai lengkap seluruh tugas yang dapat langsung diimpor ke sistem SIAKAD kampus Anda.
+                  Klik tombol <strong>"Ekspor Excel"</strong> untuk mengunduh rekapitulasi nilai lengkap seluruh tugas yang dapat langsung diimpor ke sistem SIAKAD kampus Anda.
                 </p>
               </div>
 
               <div class="p-4 bg-purple-50/70 border border-purple-200 rounded-xl space-y-2">
                 <h4 class="font-bold text-purple-950 text-sm flex items-center gap-1.5">
-                  <span>🖨️</span> <span>Cetak Berita Acara &amp; Simpan PDF</span>
+                  <svg class="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg> <span>Cetak Berita Acara &amp; Simpan PDF</span>
                 </h4>
                 <p class="text-purple-900 leading-relaxed">
-                  Klik tombol <strong>"🖨️ Cetak / Simpan PDF"</strong> untuk mencetak lembar rekapitulasi nilai resmi yang telah diformat rapi standar akademik, lengkap dengan kolom tanda tangan dosen pengampu.
+                  Klik tombol <strong>"Cetak / Simpan PDF"</strong> untuk mencetak lembar rekapitulasi nilai resmi yang telah diformat rapi standar akademik, lengkap dengan kolom tanda tangan dosen pengampu.
                 </p>
               </div>
             </div>
@@ -1396,7 +1395,7 @@ Database::initDatabase();
             <div>
               <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Materi 6</span>
               <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 mt-0.5">
-                <span>❓</span> <span>Tanya Jawab (FAQ) &amp; Solusi Kendala Umum</span>
+                <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> <span>Tanya Jawab (FAQ) &amp; Solusi Kendala Umum</span>
               </h3>
             </div>
             <span class="text-xs text-slate-400">Troubleshooting</span>
@@ -1419,7 +1418,7 @@ Database::initDatabase();
                 <span class="text-blue-600">Q:</span> Muncul pesan error "Batas kuota Gemini API tercapai (Rate Limit 429)" saat menilai kelas besar?
               </h4>
               <p class="text-slate-600 leading-relaxed pl-5">
-                <strong>A:</strong> Google AI Studio membatasi kecepatan panggilan gratis sekitar 15 request per menit (RPM). Jika Anda menilai kelas besar (>20 mahasiswa), cukup tunggu sekitar 60 detik lalu klik tombol <strong>"🔄 Reset Gagal"</strong> dan klik <strong>"Nilai Semua"</strong> lagi. Mahasiswa yang sudah dinilai tidak akan dinilai ulang.
+                <strong>A:</strong> Google AI Studio membatasi kecepatan panggilan gratis sekitar 15 request per menit (RPM). Jika Anda menilai kelas besar (>20 mahasiswa), cukup tunggu sekitar 60 detik lalu klik tombol <strong>"Reset Gagal"</strong> dan klik <strong>"Nilai Semua"</strong> lagi. Mahasiswa yang sudah dinilai tidak akan dinilai ulang.
               </p>
             </div>
 
@@ -1439,7 +1438,7 @@ Database::initDatabase();
                 <span class="text-blue-600">Q:</span> Apakah dosen tetap bisa mengoreksi nilai yang diberikan oleh AI?
               </h4>
               <p class="text-slate-600 leading-relaxed pl-5">
-                <strong>A:</strong> Tentu saja. Dosen memiliki otoritas penuh. Anda cukup klik tombol <strong>👁️ Detail</strong> pada baris mahasiswa, lalu Anda bebas mengubah angka nilai, merevisi rincian poin, atau menambahkan catatan khusus dosen, kemudian klik <strong>Simpan Perubahan Nilai</strong>.
+                <strong>A:</strong> Tentu saja. Dosen memiliki otoritas penuh. Anda cukup klik tombol <strong>Detail</strong> pada baris mahasiswa, lalu Anda bebas mengubah angka nilai, merevisi rincian poin, atau menambahkan catatan khusus dosen, kemudian klik <strong>Simpan Perubahan Nilai</strong>.
               </p>
             </div>
           </div>
@@ -1460,7 +1459,7 @@ Database::initDatabase();
     <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <h3 class="font-bold text-slate-900 text-base" id="userModalTitle">Tambah Pengguna Baru</h3>
-        <button onclick="closeModal('userModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+        <button onclick="closeModal('userModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <input type="hidden" id="modalUserId">
@@ -1509,7 +1508,7 @@ Database::initDatabase();
     <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <h3 class="font-bold text-slate-900 text-base" id="courseModalTitle">Tambah Mata Kuliah Baru</h3>
-        <button onclick="closeModal('courseModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+        <button onclick="closeModal('courseModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <input type="hidden" id="modalCourseId">
@@ -1540,7 +1539,7 @@ Database::initDatabase();
     <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <h3 class="font-bold text-slate-900 text-base" id="classModalTitle">Tambah Kelas Baru</h3>
-        <button onclick="closeModal('classModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+        <button onclick="closeModal('classModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <input type="hidden" id="modalClassId">
@@ -1573,7 +1572,7 @@ Database::initDatabase();
     <div class="bg-white rounded-2xl max-w-sm w-full p-4 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <h3 class="font-bold text-slate-900 text-base">Tambah Mahasiswa</h3>
-        <button onclick="closeModal('studentModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+        <button onclick="closeModal('studentModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <div class="space-y-3 text-xs">
@@ -1602,7 +1601,7 @@ Database::initDatabase();
           <h3 class="font-bold text-slate-900 text-base">Impor Mahasiswa Massal</h3>
           <p class="text-xs text-slate-400">Salin & tempel daftar NIM dan Nama dari Excel / Word / SIAKAD</p>
         </div>
-        <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+        <button onclick="closeModal('importModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <div>
@@ -1627,7 +1626,7 @@ Database::initDatabase();
     <div class="bg-white rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <h3 class="font-bold text-slate-900 text-base" id="taskModalTitle">Buat Tugas Baru</h3>
-        <button onclick="closeModal('taskModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+        <button onclick="closeModal('taskModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <input type="hidden" id="modalTaskId">
@@ -1690,7 +1689,7 @@ Database::initDatabase();
           <div class="flex items-center justify-between">
             <label class="font-bold text-slate-800">Rincian Porsi Poin & Rubrik</label>
             <button type="button" onclick="autoExtractRubricInModal()" id="btnAutoExtract" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-2.5 py-1 rounded-lg transition flex items-center gap-1">
-              🤖 Ekstrak dari Soal
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg> <span>Ekstrak dari Soal</span>
             </button>
           </div>
           <div id="autoExtractAlert" class="hidden p-2 rounded-lg text-[11px]"></div>
@@ -1713,7 +1712,7 @@ Database::initDatabase();
           <h3 class="font-bold text-slate-900 text-base sm:text-lg" id="detailModalStudentName">Detail Penilaian Mahasiswa</h3>
           <p class="text-xs text-slate-400 mt-0.5" id="detailModalStudentNim">NIM: -</p>
         </div>
-        <button onclick="closeModal('gradeDetailModal')" class="text-slate-400 hover:text-slate-600 text-lg p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer">✕</button>
+        <button onclick="closeModal('gradeDetailModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <input type="hidden" id="detailGradeTaskId">
@@ -1724,17 +1723,17 @@ Database::initDatabase();
       <!-- Failure Alert Box (Muncul jika penilaian berstatus Gagal) -->
       <div id="detailFailureAlert" class="hidden p-3.5 bg-rose-50 border border-rose-200 rounded-xl space-y-1.5">
         <div class="font-bold text-rose-900 text-xs flex items-center gap-1.5">
-          <span>⚠️</span> <span>Penyebab Penilaian Gagal:</span>
+          <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> <span>Penyebab Penilaian Gagal:</span>
         </div>
         <p class="text-rose-800 text-xs font-medium" id="detailFailureReason">-</p>
-        <p class="text-[11px] text-rose-700 bg-white/80 p-2 rounded-lg border border-rose-100" id="detailFailureAdvice">💡 Solusi: -</p>
+        <p class="text-[11px] text-rose-700 bg-white/80 p-2 rounded-lg border border-rose-100" id="detailFailureAdvice">Solusi: -</p>
       </div>
 
       <!-- AI Bot Residue Alert Box -->
       <div id="detailAiAlert" class="hidden p-3.5 bg-rose-50/90 border border-rose-300 rounded-xl space-y-2 shadow-2xs">
         <div class="font-bold text-rose-900 text-xs flex items-center justify-between">
           <span class="flex items-center gap-1.5">
-            <span>🤖</span> <span>Terindikasi AI (Residu Percakapan Bot Terlupa Dihapus):</span>
+            <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> <span>Terindikasi AI (Residu Percakapan Bot Terlupa Dihapus):</span>
           </span>
           <button type="button" onclick="setZeroPenaltyGrade('ai')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold cursor-pointer transition shadow-2xs" title="Terapkan nilai 0 karena bukti residu bot AI">Beri Nilai 0</button>
         </div>
@@ -1746,7 +1745,7 @@ Database::initDatabase();
       <div id="detailPlagiarismAlert" class="hidden p-3.5 bg-amber-50/90 border border-amber-300 rounded-xl space-y-2 shadow-2xs">
         <div class="font-bold text-amber-900 text-xs flex items-center justify-between">
           <span class="flex items-center gap-1.5">
-            <span>⚠️</span> <span>Indikasi Plagiarisme Antar Mahasiswa:</span>
+            <svg class="w-4 h-4 text-amber-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> <span>Indikasi Plagiarisme Antar Mahasiswa:</span>
           </span>
           <button type="button" onclick="setZeroPenaltyGrade('plagiarism')" class="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-[10px] font-bold cursor-pointer transition shadow-2xs" title="Terapkan nilai 0 karena plagiasi">Beri Nilai 0</button>
         </div>
@@ -1770,7 +1769,7 @@ Database::initDatabase();
         <div>
           <div class="flex items-center justify-between mb-1.5">
             <label class="block font-bold text-slate-800 text-xs flex items-center gap-1.5">
-              <span>📊</span> <span>Rincian Skor Per Butir Soal & Alasan Penilaian</span>
+              <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg> <span>Rincian Skor Per Butir Soal & Alasan Penilaian</span>
             </label>
             <span class="text-[11px] text-slate-400 font-mono hidden sm:inline">Format: • Kriteria: Skor/Maks Poin (Alasan/Kekurangan)</span>
           </div>
@@ -1780,7 +1779,7 @@ Database::initDatabase();
         <div>
           <div class="flex items-center justify-between mb-1.5">
             <label class="block font-bold text-slate-800 text-xs flex items-center gap-1.5">
-              <span>📝</span> <span>Catatan, Justifikasi & Saran AI</span>
+              <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg> <span>Catatan, Justifikasi & Saran AI</span>
             </label>
             <span class="text-[11px] text-slate-400 hidden sm:inline">Termasuk Kelebihan Jawaban, Poin Kekurangan & Saran Revisi</span>
           </div>
@@ -1803,12 +1802,12 @@ Database::initDatabase();
           <h3 class="font-bold text-slate-900 text-base">Unggah Berkas Tugas Mahasiswa</h3>
           <p class="text-xs text-slate-400">Unggah ZIP atau pilih banyak file sekaligus</p>
         </div>
-        <button onclick="closeModal('uploadZipModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+        <button onclick="closeModal('uploadZipModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <div class="space-y-3 text-xs">
         <div class="p-3 bg-blue-50 text-blue-800 rounded-xl border border-blue-200">
-          <p class="font-semibold">💡 Cara Praktis dari Google Drive / LMS:</p>
+          <p class="font-semibold text-slate-800">Cara Praktis dari Google Drive / LMS:</p>
           <p class="mt-1 text-[11px] leading-relaxed">
             Buka folder jawaban mahasiswa di <strong>Google Drive / Classroom</strong> &rarr; klik menu folder &rarr; pilih <strong>Download</strong> (Google akan membuat 1 file .ZIP otomatis). Unggah file ZIP tersebut ke sini atau pilih berkas tugas langsung.
           </p>
@@ -1825,7 +1824,7 @@ Database::initDatabase();
       <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
         <button onclick="closeModal('uploadZipModal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
         <button onclick="submitUploadZip()" id="btnSubmitZip" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-xs flex items-center gap-1.5">
-          <span>📤 Unggah & Proses</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg> <span>Unggah &amp; Proses</span>
         </button>
       </div>
     </div>
@@ -1837,11 +1836,11 @@ Database::initDatabase();
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <div>
           <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
-            <span>📁</span> <span>Atur Folder Drive Khusus Kelas</span>
+            <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg> <span>Atur Folder Drive Khusus Kelas</span>
           </h3>
           <p class="text-xs text-slate-500 mt-0.5" id="overrideModalSubTitle">Pilih folder Google Drive untuk pengumpulan tugas kelas ini</p>
         </div>
-        <button onclick="closeModal('classFolderOverrideModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+        <button onclick="closeModal('classFolderOverrideModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <div class="space-y-3.5 text-xs">
@@ -1859,7 +1858,7 @@ Database::initDatabase();
           </label>
           <input type="text" id="inputClassOverrideFolder" placeholder="Tautan / ID Folder Drive Khusus (Kosongkan jika mengikuti folder utama)" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono">
           <p class="text-[10px] text-slate-400 mt-1">
-            💡 Isi jika kelas ini memiliki tautan folder Google Drive terpisah. Kosongkan jika kelas ini mengumpulkan di folder bersama yang sama dengan kelas lain.
+            Isi jika kelas ini memiliki tautan folder Google Drive terpisah. Kosongkan jika kelas ini mengumpulkan di folder bersama yang sama dengan kelas lain.
           </p>
         </div>
 
@@ -1873,7 +1872,7 @@ Database::initDatabase();
         <div class="flex gap-2">
           <button type="button" onclick="closeModal('classFolderOverrideModal')" class="px-3.5 py-2 bg-slate-100 text-slate-600 rounded-xl font-medium text-xs">Batal</button>
           <button type="button" onclick="saveClassFolderOverride()" id="btnSaveOverride" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs flex items-center gap-1.5 shadow-sm">
-            <span>💾 Simpan</span>
+            <svg class="w-4 h-4 text-white inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Simpan</span>
           </button>
         </div>
       </div>
@@ -1886,8 +1885,8 @@ Database::initDatabase();
       <!-- Modal Header -->
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
         <div class="flex items-center gap-2.5">
-          <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center text-xl shrink-0">
-            🛡️
+          <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
           </div>
           <div>
             <h3 class="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
@@ -1896,7 +1895,7 @@ Database::initDatabase();
             <p class="text-xs text-slate-400" id="integrityModalSubtitle">Analisis kesamaan berkas antar mahasiswa dan residu percakapan chatbot AI</p>
           </div>
         </div>
-        <button onclick="closeModal('integrityReportModal')" class="text-slate-400 hover:text-slate-600 text-lg p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer">✕</button>
+        <button onclick="closeModal('integrityReportModal')" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <!-- Ringkasan Statistik Kartu -->
@@ -1907,20 +1906,20 @@ Database::initDatabase();
         </div>
         <div class="bg-rose-50 border border-rose-200 p-3 rounded-xl cursor-pointer hover:bg-rose-100/70 transition" onclick="switchIntegrityTab('ai')">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-rose-800">🤖 Terindikasi AI</span>
+            <span class="text-[11px] font-bold text-rose-800 flex items-center gap-1"><svg class="w-3.5 h-3.5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span>Terindikasi AI</span></span>
             <span class="text-[9px] bg-rose-200 text-rose-800 px-1.5 py-0.2 rounded font-bold">Pasti AI</span>
           </div>
           <p class="text-xl font-extrabold text-rose-700 mt-0.5" id="integStatAi">0 Mhs</p>
         </div>
         <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl cursor-pointer hover:bg-amber-100/70 transition" onclick="switchIntegrityTab('plag')">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-amber-900">⚠️ Plagiasi Kritis</span>
+            <span class="text-[11px] font-bold text-amber-900 flex items-center gap-1"><svg class="w-3.5 h-3.5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>Plagiasi Kritis</span></span>
             <span class="text-[9px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded font-bold">≥ 70%</span>
           </div>
           <p class="text-xl font-extrabold text-amber-800 mt-0.5" id="integStatHighPlag">0 Pasang</p>
         </div>
         <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
-          <span class="text-[11px] font-semibold text-emerald-800">✓ Kemiripan Wajar</span>
+          <span class="text-[11px] font-semibold text-emerald-800 flex items-center gap-1"><svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Kemiripan Wajar</span></span>
           <p class="text-xl font-extrabold text-emerald-700 mt-0.5" id="integStatClean">0 Mhs</p>
         </div>
       </div>
@@ -1928,15 +1927,15 @@ Database::initDatabase();
       <!-- Tab Navigasi Modal -->
       <div class="flex items-center gap-1 border-b border-slate-200 text-xs shrink-0">
         <button type="button" onclick="switchIntegrityTab('plag')" id="tabBtnIntegPlag" class="px-3.5 py-2 font-bold border-b-2 border-blue-600 text-blue-600 transition flex items-center gap-1.5 cursor-pointer">
-          <span>⚠️ Kemiripan Antar Mahasiswa</span>
+          <span class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>Kemiripan Antar Mahasiswa</span></span>
           <span id="badgeCountPlag" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800 font-mono">0</span>
         </button>
         <button type="button" onclick="switchIntegrityTab('ai')" id="tabBtnIntegAi" class="px-3.5 py-2 font-medium text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5 cursor-pointer">
-          <span>🤖 Residu Chatbot AI</span>
+          <span class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span>Residu Chatbot AI</span></span>
           <span id="badgeCountAi" class="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-100 text-rose-800 font-mono">0</span>
         </button>
         <button type="button" onclick="switchIntegrityTab('all')" id="tabBtnIntegAll" class="px-3.5 py-2 font-medium text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5 cursor-pointer">
-          <span>📋 Rekap Seluruh Kelas</span>
+          <span class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><span>Rekap Seluruh Kelas</span></span>
         </button>
       </div>
 
@@ -1983,7 +1982,7 @@ Database::initDatabase();
         <span class="text-slate-400 text-[11px]" id="integrityAnalyzedAtTime">Dipindai: -</span>
         <div class="flex gap-2">
           <button type="button" onclick="runIntegrityCheck()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition flex items-center gap-1 cursor-pointer">
-            <span>🔄 Pindai Ulang</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg><span>Pindai Ulang</span>
           </button>
           <button type="button" onclick="closeModal('integrityReportModal')" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition cursor-pointer">
             Tutup
@@ -2119,7 +2118,7 @@ Database::initDatabase();
           // Cek parameter callback Google OAuth dari URL
           const currentUrl = window.location.href;
           if (currentUrl.includes('oauth=connected')) {
-            showGlobalAlert('🎉 Akun Google Drive berhasil terhubung! Anda sekarang dapat menyinkronkan tugas langsung dari Google Drive.', 'success');
+            showGlobalAlert('Akun Google Drive berhasil terhubung! Anda sekarang dapat menyinkronkan tugas langsung dari Google Drive.', 'success');
             window.history.replaceState({}, document.title, window.location.pathname);
             switchTab('tab-settings');
           } else if (currentUrl.includes('oauth=failed')) {
@@ -2484,7 +2483,7 @@ Database::initDatabase();
         return `
           <div class="p-3.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition">
             <div class="flex items-center space-x-3">
-              <div class="w-9 h-9 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-sm">📝</div>
+              <div class="w-9 h-9 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center shrink-0"><svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
               <div>
                 <h4 class="font-bold text-slate-800 text-xs">${t.judul_tugas}</h4>
                 <p class="text-[11px] text-slate-400">Bobot: ${t.bobot_persentase > 0 ? t.bobot_persentase + '%' : 'Rata-rata'} • Rata-rata: ${t.averageScore > 0 ? t.averageScore : '-'}</p>
@@ -2502,7 +2501,7 @@ Database::initDatabase();
               </div>
               <div class="flex items-center space-x-2">
                 <button onclick="editTask('${t.id_tugas}')" class="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-blue-400 hover:text-blue-600 text-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1 shadow-sm" title="Edit Tugas">
-                  <span>✏️</span> <span>Edit</span>
+                  <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg> <span>Edit</span>
                 </button>
                 <button onclick="goToGradingTask('${t.id_tugas}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm">
                   Nilai
@@ -2536,8 +2535,8 @@ Database::initDatabase();
                 <p class="text-[10px] text-slate-500 mt-0.5">${c.kode_mk ? c.kode_mk + ' • ' : ''}${c.semester || 'Reguler'}</p>
               </div>
               <div class="flex space-x-0.5 shrink-0">
-                <button onclick="event.stopPropagation(); editCourse('${c.id_mata_kuliah}')" class="p-1 text-slate-400 hover:text-purple-600 text-xs" title="Edit Mata Kuliah">✏️</button>
-                <button onclick="event.stopPropagation(); confirmDeleteCourse('${c.id_mata_kuliah}', '${c.nama_mata_kuliah}')" class="p-1 text-slate-400 hover:text-red-600 text-xs" title="Hapus Mata Kuliah">🗑️</button>
+                <button onclick="event.stopPropagation(); editCourse('${c.id_mata_kuliah}')" class="p-1 text-slate-400 hover:text-purple-600 text-xs" title="Edit Mata Kuliah"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                <button onclick="event.stopPropagation(); confirmDeleteCourse('${c.id_mata_kuliah}', '${c.nama_mata_kuliah}')" class="p-1 text-slate-400 hover:text-red-600 text-xs" title="Hapus Mata Kuliah"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
               </div>
             </div>
             <div class="mt-2 flex items-center gap-1.5 text-[9px] text-slate-400">
@@ -2592,8 +2591,8 @@ Database::initDatabase();
             <div class="flex items-center justify-between">
               <h4 class="font-bold text-xs ${isActive ? 'text-blue-900' : 'text-slate-800'}">${c.nama_kelas}</h4>
               <div class="flex space-x-0.5">
-                <button onclick="event.stopPropagation(); editClass('${c.id_kelas}')" class="p-1 text-slate-400 hover:text-blue-600 text-xs">✏️</button>
-                <button onclick="event.stopPropagation(); confirmDeleteClass('${c.id_kelas}', '${c.nama_kelas}')" class="p-1 text-slate-400 hover:text-red-600 text-xs">🗑️</button>
+                <button onclick="event.stopPropagation(); editClass('${c.id_kelas}')" class="p-1 text-slate-400 hover:text-blue-600 text-xs"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                <button onclick="event.stopPropagation(); confirmDeleteClass('${c.id_kelas}', '${c.nama_kelas}')" class="p-1 text-slate-400 hover:text-red-600 text-xs"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
               </div>
             </div>
             <p class="text-[10px] text-slate-500 mt-0.5">${c.semester || 'Reguler'}</p>
@@ -2615,7 +2614,7 @@ Database::initDatabase();
       }
 
       if (!students || students.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-slate-400">Belum ada mahasiswa di kelas ini. Klik "+ Mahasiswa" atau "📋 Impor Massal".</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-slate-400">Belum ada mahasiswa di kelas ini. Klik "+ Mahasiswa" atau "<svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> <span>Impor Massal</span>".</td></tr>';
         return;
       }
 
@@ -2625,8 +2624,8 @@ Database::initDatabase();
           <td class="px-3 py-2 font-mono font-semibold text-slate-700">${s.nim}</td>
           <td class="px-3 py-2 font-medium text-slate-900">${s.nama_mahasiswa}</td>
           <td class="px-3 py-2 text-center">
-            <button onclick="confirmDeleteStudent('${s.id_mahasiswa}', '${s.nama_mahasiswa}')" class="text-slate-400 hover:text-red-600 transition" title="Hapus Mahasiswa">
-              🗑️
+            <button onclick="confirmDeleteStudent('${s.id_mahasiswa}', '${s.nama_mahasiswa}')" class="text-slate-400 hover:text-red-600 transition p-1 inline-flex items-center" title="Hapus Mahasiswa">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           </td>
         </tr>
@@ -2670,8 +2669,8 @@ Database::initDatabase();
                   Bobot: ${t.bobot_persentase > 0 ? t.bobot_persentase + '%' : 'Standar'}
                 </span>
                 <div class="flex space-x-1">
-                  <button onclick="editTask('${t.id_tugas}')" class="text-slate-400 hover:text-blue-600 p-1 text-xs" title="Edit Tugas">✏️</button>
-                  <button onclick="confirmDeleteTask('${t.id_tugas}', '${t.judul_tugas}')" class="text-slate-400 hover:text-red-600 p-1 text-xs" title="Hapus Tugas">🗑️</button>
+                  <button onclick="editTask('${t.id_tugas}')" class="text-slate-400 hover:text-blue-600 p-1 text-xs" title="Edit Tugas"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                  <button onclick="confirmDeleteTask('${t.id_tugas}', '${t.judul_tugas}')" class="text-slate-400 hover:text-red-600 p-1 text-xs" title="Hapus Tugas"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                 </div>
               </div>
               <h3 class="font-bold text-slate-900 text-sm mt-2">${t.judul_tugas}</h3>
@@ -2697,11 +2696,11 @@ Database::initDatabase();
                 <div id="cardSubmissionsBadge_${t.id_tugas}" class="inline-flex items-center">
                   ${(typeof t.submissionCount !== 'undefined' && t.submissionCount > 0) ? `
                     <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-200" title="${t.submissionCount} berkas jawaban mahasiswa tersimpan di server">
-                      <span>✓</span> <span>${t.submissionCount} Berkas di Server</span>
+                      <svg class="w-3 h-3 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> <span>${t.submissionCount} Berkas di Server</span>
                     </span>
                   ` : (t.drive_folder_id ? `
                     <span class="inline-flex items-center gap-1 bg-sky-50 text-sky-700 text-[10px] font-medium px-2 py-0.5 rounded-md border border-sky-100" title="Klik tombol Sinkron Drive untuk mengunduh berkas jawaban mahasiswa">
-                      <span>🔄</span> <span>0 Berkas (Klik Sinkron)</span>
+                      <svg class="w-3 h-3 text-sky-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> <span>0 Berkas (Klik Sinkron)</span>
                     </span>
                   ` : '')}
                 </div>
@@ -2865,7 +2864,7 @@ Database::initDatabase();
       const escapedUrl = (driveUrl || '').replace(/'/g, "\\'");
 
       const contentBadge = isContent
-        ? '<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5" title="Dicocokkan via isi dokumen"><span>🔍</span><span>Isi</span></span>'
+        ? '<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5" title="Dicocokkan via isi dokumen"><svg class="w-2.5 h-2.5 text-amber-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span>Isi</span></span>'
         : '';
 
       return `
@@ -3086,11 +3085,11 @@ Database::initDatabase();
           const isOAuthConnected = appState.settings?.googleOAuth?.isConnected;
           if (folderBadge) {
             if (count > 0) {
-              folderBadge.innerHTML = `<span class="text-emerald-600 font-bold">✓ ${count} Berkas di Server</span>`;
+              folderBadge.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-600 font-bold"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>${count} Berkas di Server</span></span>`;
             } else if (isOAuthConnected) {
-              folderBadge.innerHTML = `<span class="text-sky-600 font-semibold cursor-pointer hover:underline" onclick="syncCurrentTaskDriveFolder()" title="Klik untuk sinkronkan berkas langsung dari Google Drive">🔄 0 Berkas (Klik Sinkron Drive)</span>`;
+              folderBadge.innerHTML = `<span class="inline-flex items-center gap-1 text-sky-600 font-semibold cursor-pointer hover:underline" onclick="syncCurrentTaskDriveFolder()" title="Klik untuk sinkronkan berkas langsung dari Google Drive"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg><span>0 Berkas (Klik Sinkron Drive)</span></span>`;
             } else {
-              folderBadge.innerHTML = `<span class="text-amber-600 font-semibold cursor-pointer hover:underline" onclick="openUploadZipModal()" title="Klik untuk mengunggah berkas">⚠️ 0 Berkas (Upload ZIP)</span>`;
+              folderBadge.innerHTML = `<span class="inline-flex items-center gap-1 text-amber-600 font-semibold cursor-pointer hover:underline" onclick="openUploadZipModal()" title="Klik untuk mengunggah berkas"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>0 Berkas (Upload ZIP)</span></span>`;
             }
           }
         })
@@ -3126,11 +3125,11 @@ Database::initDatabase();
         let statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">Belum Dinilai</span>';
         let pointsContent = g.rincian_poin || '-';
         if (isCompleted) {
-          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">✓ Selesai</span>';
+          statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700"><svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Selesai</span></span>';
         } else if (isUnsubmitted) {
           statusBadge = `
             <button type="button" onclick="openGradeDetailModal('${g.nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 hover:bg-amber-200 text-amber-800 transition inline-flex items-center gap-1 border border-amber-200 cursor-pointer shadow-2xs" title="Mahasiswa belum mengumpulkan berkas tugas">
-              <span>⚠️ Belum Kumpul</span>
+              <svg class="w-3 h-3 text-amber-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>Belum Kumpul</span>
             </button>
           `;
           pointsContent = `<span class="text-amber-700 text-[11px] italic font-medium">Belum mengumpulkan tugas</span>`;
@@ -3138,13 +3137,13 @@ Database::initDatabase();
           const cleanReason = (g.status || 'Gagal').replace(/^Gagal:\s*/i, '');
           statusBadge = `
             <button type="button" onclick="openGradeDetailModal('${g.nim}')" class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-100 hover:bg-rose-200 text-rose-800 transition inline-flex items-center gap-1 cursor-pointer shadow-sm text-left" title="Klik untuk rincian penyebab: ${cleanReason}">
-              <span>❌ Gagal</span>
+              <svg class="w-3 h-3 text-rose-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg><span>Gagal</span>
               <span class="text-[9px] text-rose-600 underline">Rincian</span>
             </button>
           `;
-          pointsContent = `<span class="text-rose-600 text-[11px] font-medium" title="${g.status}">⚠️ ${cleanReason}</span>`;
+          pointsContent = `<span class="inline-flex items-center gap-1 text-rose-600 text-[11px] font-medium" title="${g.status}"><svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>${cleanReason}</span></span>`;
         } else if (isGrading) {
-          statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 animate-pulse">⏳ Menilai...</span>';
+          statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 animate-pulse"><svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg><span>Menilai...</span></span>';
         }
 
         // Render Lencana Integritas (Plagiasi & AI)
@@ -3155,32 +3154,32 @@ Database::initDatabase();
         if (hasAi && simScore !== null && simScore >= 70) {
           integrityBadge = `
             <button type="button" onclick="openIntegrityModalForStudent('${g.nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" title="Terdeteksi Residu Chatbot AI & Kemiripan ${simScore}%">
-              <span>🤖 AI & ⚠️ ${simScore}%</span>
+              <svg class="w-3 h-3 text-rose-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span>AI &amp; ${simScore}%</span>
             </button>
           `;
         } else if (hasAi) {
           integrityBadge = `
             <button type="button" onclick="openIntegrityModalForStudent('${g.nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" title="Terdeteksi residu percakapan chatbot AI yang lupa dihapus mahasiswa">
-              <span>🤖 Terindikasi AI</span>
+              <svg class="w-3 h-3 text-rose-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span>Terindikasi AI</span>
             </button>
           `;
         } else if (simScore !== null) {
           if (simScore >= 70) {
             integrityBadge = `
               <button type="button" onclick="openIntegrityModalForStudent('${g.nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" title="Kemiripan tinggi ${simScore}% dengan NIM ${g.similarity_target_nim || '-'}">
-                <span>⚠️ ${simScore}% Plagiasi</span>
+                <svg class="w-3 h-3 text-rose-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>${simScore}% Plagiasi</span>
               </button>
             `;
           } else if (simScore >= 40) {
             integrityBadge = `
               <button type="button" onclick="openIntegrityModalForStudent('${g.nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" title="Kemiripan sedang ${simScore}% dengan NIM ${g.similarity_target_nim || '-'}">
-                <span>⚠️ ${simScore}% Mirip</span>
+                <svg class="w-3 h-3 text-amber-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>${simScore}% Mirip</span>
               </button>
             `;
           } else {
             integrityBadge = `
               <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-0.5" title="Tingkat kemiripan wajar (${simScore}%)">
-                <span>✓ Bersih (${simScore}%)</span>
+                <svg class="w-3 h-3 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Bersih (${simScore}%)</span>
               </span>
             `;
           }
@@ -3208,7 +3207,7 @@ Database::initDatabase();
             <td id="status-cell-${g.nim}" class="px-4 py-2.5 text-center">${statusBadge}</td>
             <td class="px-4 py-2.5 text-center">
               <button onclick="openGradeDetailModal('${g.nim}')" class="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-600 font-medium transition" title="Lihat Ulasan & Koreksi Manual">
-                👁️ Detail
+                <span class="inline-flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg><span>Detail</span></span>
               </button>
             </td>
           </tr>
@@ -3352,17 +3351,17 @@ Database::initDatabase();
           if (res.success) {
             if (res.status === 'Belum Mengumpulkan' || res.isSubmitted === false) {
               updateStudentRowState(nim, 'unsubmitted', res);
-              showProgressLog('⚠️ NIM: ' + nim + ' (' + nama + ') belum mengumpulkan tugas (dilewati).');
+              showProgressLog('[LEWATI] NIM: ' + nim + ' (' + nama + ') belum mengumpulkan tugas.');
             } else {
               gradingQueue.successCount++;
               updateStudentRowState(nim, 'success', res);
-              const contentNote = (res.matchedBy === 'content' || (res.fileName && res.fileName.includes('[via isi]'))) ? ' 🔍 [Ditemukan via Isi Berkas]' : '';
-              showProgressLog('✅ NIM: ' + nim + ' (' + nama + ') berhasil dinilai. Skor: ' + res.score + ' (' + (res.fileName || 'Berkas Drive') + contentNote + ')');
+              const contentNote = (res.matchedBy === 'content' || (res.fileName && res.fileName.includes('[via isi]'))) ? ' [Ditemukan via Isi Berkas]' : '';
+              showProgressLog('[SUKSES] NIM: ' + nim + ' (' + nama + ') berhasil dinilai. Skor: ' + res.score + ' (' + (res.fileName || 'Berkas Drive') + contentNote + ')');
             }
           } else {
             gradingQueue.failedCount++;
             updateStudentRowState(nim, 'failed', res);
-            showProgressLog('❌ NIM: ' + nim + ' (' + nama + ') gagal: ' + (res.error || res.status) + (res.advice ? ' (💡 ' + res.advice + ')' : ''));
+            showProgressLog('[GAGAL] NIM: ' + nim + ' (' + nama + ') gagal: ' + (res.error || res.status) + (res.advice ? ' (Solusi: ' + res.advice + ')' : ''));
           }
 
           gradingQueue.currentIndex++;
@@ -3383,7 +3382,7 @@ Database::initDatabase();
             catatan_ai: '[ERROR JARINGAN/SERVER]:\n' + err.message
           };
           updateStudentRowState(nim, 'failed', errRes);
-          showProgressLog('💥 NIM: ' + nim + ' (' + nama + ') gagal: ' + err.message);
+          showProgressLog('[ERROR] NIM: ' + nim + ' (' + nama + ') gagal: ' + err.message);
 
           gradingQueue.currentIndex++;
           updateGradingProgressUI();
@@ -3403,7 +3402,7 @@ Database::initDatabase();
 
       if (state === 'grading') {
         if (row) row.className = 'bg-amber-50/70 border-l-4 border-amber-400 transition';
-        if (statusCell) statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 animate-pulse">⏳ Menilai...</span>';
+        if (statusCell) statusCell.innerHTML = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 animate-pulse"><svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg><span>Menilai...</span></span>';
       } else if (state === 'unsubmitted' || (data && (data.status === 'Belum Mengumpulkan' || data.isSubmitted === false))) {
         if (row) row.className = 'bg-amber-50/20 transition';
         if (scoreCell) {
@@ -3419,7 +3418,7 @@ Database::initDatabase();
         if (statusCell) {
           statusCell.innerHTML = `
             <button type="button" onclick="openGradeDetailModal('${nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 hover:bg-amber-200 text-amber-800 transition inline-flex items-center gap-1 border border-amber-200 cursor-pointer shadow-2xs" title="Mahasiswa belum mengumpulkan berkas tugas">
-              <span>⚠️ Belum Kumpul</span>
+              <svg class="w-3 h-3 text-amber-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>Belum Kumpul</span>
             </button>
           `;
         }
@@ -3446,13 +3445,13 @@ Database::initDatabase();
           fileCell.innerHTML = renderFileNameCell(data.fileName, data.driveUrl || '');
         }
         if (statusCell) {
-          statusCell.innerHTML = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">✓ Selesai</span>';
+          statusCell.innerHTML = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700"><svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Selesai</span></span>';
         }
         if (data.ai_detected !== undefined && integrityCell) {
           if (Number(data.ai_detected) === 1) {
             integrityCell.innerHTML = `
               <button type="button" onclick="openIntegrityModalForStudent('${nim}')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 transition shadow-2xs inline-flex items-center gap-1 cursor-pointer" title="Terdeteksi residu percakapan chatbot AI yang lupa dihapus mahasiswa">
-                <span>🤖 Terindikasi AI</span>
+                <svg class="w-3 h-3 text-rose-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span>Terindikasi AI</span>
               </button>
             `;
           }
@@ -3475,12 +3474,12 @@ Database::initDatabase();
         if (row) row.className = 'bg-rose-50/60 transition';
         const cleanReason = (data.error || data.status || 'Gagal').replace(/^Gagal:\s*/i, '');
         if (pointsCell) {
-          pointsCell.innerHTML = '<span class="text-rose-600 text-[11px] font-medium" title="' + cleanReason + '">⚠️ ' + cleanReason + '</span>';
+          pointsCell.innerHTML = '<span class="inline-flex items-center gap-1 text-rose-600 text-[11px] font-medium" title="' + cleanReason + '"><svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z\"/></svg><span>' + cleanReason + '</span></span>';
         }
         if (statusCell) {
           statusCell.innerHTML = `
             <button type="button" onclick="openGradeDetailModal('${nim}')" class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-rose-100 hover:bg-rose-200 text-rose-800 transition inline-flex items-center gap-1 cursor-pointer shadow-sm text-left" title="Klik untuk rincian: ${cleanReason}">
-              <span>❌ Gagal</span>
+              <svg class="w-3 h-3 text-rose-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg><span>Gagal</span>
               <span class="text-[9px] text-rose-600 underline">Rincian</span>
             </button>
           `;
@@ -3515,7 +3514,7 @@ Database::initDatabase();
       if (confirmAbort) {
         gradingQueue.isAborted = true;
         document.getElementById('progressPanelSubtitle').textContent = 'Menghentikan antrean penilaian...';
-        showProgressLog('⏹️ Pengguna meminta penghentian antrean...');
+        showProgressLog('Pengguna meminta penghentian antrean...');
       }
     }
 
@@ -3537,13 +3536,13 @@ Database::initDatabase();
           document.getElementById('completionTitle').textContent = 'Penilaian Dihentikan';
           document.getElementById('completionDesc').textContent = 'Antrean dihentikan: ' + gradingQueue.successCount + ' mahasiswa berhasil dinilai, ' + gradingQueue.failedCount + ' gagal.';
         } else {
-          document.getElementById('completionTitle').textContent = '🎉 Penilaian Selesai!';
+          document.getElementById('completionTitle').textContent = 'Penilaian Selesai!';
           document.getElementById('completionDesc').textContent = 'Seluruh antrean telah selesai dievaluasi: ' + gradingQueue.successCount + ' berhasil, ' + gradingQueue.failedCount + ' gagal.';
           playSuccessChime();
         }
       }
 
-      showProgressLog(wasAborted ? '⏹️ Antrean penilaian dihentikan.' : '🎉 Antrean penilaian selesai seluruhnya!');
+      showProgressLog(wasAborted ? 'Antrean penilaian dihentikan.' : 'Antrean penilaian selesai seluruhnya!');
 
       // Perbarui statistik tugas di latar belakang agar data di tab Dashboard & Tugas seketika baru
       if (appState.activeClassId) {
@@ -3757,7 +3756,7 @@ Database::initDatabase();
               </span>
               <div class="flex items-center gap-1">
                 <button type="button" onclick="copyReportColumn('${t.id_tugas}', '${t.judul_tugas}')" class="text-slate-400 hover:text-white text-[11px] p-0.5 rounded transition" title="Salin seluruh nilai kolom ${t.judul_tugas}">
-                  📋
+                  <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
                 </button>
                 <span onclick="handleSortReport('${t.id_tugas}')" class="cursor-pointer text-[10px] text-slate-400">${sortIndicator(t.id_tugas)}</span>
               </div>
@@ -3771,7 +3770,7 @@ Database::initDatabase();
                 <div class="flex items-center justify-between gap-1">
                   <span>Rata-rata</span>
                   <div class="flex items-center gap-1">
-                    <button type="button" onclick="event.stopPropagation(); copyReportColumn('avg', 'Rata-rata')" class="text-slate-400 hover:text-white text-[11px] p-0.5 rounded" title="Salin seluruh nilai kolom Rata-rata">📋</button>
+                    <button type="button" onclick="event.stopPropagation(); copyReportColumn('avg', 'Rata-rata')" class="text-slate-400 hover:text-white text-[11px] p-0.5 rounded" title="Salin seluruh nilai kolom Rata-rata"><svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg></button>
                     <span class="text-[10px] text-slate-400">${sortIndicator('avg')}</span>
                   </div>
                 </div>
@@ -3780,7 +3779,7 @@ Database::initDatabase();
                 <div class="flex items-center justify-between gap-1">
                   <span>Nilai Terbobot</span>
                   <div class="flex items-center gap-1">
-                    <button type="button" onclick="event.stopPropagation(); copyReportColumn('final', 'Nilai Akhir Terbobot')" class="text-blue-200 hover:text-white text-[11px] p-0.5 rounded" title="Salin seluruh nilai kolom Nilai Terbobot">📋</button>
+                    <button type="button" onclick="event.stopPropagation(); copyReportColumn('final', 'Nilai Akhir Terbobot')" class="text-blue-200 hover:text-white text-[11px] p-0.5 rounded" title="Salin seluruh nilai kolom Nilai Terbobot"><svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg></button>
                     <span class="text-[10px] text-blue-200">${sortIndicator('final')}</span>
                   </div>
                 </div>
@@ -4050,18 +4049,18 @@ Database::initDatabase();
         const res = await AppAPI.uploadSubmissionsZip(taskId, classId, files);
         if (alertBox) {
           alertBox.className = 'p-2.5 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block';
-          alertBox.textContent = '✓ ' + res.message;
+          alertBox.textContent = res.message;
         }
         showGlobalAlert(res.message, 'success');
         setTimeout(() => {
           closeModal('uploadZipModal');
           btn.disabled = false;
-          btn.innerHTML = '<span>📤 Unggah & Proses</span>';
+          btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg> <span>Unggah &amp; Proses</span>';
           loadGradingTable(taskId);
         }, 1200);
       } catch (err) {
         btn.disabled = false;
-        btn.innerHTML = '<span>📤 Unggah & Proses</span>';
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg> <span>Unggah &amp; Proses</span>';
         if (alertBox) {
           alertBox.className = 'p-2.5 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block';
           alertBox.textContent = 'Gagal mengunggah: ' + err.message;
@@ -4485,10 +4484,10 @@ Database::initDatabase();
           btn.textContent = 'Cek Soal';
           if (res && res.success) {
             alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium';
-            alertBox.textContent = '✓ ' + res.message;
+            alertBox.textContent = res.message;
           } else {
             alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium';
-            alertBox.textContent = '✗ ' + ((res && res.message) || 'Berkas tidak dapat diakses.');
+            alertBox.textContent = (res && res.message) || 'Berkas tidak dapat diakses.';
           }
         })
         .withFailureHandler(function(err) {
@@ -4524,11 +4523,11 @@ Database::initDatabase();
           btn.textContent = 'Cek Folder';
           if (res.success) {
             alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium';
-            alertBox.textContent = '✓ ' + res.message;
+            alertBox.textContent = res.message;
             document.getElementById('modalTaskFolderId').value = res.folderId;
           } else {
             alertBox.className = 'mt-1.5 p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium';
-            alertBox.textContent = '✗ ' + res.message;
+            alertBox.textContent = res.message;
           }
         })
         .withFailureHandler(function(err) {
@@ -4553,26 +4552,26 @@ Database::initDatabase();
       }
 
       btn.disabled = true;
-      btn.textContent = '🤖 Menganalisis...';
+      btn.textContent = 'Menganalisis...';
       alertBox.className = 'p-2 rounded-lg text-[11px] bg-blue-50 text-blue-700 border border-blue-200 block';
       alertBox.textContent = 'Gemini AI sedang membaca berkas soal dan menyusun rubrik porsi poin...';
 
       const handleSuccess = function(res) {
         btn.disabled = false;
-        btn.textContent = '🤖 Ekstrak dari Soal';
+        btn.textContent = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg> <span>Ekstrak dari Soal</span>';
         if (res && res.success) {
           document.getElementById('modalTaskRubric').value = res.rubricText || '';
           alertBox.className = 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium block';
-          alertBox.textContent = '✓ ' + (res.message || 'Berhasil menyusun rubrik dari dokumen soal!');
+          alertBox.textContent = res.message || 'Berhasil menyusun rubrik dari dokumen soal!';
         } else {
           alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium block';
-          alertBox.textContent = '✗ ' + ((res && res.message) || 'Gagal mengekstrak rubrik.');
+          alertBox.textContent = (res && res.message) || 'Gagal mengekstrak rubrik.';
         }
       };
 
       const handleFailure = function(err) {
         btn.disabled = false;
-        btn.textContent = '🤖 Ekstrak dari Soal';
+        btn.textContent = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg> <span>Ekstrak dari Soal</span>';
         alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium block';
         alertBox.textContent = 'Gagal ekstrak: ' + (err.message || err);
       };
@@ -4624,13 +4623,15 @@ Database::initDatabase();
         let cleanReason = grade.status.replace(/^Gagal:\s*/i, '');
         let advice = 'Periksa apakah nama file atau isi berkas mahasiswa di Drive memuat NIM atau nama yang sesuai.';
 
-        if (grade.catatan_ai && grade.catatan_ai.includes('💡 Rekomendasi Solusi:')) {
-          const parts = grade.catatan_ai.split('💡 Rekomendasi Solusi:');
+        const legacyDelim = '\u{1F4A1} Rekomendasi Solusi:';
+        if (grade.catatan_ai && (grade.catatan_ai.includes('[Rekomendasi Solusi]:') || grade.catatan_ai.includes(legacyDelim))) {
+          const delim = grade.catatan_ai.includes('[Rekomendasi Solusi]:') ? '[Rekomendasi Solusi]:' : legacyDelim;
+          const parts = grade.catatan_ai.split(delim);
           if (parts[1]) advice = parts[1].trim();
         }
 
         document.getElementById('detailFailureReason').textContent = cleanReason;
-        document.getElementById('detailFailureAdvice').textContent = '💡 Solusi: ' + advice;
+        document.getElementById('detailFailureAdvice').textContent = 'Solusi: ' + advice;
       } else if (failureBox) {
         failureBox.classList.add('hidden');
       }
@@ -4868,7 +4869,7 @@ Database::initDatabase();
       if (pairs.length === 0) {
         pairsContainer.innerHTML = `
           <div class="text-center py-8 bg-slate-50 rounded-xl border border-slate-200 text-slate-500 space-y-1">
-            <span class="text-2xl">🎉</span>
+            <div class="w-10 h-10 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div>
             <p class="font-bold text-slate-700">Tidak Ditemukan Pasangan Kemiripan Mencurigakan</p>
             <p class="text-[11px] text-slate-400">Seluruh berkas jawaban mahasiswa yang diunggah memiliki variasi kalimat unik di bawah ambang batas plagiasi 40%.</p>
           </div>
@@ -4889,7 +4890,7 @@ Database::initDatabase();
                   <span class="text-[11px] text-slate-400">Jaccard: ${pair.jaccard}%</span>
                 </div>
                 <button type="button" onclick="togglePairDiff(${pIdx})" id="btnToggleDiff-${pIdx}" class="text-blue-600 hover:text-blue-800 font-semibold text-xs inline-flex items-center gap-1 cursor-pointer">
-                  <span>🔍 Lihat Kutipan Identik (${phrases.length})</span> <span>▼</span>
+                  <span class="inline-flex items-center gap-1"><svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span>Lihat Kutipan Identik (${phrases.length})</span></span>
                 </button>
               </div>
 
@@ -4910,7 +4911,7 @@ Database::initDatabase();
               <!-- Kotak Kutipan Identik Collapsible -->
               <div id="pairDiffBox-${pIdx}" class="hidden p-3 bg-amber-50/70 rounded-lg border border-amber-200 space-y-2">
                 <div class="font-bold text-amber-900 text-[11px] flex items-center gap-1">
-                  <span>📑</span> <span>Kalimat / Blok Teks yang Identik Antara Kedua Mahasiswa:</span>
+                  <svg class="w-3.5 h-3.5 text-amber-800 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> <span>Kalimat / Blok Teks yang Identik Antara Kedua Mahasiswa:</span>
                 </div>
                 ${phrases.length > 0 ? phrases.map((ph, phIdx) => `
                   <div class="bg-white p-2 rounded border border-amber-100 text-[11px]">
@@ -4930,7 +4931,7 @@ Database::initDatabase();
       if (aiStudents.length === 0) {
         aiContainer.innerHTML = `
           <div class="text-center py-8 bg-slate-50 rounded-xl border border-slate-200 text-slate-500 space-y-1">
-            <span class="text-2xl">✓</span>
+            <div class="w-10 h-10 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div>
             <p class="font-bold text-slate-700">Tidak Ditemukan Residu Chatbot AI</p>
             <p class="text-[11px] text-slate-400">Tidak ada mahasiswa yang kedapatan menyalin kalimat khas percakapan chatbot AI (seperti "Apakah jawaban ini sudah cukup?", "Semoga membantu", dsb).</p>
           </div>
@@ -4945,7 +4946,7 @@ Database::initDatabase();
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                    <span>🤖</span> <span>${st.nama}</span>
+                    <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> <span>${st.nama}</span>
                     <span class="text-slate-500 font-mono text-xs">(${st.nim})</span>
                   </h4>
                   <p class="text-[11px] text-slate-500 mt-0.5">Berkas: <span class="font-medium">${st.fileName}</span></p>
@@ -4955,7 +4956,7 @@ Database::initDatabase();
                     ${matches.length} Residu Bot Terdeteksi
                   </span>
                   <button type="button" onclick="openGradeDetailModal('${st.nim}')" class="px-2.5 py-1 bg-white hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg font-semibold text-xs transition cursor-pointer">
-                    Koreksi Nilai ✏️
+                    <span class="inline-flex items-center gap-1"><span>Koreksi Nilai</span><svg class="w-3 h-3 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></span>
                   </button>
                 </div>
               </div>
@@ -4991,7 +4992,7 @@ Database::initDatabase();
         }
 
         const aiBadge = hasAi 
-          ? '<span class="px-2 py-0.5 rounded-full font-bold text-rose-700 bg-rose-100 text-[10px]">🤖 Terindikasi AI</span>'
+          ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-rose-700 bg-rose-100 text-[10px]"><svg class="w-3 h-3 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span>Terindikasi AI</span></span>'
           : '<span class="text-slate-400 text-xs">Bersih</span>';
 
         return `
@@ -5018,10 +5019,10 @@ Database::initDatabase();
       const isHidden = box.classList.contains('hidden');
       if (isHidden) {
         box.classList.remove('hidden');
-        if (btn) btn.innerHTML = '<span>🔍 Tutup Kutipan Identik</span> <span>▲</span>';
+        if (btn) btn.innerHTML = '<span class="inline-flex items-center gap-1"><svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span>Tutup Kutipan Identik</span></span>';
       } else {
         box.classList.add('hidden');
-        if (btn) btn.innerHTML = '<span>🔍 Lihat Kutipan Identik</span> <span>▼</span>';
+        if (btn) btn.innerHTML = '<span class="inline-flex items-center gap-1"><svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span>Lihat Kutipan Identik</span></span>';
       }
     }
 
@@ -5048,18 +5049,18 @@ Database::initDatabase();
       google.script.run
         .withSuccessHandler(function(res) {
           btn.disabled = false;
-          btn.textContent = '🔍 Uji Koneksi API Key';
+          btn.textContent = '<svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>Uji Koneksi API Key</span>';
           if (res.success) {
             alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
-            alertBox.textContent = '✓ ' + res.message;
+            alertBox.textContent = res.message;
           } else {
             alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
-            alertBox.textContent = '✗ ' + res.message;
+            alertBox.textContent = res.message;
           }
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
-          btn.textContent = '🔍 Uji Koneksi API Key';
+          btn.textContent = '<svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>Uji Koneksi API Key</span>';
           alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
           alertBox.textContent = 'Galat koneksi: ' + err.message;
         })
@@ -5085,20 +5086,20 @@ Database::initDatabase();
       google.script.run
         .withSuccessHandler(function(res) {
           btn.disabled = false;
-          btn.textContent = '💾 Simpan Pengaturan';
+          btn.innerHTML = '<svg class="w-4 h-4 text-white inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Simpan Pengaturan</span>';
           if (res.success) {
             alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
-            alertBox.textContent = '✓ ' + res.message;
+            alertBox.textContent = res.message;
             document.getElementById('badgeModelName').textContent = model;
             appState.settings.modelName = model;
           } else {
             alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
-            alertBox.textContent = '✗ ' + res.message;
+            alertBox.textContent = res.message;
           }
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
-          btn.textContent = '💾 Simpan Pengaturan';
+          btn.innerHTML = '<svg class="w-4 h-4 text-white inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Simpan Pengaturan</span>';
           alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
           alertBox.textContent = 'Gagal menyimpan: ' + err.message;
         })
@@ -5122,7 +5123,7 @@ Database::initDatabase();
         const btn = document.getElementById('btnCopyUri');
         if (btn) {
           const original = btn.innerHTML;
-          btn.innerHTML = '✓ Disalin!';
+          btn.innerHTML = '<svg class="w-3.5 h-3.5 text-white inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Disalin!';
           setTimeout(() => { btn.innerHTML = original; }, 2000);
         }
       });
@@ -5146,7 +5147,7 @@ Database::initDatabase();
 
       if (status.isConnected) {
         if (badge) {
-          badge.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 flex items-center gap-1.5">✓ Terhubung: <strong class="font-bold">${status.email || 'Google Drive'}</strong></span>`;
+          badge.innerHTML = `<span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 flex items-center gap-1.5"><svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Terhubung: <strong class="font-bold">${status.email || 'Google Drive'}</strong></span></span>`;
         }
         if (btnConnect) btnConnect.classList.add('hidden');
         if (btnDisconnect) btnDisconnect.classList.remove('hidden');
@@ -5177,22 +5178,22 @@ Database::initDatabase();
         .withSuccessHandler(function(res) {
           if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<span>🔍</span> <span>Uji Akses Drive</span>';
+            btn.innerHTML = '<svg class="w-4 h-4 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> <span>Uji Akses Drive</span>';
           }
           if (alertBox) {
             alertBox.className = 'p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
-            alertBox.textContent = '✓ ' + res.message;
+            alertBox.textContent = res.message;
           }
           showGlobalAlert(res.message, 'success');
         })
         .withFailureHandler(function(err) {
           if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<span>🔍</span> <span>Uji Akses Drive</span>';
+            btn.innerHTML = '<svg class="w-4 h-4 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> <span>Uji Akses Drive</span>';
           }
           if (alertBox) {
             alertBox.className = 'p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
-            alertBox.textContent = '✗ ' + err.message;
+            alertBox.textContent = err.message;
           }
           showGlobalAlert(err.message, 'error');
         })
@@ -5285,7 +5286,7 @@ Database::initDatabase();
 
         if (alertBox) {
           alertBox.className = 'p-3 rounded-xl text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 block font-medium';
-          alertBox.textContent = '✓ Profil Anda berhasil diperbarui.';
+          alertBox.textContent = 'Profil Anda berhasil diperbarui.';
           setTimeout(() => alertBox.classList.add('hidden'), 4000);
         }
         showGlobalAlert('Profil berhasil diperbarui.', 'success');
@@ -5317,7 +5318,7 @@ Database::initDatabase();
         if (btn) btn.disabled = false;
         if (alertBox) {
           alertBox.className = 'p-3 rounded-xl text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 block font-medium';
-          alertBox.textContent = '✓ ' + (res.message || 'Kredensial Global Google OAuth berhasil disimpan.');
+          alertBox.textContent = (res.message || 'Kredensial Global Google OAuth berhasil disimpan.');
           setTimeout(() => alertBox.classList.add('hidden'), 4000);
         }
         showGlobalAlert('Kredensial Global Google OAuth berhasil disimpan.', 'success');
@@ -5397,11 +5398,11 @@ Database::initDatabase();
             : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700">Nonaktif</span>';
 
           const driveBadge = u.hasDriveConnected
-            ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 truncate max-w-[150px] inline-block" title="' + (u.google_connected_email || '') + '">✓ ' + (u.google_connected_email || 'Terhubung') + '</span>'
+            ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 truncate max-w-[150px]" title="' + (u.google_connected_email || '') + '"><svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>' + (u.google_connected_email || 'Terhubung') + '</span></span>'
             : '<span class="text-slate-400 text-[11px]">- Belum -</span>';
 
           const geminiBadge = u.hasApiKey
-            ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">✓ Siap (' + (u.model_name || 'flash-lite') + ')</span>'
+            ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200"><svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Siap (' + (u.model_name || 'flash-lite') + ')</span></span>'
             : '<span class="text-slate-400 text-[11px]">- Kosong -</span>';
 
           const userJson = encodeURIComponent(JSON.stringify(u));
@@ -5420,14 +5421,14 @@ Database::initDatabase();
               <td class="p-3 text-right space-x-1 whitespace-nowrap">
                 ${!isMe ? `
                 <button onclick="impersonateUser('${u.id_user}', '${escapeHtml(u.nama_lengkap || '')}')" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[11px] font-bold transition inline-flex items-center gap-1 shadow-2xs cursor-pointer" title="Masuk sebagai ${escapeHtml(u.nama_lengkap || '')} tanpa perlu kata sandi">
-                  <span>🔑</span> <span>Login As</span>
+                  <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg> <span>Login As</span>
                 </button>` : ''}
                 <button onclick="openEditUserModal('${userJson}')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition">
-                  ✏️ Edit
+                  Edit
                 </button>
                 ${!isMe ? `
-                <button onclick="confirmDeleteUser('${u.id_user}', '${escapeHtml(u.nama_lengkap || '')}')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold transition">
-                  🗑️
+                <button onclick="confirmDeleteUser('${u.id_user}', '${escapeHtml(u.nama_lengkap || '')}')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold transition" title="Hapus Pengguna">
+                  <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>` : ''}
               </td>
             </tr>
@@ -5589,7 +5590,7 @@ Database::initDatabase();
       }
 
       if (isAuto) {
-        showProgressLog('🔄 Menyinkronkan berkas tugas mahasiswa langsung dari folder Google Drive...');
+        showProgressLog('Menyinkronkan berkas tugas mahasiswa langsung dari folder Google Drive...');
       } else {
         showGlobalAlert('Sedang menyinkronkan berkas tugas dari Google Drive ke server...', 'info');
       }
@@ -5602,7 +5603,7 @@ Database::initDatabase();
         }
         showGlobalAlert(res.message, 'success');
         if (isAuto) {
-          showProgressLog('✅ ' + res.message);
+          showProgressLog('[SUKSES] ' + res.message);
         }
         loadGradingTable(taskId);
         return res;
@@ -5614,7 +5615,7 @@ Database::initDatabase();
         if (!isAuto) {
           showGlobalAlert('Gagal sinkronisasi Drive: ' + err.message, 'error');
         } else {
-          showProgressLog('⚠️ Sinkronisasi Drive otomatis gagal: ' + err.message);
+          showProgressLog('[GAGAL] Sinkronisasi Drive otomatis: ' + err.message);
         }
         throw err;
       }
@@ -5642,7 +5643,7 @@ Database::initDatabase();
         if (badgeEl) {
           badgeEl.innerHTML = `
             <span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-300 animate-pulse">
-              <span>✓</span> <span>${count} Berkas di Server</span>
+              <svg class="w-3 h-3 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> <span>${count} Berkas di Server</span>
             </span>
           `;
         }
@@ -5651,7 +5652,7 @@ Database::initDatabase();
         if (btnEl) {
           btnEl.disabled = false;
           btnEl.className = 'bg-emerald-50 border border-emerald-300 text-emerald-800 font-bold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs';
-          btnEl.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> <span>✓ ${count} Berkas Tersimpan</span>`;
+          btnEl.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> <span>${count} Berkas Tersimpan</span>`;
           setTimeout(() => {
             if (btnEl) {
               btnEl.className = 'bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 font-semibold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer';
@@ -5663,7 +5664,7 @@ Database::initDatabase();
         showGlobalAlert(res.message || `Berhasil menyinkronkan ${count} berkas dari Google Drive!`, 'success');
         
         // Modal feedback langsung agar dosen tahu pasti proses telah selesai
-        alert('✓ Sinkronisasi Drive Selesai!\n\n' + (res.message || `Berhasil mengunduh dan menyinkronkan berkas tugas mahasiswa.`) + '\n\nTotal Berkas di Server: ' + count + ' Berkas.');
+        alert('Sinkronisasi Drive Selesai!\n\n' + (res.message || `Berhasil mengunduh dan menyinkronkan berkas tugas mahasiswa.`) + '\n\nTotal Berkas di Server: ' + count + ' Berkas.');
 
         if (appState.activeCourseId) {
           switchTaskCourse(appState.activeCourseId);
@@ -5764,13 +5765,13 @@ Database::initDatabase();
         .withSuccessHandler(function(res) {
           if (btn) {
             btn.disabled = false;
-            btn.textContent = '🗑️ Reset / Mulai Bersih Database';
+            btn.textContent = '<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> <span>Reset / Mulai Bersih Database</span>';
           }
           showLoading(false);
           showGlobalAlert(res.message, 'success');
           if (alertBox) {
             alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
-            alertBox.textContent = '✓ ' + res.message;
+            alertBox.textContent = res.message;
             setTimeout(() => alertBox.classList.add('hidden'), 5000);
           }
           // Muat ulang seluruh data aplikasi
@@ -5779,7 +5780,7 @@ Database::initDatabase();
         .withFailureHandler(function(err) {
           if (btn) {
             btn.disabled = false;
-            btn.textContent = '🗑️ Reset / Mulai Bersih Database';
+            btn.textContent = '<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> <span>Reset / Mulai Bersih Database</span>';
           }
           showLoading(false);
           showGlobalAlert('Gagal mereset database: ' + err.message, 'error');
@@ -5801,13 +5802,13 @@ Database::initDatabase();
 
       if (type === 'error') {
         banner.className = 'mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm bg-rose-50 border border-rose-200 text-rose-800';
-        icon.textContent = '❌';
+        icon.innerHTML = '<svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
       } else if (type === 'success') {
         banner.className = 'mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm bg-emerald-50 border border-emerald-200 text-emerald-800';
-        icon.textContent = '✅';
+        icon.innerHTML = '<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
       } else {
         banner.className = 'mb-6 p-4 rounded-xl text-sm flex items-start justify-between shadow-sm bg-blue-50 border border-blue-200 text-blue-800';
-        icon.textContent = 'ℹ️';
+        icon.innerHTML = '<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
       }
 
       banner.classList.remove('hidden');
