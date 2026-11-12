@@ -421,6 +421,35 @@ Database::initDatabase();
         </div>
       </div>
 
+      <!-- Tasks Live Progress Panel (Sinkronisasi Drive) -->
+      <div id="tasksProgressPanel" class="hidden bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl shadow-lg border border-blue-800/40 space-y-3.5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center space-x-3">
+            <span class="spinner inline-block w-4 h-4 border-2 border-blue-400 border-t-white"></span>
+            <div>
+              <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                <span id="tasksProgressPanelTitle">Sinkronisasi Berkas Google Drive</span>
+              </h4>
+              <p class="text-xs text-blue-200/90 mt-0.5" id="tasksProgressPanelSubtitle">Menghubungkan ke Google Drive API...</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2.5">
+            <span id="tasksProgressPanelCounter" class="bg-blue-800/80 border border-blue-700/60 px-3 py-1 rounded-xl text-xs font-mono font-bold text-blue-200">0%</span>
+            <button type="button" onclick="closeTasksProgressPanel()" id="btnCloseTasksProgress" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition flex items-center gap-1 shadow-sm cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg> <span>Tutup</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Animated Progress Bar -->
+        <div class="w-full bg-slate-800/90 h-3 rounded-full overflow-hidden p-0.5 border border-blue-700/40">
+          <div id="tasksProgressBarFill" class="bg-gradient-to-r from-blue-400 via-sky-300 to-emerald-400 h-full rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+        </div>
+
+        <!-- Live Log Box -->
+        <div id="tasksProgressBox" class="bg-slate-950/90 text-sky-300 p-3 rounded-xl font-mono text-[11px] max-h-32 overflow-y-auto border border-blue-900/60 space-y-1"></div>
+      </div>
+
       <!-- Grid Cards Tugas -->
       <div id="tasksGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <!-- Rendered via JS -->
@@ -584,8 +613,11 @@ Database::initDatabase();
             </div>
             <div class="flex items-center space-x-2.5">
               <span id="progressPanelCounter" class="bg-blue-800/80 border border-blue-700/60 px-3 py-1 rounded-xl text-xs font-mono font-bold text-blue-200">0 / 0 (0%)</span>
-              <button type="button" onclick="abortGradingQueue()" id="btnAbortGrading" class="px-3 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white font-semibold rounded-xl text-xs transition flex items-center gap-1 shadow-sm">
+              <button type="button" onclick="abortGradingQueue()" id="btnAbortGrading" class="px-3 py-1.5 bg-rose-500/80 hover:bg-rose-600 text-white font-semibold rounded-xl text-xs transition flex items-center gap-1 shadow-sm cursor-pointer">
                 <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 5h10v10H5V5z" clip-rule="evenodd"/></svg> <span>Hentikan</span>
+              </button>
+              <button type="button" onclick="closeGradingProgressPanel()" id="btnCloseGradingProgress" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition flex items-center gap-1 shadow-sm cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg> <span>Tutup</span>
               </button>
             </div>
           </div>
@@ -3310,11 +3342,16 @@ Database::initDatabase();
       document.getElementById('progressPanelSubtitle').textContent = 'Mempersiapkan antrean ' + queueItems.length + ' mahasiswa...';
       document.getElementById('gradingProgressBox').innerHTML = '';
 
+      const btnAbort = document.getElementById('btnAbortGrading');
+      const btnClose = document.getElementById('btnCloseGradingProgress');
+      if (btnAbort) btnAbort.classList.remove('hidden');
+      if (btnClose) btnClose.classList.add('hidden');
+
       document.getElementById('btnGradeSelected').disabled = true;
       document.getElementById('btnGradeAll').disabled = true;
 
       updateGradingProgressUI();
-      showProgressLog('▶️ Memulai antrean penilaian: ' + queueItems.length + ' mahasiswa akan dinilai secara otomatis.');
+      showProgressLog('Memulai antrean penilaian: ' + queueItems.length + ' mahasiswa akan dinilai secara otomatis.');
 
       processNextQueueItem();
     }
@@ -3618,14 +3655,24 @@ Database::initDatabase();
         .apiResetFailedGrades(taskId, appState.activeClassId);
     }
 
-    function showProgressLog(msg) {
-      const box = document.getElementById('gradingProgressBox');
+    function showProgressLog(msg, boxId = 'gradingProgressBox') {
+      const box = document.getElementById(boxId);
       if (!box) return;
       const p = document.createElement('p');
       p.className = 'leading-relaxed break-words';
       p.textContent = '[' + new Date().toLocaleTimeString('id-ID') + '] ' + msg;
       box.appendChild(p);
       box.scrollTop = box.scrollHeight;
+    }
+
+    function closeGradingProgressPanel() {
+      const panel = document.getElementById('gradingProgressPanel');
+      if (panel) panel.classList.add('hidden');
+    }
+
+    function closeTasksProgressPanel() {
+      const panel = document.getElementById('tasksProgressPanel');
+      if (panel) panel.classList.add('hidden');
     }
 
     // ==========================================
@@ -4755,6 +4802,9 @@ Database::initDatabase();
       if (!classId) {
         return alert('Pilih kelas terlebih dahulu.');
       }
+      if (gradingQueue.isRunning) {
+        return alert('Penilaian sedang berlangsung. Harap tunggu hingga selesai.');
+      }
 
       const btn = document.getElementById('btnIntegrityCheck');
       const originalText = btn ? btn.innerHTML : '';
@@ -4763,36 +4813,106 @@ Database::initDatabase();
         btn.innerHTML = '<span class="spinner inline-block w-3.5 h-3.5 border-2 border-rose-600 border-t-white"></span> <span>Memindai...</span>';
       }
 
-      showGlobalAlert('Memindai seluruh berkas tugas kelas untuk mendeteksi plagiarisme dan residu bot AI...', 'info');
+      // Tampilkan progress panel dengan tampilan seragam seperti penilaian
+      const panel = document.getElementById('gradingProgressPanel');
+      const titleEl = document.getElementById('progressPanelTitle');
+      const subEl = document.getElementById('progressPanelSubtitle');
+      const counterEl = document.getElementById('progressPanelCounter');
+      const barFill = document.getElementById('progressBarFill');
+      const box = document.getElementById('gradingProgressBox');
+      const btnAbort = document.getElementById('btnAbortGrading');
+      const btnClose = document.getElementById('btnCloseGradingProgress');
+      const completionBanner = document.getElementById('gradingCompletionBanner');
+
+      if (completionBanner) completionBanner.classList.add('hidden');
+      if (panel) panel.classList.remove('hidden');
+      if (btnAbort) btnAbort.classList.add('hidden');
+      if (btnClose) btnClose.classList.add('hidden');
+      if (box) box.innerHTML = '';
+
+      const task = appState.currentTasks.find(t => t.id_tugas === taskId);
+      const taskName = task ? task.judul_tugas : 'Tugas';
+      const studentsCount = appState.currentStudents ? appState.currentStudents.length : 0;
+
+      if (titleEl) titleEl.textContent = 'Pemeriksaan Integritas Akademik: ' + taskName;
+      if (subEl) subEl.textContent = 'Mempersiapkan analisis berkas tugas seluruh mahasiswa (' + studentsCount + ' mhs)...';
+      if (counterEl) counterEl.textContent = '10%';
+      if (barFill) barFill.style.width = '10%';
+
+      showProgressLog('Memulai pemindaian integritas akademik untuk tugas "' + taskName + '" (' + studentsCount + ' mahasiswa)...');
+      showProgressLog('[TAHAP 1/4] Mengakses repositori berkas jawaban mahasiswa di server...');
+
+      const stepTimer1 = setTimeout(() => {
+        if (subEl) subEl.textContent = 'Mengekstrak teks dokumen mahasiswa (PDF, DOCX, Google Docs)...';
+        if (counterEl) counterEl.textContent = '40%';
+        if (barFill) barFill.style.width = '40%';
+        showProgressLog('[TAHAP 2/4] Mengekstrak teks dokumen dan menganalisis struktur jawaban setiap mahasiswa...');
+      }, 500);
+
+      const stepTimer2 = setTimeout(() => {
+        if (subEl) subEl.textContent = 'Memindai residu bot AI & menghitung kesamaan kalimat antar mahasiswa...';
+        if (counterEl) counterEl.textContent = '75%';
+        if (barFill) barFill.style.width = '75%';
+        showProgressLog('[TAHAP 3/4] Memindai pola residu chatbot AI dan menghitung matriks kemiripan n-gram/Jaccard...');
+      }, 1200);
 
       google.script.run
         .withSuccessHandler(function(res) {
+          clearTimeout(stepTimer1);
+          clearTimeout(stepTimer2);
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = originalText;
           }
 
           if (!res || !res.success) {
-            showGlobalAlert('Gagal menjalankan analisis integritas: ' + ((res && res.message) || 'Kesalahan sistem'), 'error');
+            if (barFill) barFill.style.width = '100%';
+            if (counterEl) counterEl.textContent = 'Gagal';
+            if (subEl) subEl.textContent = 'Gagal: ' + ((res && res.message) || 'Kesalahan sistem saat analisis integritas.');
+            showProgressLog('[GAGAL] ' + ((res && res.message) || 'Kesalahan sistem'));
+            if (btnClose) btnClose.classList.remove('hidden');
             return;
           }
 
           lastIntegrityReportData = res;
-          showGlobalAlert(res.message || 'Analisis integritas selesai.', 'success');
+          const stats = res.stats || {};
+          const totalWithFiles = stats.totalWithFiles || 0;
+          const aiCount = stats.aiDetectedCount || 0;
+          const highPlag = stats.highPlagiarismCount || 0;
+          const cleanCount = stats.cleanCount || 0;
+
+          if (barFill) barFill.style.width = '100%';
+          if (counterEl) counterEl.textContent = '100%';
+          if (subEl) subEl.textContent = 'Analisis integritas selesai: ' + totalWithFiles + ' berkas diperiksa!';
+
+          showProgressLog('[TAHAP 4/4] Memperbarui status integritas di database...');
+          showProgressLog('[HASIL] Berkas diperiksa: ' + totalWithFiles + ' berkas | Residu AI: ' + aiCount + ' mhs | Plagiasi Kritis (>=70%): ' + highPlag + ' mhs | Kemiripan Wajar: ' + cleanCount + ' mhs.');
+          showProgressLog('[SUKSES] Laporan integritas siap ditampilkan.');
+
+          playSuccessChime();
 
           // Muat ulang tabel penilaian agar badge terbaru tampil
           loadGradingTable(taskId);
 
-          // Tampilkan modal hasil integritas
-          renderIntegrityReportModal(res);
-          openModal('integrityReportModal');
+          if (btnClose) btnClose.classList.remove('hidden');
+
+          setTimeout(() => {
+            renderIntegrityReportModal(res);
+            openModal('integrityReportModal');
+          }, 1100);
         })
         .withFailureHandler(function(err) {
+          clearTimeout(stepTimer1);
+          clearTimeout(stepTimer2);
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = originalText;
           }
-          showGlobalAlert('Gagal memeriksa integritas: ' + err.message, 'error');
+          if (barFill) barFill.style.width = '100%';
+          if (counterEl) counterEl.textContent = 'Error';
+          if (subEl) subEl.textContent = 'Galat: ' + err.message;
+          showProgressLog('[ERROR] ' + err.message);
+          if (btnClose) btnClose.classList.remove('hidden');
         })
         .apiCheckTaskIntegrity(taskId, classId);
     }
@@ -5589,30 +5709,104 @@ Database::initDatabase();
         btn.innerHTML = '<span class="spinner inline-block w-3 h-3 border-2 border-sky-600 border-t-white mr-1"></span> Menyinkronkan...';
       }
 
+      const task = appState.currentTasks.find(t => t.id_tugas === taskId);
+      const taskTitle = task ? task.judul_tugas : 'Tugas';
+      const activeClass = appState.classes.find(c => c.id_kelas === classId);
+      const className = activeClass ? activeClass.nama_kelas : 'Kelas';
+
+      // Elemen progress panel jika dipanggil secara manual
+      let stepTimer1 = null;
+      let stepTimer2 = null;
+      let panel = null, titleEl = null, subEl = null, counterEl = null, barFill = null, btnAbort = null, btnClose = null;
+
       if (isAuto) {
         showProgressLog('Menyinkronkan berkas tugas mahasiswa langsung dari folder Google Drive...');
       } else {
+        panel = document.getElementById('gradingProgressPanel');
+        titleEl = document.getElementById('progressPanelTitle');
+        subEl = document.getElementById('progressPanelSubtitle');
+        counterEl = document.getElementById('progressPanelCounter');
+        barFill = document.getElementById('progressBarFill');
+        const box = document.getElementById('gradingProgressBox');
+        btnAbort = document.getElementById('btnAbortGrading');
+        btnClose = document.getElementById('btnCloseGradingProgress');
+        const completionBanner = document.getElementById('gradingCompletionBanner');
+
+        if (completionBanner) completionBanner.classList.add('hidden');
+        if (panel) panel.classList.remove('hidden');
+        if (btnAbort) btnAbort.classList.add('hidden');
+        if (btnClose) btnClose.classList.add('hidden');
+        if (box) box.innerHTML = '';
+
+        if (titleEl) titleEl.textContent = 'Sinkronisasi Berkas Google Drive: ' + taskTitle;
+        if (subEl) subEl.textContent = 'Menghubungi Google Drive API untuk kelas ' + className + '...';
+        if (counterEl) counterEl.textContent = '15%';
+        if (barFill) barFill.style.width = '15%';
+
+        showProgressLog('Memulai sinkronisasi Google Drive untuk tugas "' + taskTitle + '" (Kelas: ' + className + ')...');
+        showProgressLog('[TAHAP 1/3] Memvalidasi kredensial Google OAuth 2.0 dan folder tugas...');
+
+        stepTimer1 = setTimeout(() => {
+          if (subEl) subEl.textContent = 'Memindai daftar berkas mahasiswa di folder Google Drive...';
+          if (counterEl) counterEl.textContent = '50%';
+          if (barFill) barFill.style.width = '50%';
+          showProgressLog('[TAHAP 2/3] Memindai berkas mahasiswa di Google Drive...');
+        }, 500);
+
+        stepTimer2 = setTimeout(() => {
+          if (subEl) subEl.textContent = 'Mengunduh berkas baru dan membersihkan berkas yang telah dihapus di Drive...';
+          if (counterEl) counterEl.textContent = '80%';
+          if (barFill) barFill.style.width = '80%';
+          showProgressLog('[TAHAP 3/3] Mengunduh berkas tugas dan menyinkronkan repositori lokal server...');
+        }, 1200);
+
         showGlobalAlert('Sedang menyinkronkan berkas tugas dari Google Drive ke server...', 'info');
       }
 
       try {
         const res = await AppAPI.syncTaskDriveFolder(taskId, classId, '');
+        if (stepTimer1) clearTimeout(stepTimer1);
+        if (stepTimer2) clearTimeout(stepTimer2);
+
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = originalText;
         }
-        showGlobalAlert(res.message, 'success');
-        if (isAuto) {
+
+        const count = (typeof res.syncedCount !== 'undefined') ? res.syncedCount : (res.totalInDrive || 0);
+
+        if (!isAuto) {
+          if (barFill) barFill.style.width = '100%';
+          if (counterEl) counterEl.textContent = '100%';
+          if (subEl) subEl.textContent = 'Sinkronisasi selesai: ' + count + ' berkas aktif di server.';
+          showProgressLog('[HASIL] Berkas di Drive: ' + (res.totalInDrive || 0) + ' | Berkas aktif di server: ' + count + '.');
+          if (res.deletedCount && res.deletedCount > 0) {
+            showProgressLog('[BERSIHKAN] ' + res.deletedCount + ' berkas yang dihapus di Drive berhasil dibersihkan dari server.');
+          }
+          showProgressLog('[SUKSES] ' + (res.message || 'Sinkronisasi berkas Google Drive berhasil diselesaikan.'));
+          playSuccessChime();
+          if (btnClose) btnClose.classList.remove('hidden');
+        } else {
           showProgressLog('[SUKSES] ' + res.message);
         }
+
+        showGlobalAlert(res.message, 'success');
         loadGradingTable(taskId);
         return res;
       } catch (err) {
+        if (stepTimer1) clearTimeout(stepTimer1);
+        if (stepTimer2) clearTimeout(stepTimer2);
+
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = originalText;
         }
         if (!isAuto) {
+          if (barFill) barFill.style.width = '100%';
+          if (counterEl) counterEl.textContent = 'Error';
+          if (subEl) subEl.textContent = 'Galat: ' + err.message;
+          showProgressLog('[ERROR] Gagal sinkronisasi Drive: ' + err.message);
+          if (btnClose) btnClose.classList.remove('hidden');
           showGlobalAlert('Gagal sinkronisasi Drive: ' + err.message, 'error');
         } else {
           showProgressLog('[GAGAL] Sinkronisasi Drive otomatis: ' + err.message);
@@ -5627,6 +5821,44 @@ Database::initDatabase();
       const taskTitle = task ? task.judul_tugas : 'Tugas';
       const originalHtml = btnEl ? btnEl.innerHTML : '';
 
+      // Tampilkan tasksProgressPanel di atas grid kartu tugas
+      const panel = document.getElementById('tasksProgressPanel');
+      const titleEl = document.getElementById('tasksProgressPanelTitle');
+      const subEl = document.getElementById('tasksProgressPanelSubtitle');
+      const counterEl = document.getElementById('tasksProgressPanelCounter');
+      const barFill = document.getElementById('tasksProgressBarFill');
+      const box = document.getElementById('tasksProgressBox');
+      const btnClose = document.getElementById('btnCloseTasksProgress');
+
+      if (panel) {
+        panel.classList.remove('hidden');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      if (btnClose) btnClose.classList.add('hidden');
+      if (box) box.innerHTML = '';
+
+      if (titleEl) titleEl.textContent = 'Sinkronisasi Berkas Google Drive: ' + taskTitle;
+      if (subEl) subEl.textContent = 'Menghubungi Google Drive API untuk seluruh kelas...';
+      if (counterEl) counterEl.textContent = '15%';
+      if (barFill) barFill.style.width = '15%';
+
+      showProgressLog('Memulai sinkronisasi Google Drive untuk tugas "' + taskTitle + '" (seluruh kelas)...', 'tasksProgressBox');
+      showProgressLog('[TAHAP 1/3] Memvalidasi kredensial Google OAuth 2.0 dan folder tugas...', 'tasksProgressBox');
+
+      const stepTimer1 = setTimeout(() => {
+        if (subEl) subEl.textContent = 'Memindai daftar berkas mahasiswa di folder Google Drive...';
+        if (counterEl) counterEl.textContent = '50%';
+        if (barFill) barFill.style.width = '50%';
+        showProgressLog('[TAHAP 2/3] Memindai berkas mahasiswa di Google Drive...', 'tasksProgressBox');
+      }, 500);
+
+      const stepTimer2 = setTimeout(() => {
+        if (subEl) subEl.textContent = 'Mengunduh berkas baru dan membersihkan berkas yang telah dihapus di Drive...';
+        if (counterEl) counterEl.textContent = '80%';
+        if (barFill) barFill.style.width = '80%';
+        showProgressLog('[TAHAP 3/3] Mengunduh berkas tugas dan membersihkan repositori server...', 'tasksProgressBox');
+      }, 1200);
+
       if (btnEl) {
         btnEl.disabled = true;
         btnEl.className = 'bg-sky-100 border border-sky-300 text-sky-800 font-semibold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs';
@@ -5636,7 +5868,23 @@ Database::initDatabase();
 
       try {
         const res = await AppAPI.syncTaskDriveFolder(taskId, '');
+        clearTimeout(stepTimer1);
+        clearTimeout(stepTimer2);
+
         const count = (typeof res.syncedCount !== 'undefined') ? res.syncedCount : (res.totalInDrive || 0);
+
+        if (barFill) barFill.style.width = '100%';
+        if (counterEl) counterEl.textContent = '100%';
+        if (subEl) subEl.textContent = 'Sinkronisasi selesai: ' + count + ' berkas aktif di server.';
+
+        showProgressLog('[HASIL] Berkas di Drive: ' + (res.totalInDrive || 0) + ' | Berkas aktif di server: ' + count + '.', 'tasksProgressBox');
+        if (res.deletedCount && res.deletedCount > 0) {
+          showProgressLog('[BERSIHKAN] ' + res.deletedCount + ' berkas yang dihapus di Drive berhasil dibersihkan dari server.', 'tasksProgressBox');
+        }
+        showProgressLog('[SUKSES] ' + (res.message || 'Sinkronisasi berkas Google Drive berhasil diselesaikan.'), 'tasksProgressBox');
+        playSuccessChime();
+
+        if (btnClose) btnClose.classList.remove('hidden');
 
         // Update badge berkas pada kartu tugas secara instan
         const badgeEl = document.getElementById('cardSubmissionsBadge_' + taskId);
@@ -5662,9 +5910,6 @@ Database::initDatabase();
         }
 
         showGlobalAlert(res.message || `Berhasil menyinkronkan ${count} berkas dari Google Drive!`, 'success');
-        
-        // Modal feedback langsung agar dosen tahu pasti proses telah selesai
-        alert('Sinkronisasi Drive Selesai!\n\n' + (res.message || `Berhasil mengunduh dan menyinkronkan berkas tugas mahasiswa.`) + '\n\nTotal Berkas di Server: ' + count + ' Berkas.');
 
         if (appState.activeCourseId) {
           switchTaskCourse(appState.activeCourseId);
@@ -5673,13 +5918,21 @@ Database::initDatabase();
           loadGradingTable(taskId);
         }
       } catch (err) {
+        clearTimeout(stepTimer1);
+        clearTimeout(stepTimer2);
+
+        if (barFill) barFill.style.width = '100%';
+        if (counterEl) counterEl.textContent = 'Error';
+        if (subEl) subEl.textContent = 'Galat: ' + err.message;
+        showProgressLog('[ERROR] Gagal sinkronisasi Drive: ' + err.message, 'tasksProgressBox');
+        if (btnClose) btnClose.classList.remove('hidden');
+
         if (btnEl) {
           btnEl.disabled = false;
           btnEl.className = 'bg-rose-50 border border-rose-200 text-rose-700 font-semibold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs';
           btnEl.innerHTML = originalHtml;
         }
         showGlobalAlert('Gagal menyinkronkan tugas dari Drive: ' + err.message, 'error');
-        alert('Gagal Sinkronisasi Drive: ' + err.message);
       }
     }
 
