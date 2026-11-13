@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "commit": "251b34bc402a5752754e30cf14828cce0a0f8a6c",
+  "short_commit": "251b34b",
+  "message": "fix(integrity): resolve false positive 100% plagiarism with PDF ToUnicode CMap decoding and template filtering",
+  "author": "Suhadi Parman",
+  "deployed_at": "2026-11-13 17:00:00"
+}

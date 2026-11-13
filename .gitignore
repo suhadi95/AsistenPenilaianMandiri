@@ -9,6 +9,11 @@ uploads/*
 !uploads/.gitkeep
 !uploads/.htaccess
 
+# Cadangan Sistem & Snapshot Basis Data
+backups/*
+!backups/.gitkeep
+!backups/.htaccess
+
 # Node & Tooling Lama
 node_modules/
 .clasprc.json

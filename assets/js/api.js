@@ -163,6 +163,27 @@ const AppAPI = {
 
   async adminSaveGlobalOAuth(clientId, clientSecret) {
     return this.call('adminSaveGlobalOAuth', { clientId, clientSecret });
+  },
+
+  // Pembaruan & Deployment Otomatis (Khusus Admin)
+  async getUpdateStatus() {
+    return this.call('getUpdateStatus');
+  },
+
+  async deployUpdate() {
+    return this.call('deployUpdate');
+  },
+
+  async runDatabaseMigrations() {
+    return this.call('runDatabaseMigrations');
+  },
+
+  async backupDatabase() {
+    return this.call('backupDatabase');
+  },
+
+  async saveUpdateSettings(payload) {
+    return this.call('saveUpdateSettings', payload);
   }
 };
 

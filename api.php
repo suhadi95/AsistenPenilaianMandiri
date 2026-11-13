@@ -17,6 +17,7 @@ require_once __DIR__ . '/services/GradingService.php';
 require_once __DIR__ . '/services/IntegrityService.php';
 require_once __DIR__ . '/services/GoogleDriveService.php';
 require_once __DIR__ . '/services/UserService.php';
+require_once __DIR__ . '/services/UpdateService.php';
 
 // Pastikan sesi & database terinisialisasi
 UserService::startSession();
@@ -462,6 +463,48 @@ try {
             UserService::requireAdmin();
             $resetRes = Database::resetDatabase();
             Helper::json($resetRes);
+            break;
+
+        // ==========================================
+        // PEMBARUAN & DEPLOYMENT SISTEM (KHUSUS ADMIN)
+        // ==========================================
+        case 'getUpdateStatus':
+            UserService::requireAdmin();
+            $status = UpdateService::getStatus();
+            Helper::json($status);
+            break;
+
+        case 'saveUpdateSettings':
+            UserService::requireAdmin();
+            $saveRes = UpdateService::saveConfig($input);
+            Helper::json($saveRes);
+            break;
+
+        case 'deployUpdate':
+            UserService::requireAdmin();
+            $deployRes = UpdateService::deployUpdate();
+            Helper::json($deployRes);
+            break;
+
+        case 'runDatabaseMigrations':
+            UserService::requireAdmin();
+            $mRes = Database::executePendingMigrations();
+            $sLogs = Database::syncSchemaSafetyCheck();
+            $combinedLogs = array_merge($mRes['logs'] ?? [], array_map(fn($l) => "➕ " . $l, $sLogs));
+            Helper::json([
+                'success' => true,
+                'count'   => $mRes['count'] ?? 0,
+                'logs'    => $combinedLogs,
+                'message' => ($mRes['count'] > 0) 
+                    ? "Berhasil mengeksekusi {$mRes['count']} berkas migrasi database." 
+                    : "Skema database sudah mutakhir."
+            ]);
+            break;
+
+        case 'backupDatabase':
+            UserService::requireAdmin();
+            $backupRes = Database::backupDatabase();
+            Helper::json($backupRes);
             break;
 
         // ==========================================

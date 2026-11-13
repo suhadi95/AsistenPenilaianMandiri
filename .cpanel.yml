@@ -4,8 +4,8 @@ deployment:
     - export DEPLOYPATH=/home/suhadipc/public_html/web_apm/public
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/mkdir -p $DEPLOYPATH/uploads
-    - /bin/cp -R assets core services $DEPLOYPATH/
-    - /bin/cp api.php oauth_callback.php config.example.php database.sql index.php install.php README.md $DEPLOYPATH/
+    - /bin/cp -R assets core services database $DEPLOYPATH/
+    - /bin/cp api.php oauth_callback.php config.example.php database.sql index.php install.php README.md version.json $DEPLOYPATH/
     - /bin/cp .htaccess $DEPLOYPATH/.htaccess
     - /bin/chmod 755 $DEPLOYPATH
     - /bin/chmod 755 $DEPLOYPATH/assets $DEPLOYPATH/core $DEPLOYPATH/services $DEPLOYPATH/uploads

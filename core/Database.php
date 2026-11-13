@@ -353,6 +353,360 @@ class Database {
         } catch (Exception $e) {
             error_log("Credential isolation migration error: " . $e->getMessage());
         }
+
+        // 6. Jalankan migrasi terstruktur dari folder database/migrations
+        try {
+            self::executePendingMigrations();
+        } catch (Exception $e) {
+            error_log("Structured migration error: " . $e->getMessage());
+        }
+
+        // 7. Pemeriksaan pengaman struktur skema otomatis
+        try {
+            self::syncSchemaSafetyCheck();
+        } catch (Exception $e) {
+            error_log("Schema safety sync error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Memastikan tabel migrations sudah tercipta
+     */
+    public static function ensureMigrationsTable(): void {
+        $pdo = self::getConnection();
+        $config = self::loadConfig();
+        $driver = strtolower($config['db_driver'] ?? 'sqlite');
+
+        if ($driver === 'mysql') {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS migrations (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                migration VARCHAR(255) NOT NULL UNIQUE,
+                batch INT NOT NULL DEFAULT 1,
+                executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } else {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS migrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                migration VARCHAR(255) NOT NULL UNIQUE,
+                batch INTEGER NOT NULL DEFAULT 1,
+                executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+        }
+    }
+
+    /**
+     * Mengambil daftar nama file migrasi yang telah dieksekusi
+     */
+    public static function getExecutedMigrations(): array {
+        self::ensureMigrationsTable();
+        $rows = self::fetchAll("SELECT migration FROM migrations ORDER BY id ASC");
+        return array_column($rows, 'migration');
+    }
+
+    /**
+     * Mengambil daftar file migrasi yang belum dieksekusi
+     */
+    public static function getPendingMigrations(): array {
+        $migrationsDir = __DIR__ . '/../database/migrations';
+        if (!is_dir($migrationsDir)) {
+            return [];
+        }
+
+        $executed = self::getExecutedMigrations();
+        $files = scandir($migrationsDir);
+        $pending = [];
+
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..' || !str_ends_with($file, '.php')) {
+                continue;
+            }
+            $migrationName = pathinfo($file, PATHINFO_FILENAME);
+            if (!in_array($migrationName, $executed, true)) {
+                $pending[] = [
+                    'file' => $file,
+                    'name' => $migrationName,
+                    'path' => $migrationsDir . '/' . $file
+                ];
+            }
+        }
+
+        usort($pending, fn($a, $b) => strcmp($a['name'], $b['name']));
+        return $pending;
+    }
+
+    /**
+     * Mengeksekusi seluruh migrasi yang tertunda
+     */
+    public static function executePendingMigrations(): array {
+        self::ensureMigrationsTable();
+        $pending = self::getPendingMigrations();
+        if (empty($pending)) {
+            return [
+                'count' => 0,
+                'logs'  => ['Skema basis data sudah mutakhir. Tidak ada migrasi tertunda.']
+            ];
+        }
+
+        $pdo = self::getConnection();
+        $config = self::loadConfig();
+        $driver = strtolower($config['db_driver'] ?? 'sqlite');
+
+        // Tentukan batch migrasi berikutnya
+        $latestBatchRow = self::fetchOne("SELECT MAX(batch) as max_batch FROM migrations");
+        $nextBatch = ((int)($latestBatchRow['max_batch'] ?? 0)) + 1;
+
+        $logs = [];
+        $count = 0;
+
+        foreach ($pending as $item) {
+            $migrationClass = require_once $item['path'];
+            if (is_object($migrationClass) && method_exists($migrationClass, 'up')) {
+                try {
+                    $migrationClass->up($pdo, $driver);
+                    self::execute(
+                        "INSERT INTO migrations (migration, batch, executed_at) VALUES (?, ?, ?)",
+                        [$item['name'], $nextBatch, date('Y-m-d H:i:s')]
+                    );
+                    $logs[] = "✅ Migrasi [{$item['name']}] berhasil dieksekusi.";
+                    $count++;
+                } catch (Exception $e) {
+                    $logs[] = "❌ Gagal migrasi [{$item['name']}]: " . $e->getMessage();
+                    throw new Exception("Migrasi {$item['name']} terhenti: " . $e->getMessage());
+                }
+            } else {
+                $logs[] = "⚠️ File migrasi [{$item['file']}] tidak mengembalikan objek migrasi yang valid.";
+            }
+        }
+
+        return [
+            'count' => $count,
+            'logs'  => $logs
+        ];
+    }
+
+    /**
+     * Memindai integritas skema tabel dan kolom secara otomatis (Safety Net)
+     * Menambahkan kolom yang terdefinisi pada database.sql jika belum ada di tabel aktif
+     */
+    public static function syncSchemaSafetyCheck(): array {
+        $pdo = self::getConnection();
+        $config = self::loadConfig();
+        $driver = strtolower($config['db_driver'] ?? 'sqlite');
+        $logs = [];
+
+        // Definisi skema tabel & kolom yang wajib ada
+        $expectedColumns = [
+            'users' => [
+                'id_user'                => 'VARCHAR(64)',
+                'nama'                   => 'VARCHAR(255)',
+                'email'                  => 'VARCHAR(255)',
+                'password_hash'          => 'VARCHAR(255)',
+                'role'                   => 'VARCHAR(32)',
+                'status'                 => 'VARCHAR(32)',
+                'gemini_api_key'         => 'TEXT NULL',
+                'model_name'             => 'VARCHAR(64)',
+                'google_access_token'    => 'TEXT NULL',
+                'google_refresh_token'   => 'TEXT NULL',
+                'google_token_expires_at'=> 'INT DEFAULT 0',
+                'google_connected_email' => 'VARCHAR(255) NULL',
+                'last_login_at'          => 'DATETIME NULL',
+                'created_at'             => 'DATETIME DEFAULT CURRENT_TIMESTAMP'
+            ],
+            'courses' => [
+                'id_mata_kuliah'   => 'VARCHAR(64)',
+                'id_user'          => 'VARCHAR(64) NULL',
+                'kode_mk'          => 'VARCHAR(32)',
+                'nama_mata_kuliah' => 'VARCHAR(255)',
+                'semester'         => 'VARCHAR(64)',
+                'created_at'       => 'DATETIME DEFAULT CURRENT_TIMESTAMP'
+            ],
+            'tasks' => [
+                'id_tugas'         => 'VARCHAR(64)',
+                'id_mata_kuliah'   => 'VARCHAR(64)',
+                'judul_tugas'      => 'VARCHAR(255)',
+                'deskripsi'        => 'TEXT NULL',
+                'task_file_ref'    => 'TEXT NULL',
+                'drive_folder_id'  => 'VARCHAR(255) DEFAULT \'\'',
+                'rubrik_text'      => 'MEDIUMTEXT NULL',
+                'bobot_persentase' => 'DECIMAL(5,2) DEFAULT 0',
+                'created_at'       => 'DATETIME DEFAULT CURRENT_TIMESTAMP'
+            ],
+            'grades' => [
+                'id_nilai'              => 'VARCHAR(64)',
+                'id_tugas'              => 'VARCHAR(64)',
+                'id_kelas'              => 'VARCHAR(64)',
+                'nim'                   => 'VARCHAR(64)',
+                'nama_mahasiswa'        => 'VARCHAR(255)',
+                'file_name'             => 'VARCHAR(255) DEFAULT \'\'',
+                'drive_file_url'        => 'TEXT NULL',
+                'nilai_total'           => 'DECIMAL(5,2) NULL',
+                'rincian_poin'          => 'MEDIUMTEXT NULL',
+                'catatan_ai'            => 'MEDIUMTEXT NULL',
+                'similarity_score'      => 'DECIMAL(5,2) NULL',
+                'similarity_target_nim' => 'VARCHAR(64) NULL',
+                'similarity_details'    => 'MEDIUMTEXT NULL',
+                'ai_detected'           => 'INT DEFAULT 0',
+                'ai_detected_details'   => 'MEDIUMTEXT NULL',
+                'status'                => 'VARCHAR(255) DEFAULT \'Belum Dinilai\'',
+                'waktu_penilaian'       => 'VARCHAR(64) DEFAULT \'\'',
+                'created_at'            => 'DATETIME DEFAULT CURRENT_TIMESTAMP'
+            ],
+            'settings' => [
+                'setting_key'   => 'VARCHAR(128)',
+                'setting_value' => 'MEDIUMTEXT NULL',
+                'updated_at'    => 'DATETIME DEFAULT CURRENT_TIMESTAMP'
+            ]
+        ];
+
+        foreach ($expectedColumns as $tableName => $cols) {
+            // Periksa apakah tabel ada
+            $tableExists = false;
+            try {
+                if ($driver === 'mysql') {
+                    $chk = $pdo->query("SHOW TABLES LIKE '{$tableName}'")->fetch();
+                    $tableExists = !empty($chk);
+                } else {
+                    $chk = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='{$tableName}'")->fetch();
+                    $tableExists = !empty($chk);
+                }
+            } catch (Exception $e) {
+                $tableExists = false;
+            }
+
+            if (!$tableExists) {
+                continue;
+            }
+
+            // Ambil kolom yang sudah ada
+            $existingCols = [];
+            try {
+                if ($driver === 'mysql') {
+                    $cRows = $pdo->query("SHOW COLUMNS FROM `{$tableName}`")->fetchAll(PDO::FETCH_ASSOC);
+                    $existingCols = array_column($cRows, 'Field');
+                } else {
+                    $cRows = $pdo->query("PRAGMA table_info(`{$tableName}`)")->fetchAll(PDO::FETCH_ASSOC);
+                    $existingCols = array_column($cRows, 'name');
+                }
+            } catch (Exception $e) {
+                continue;
+            }
+
+            // Cari kolom yang belum ada dan tambahkan secara aman
+            foreach ($cols as $colName => $colType) {
+                if (!in_array($colName, $existingCols, true)) {
+                    try {
+                        $pdo->exec("ALTER TABLE `{$tableName}` ADD COLUMN `{$colName}` {$colType}");
+                        $logs[] = "Menambahkan kolom [{$colName}] ke tabel [{$tableName}].";
+                    } catch (Exception $e) {
+                        // Abaikan jika tidak didukung atau sudah ada
+                    }
+                }
+            }
+        }
+
+        return $logs;
+    }
+
+    /**
+     * Membuat cadangan (backup) basis data ke folder backups/
+     */
+    public static function backupDatabase(): array {
+        $backupDir = __DIR__ . '/../backups';
+        if (!is_dir($backupDir)) {
+            @mkdir($backupDir, 0755, true);
+        }
+
+        // Amankan folder backup dengan .htaccess
+        $htaccess = $backupDir . '/.htaccess';
+        if (!file_exists($htaccess)) {
+            @file_put_contents($htaccess, "Order Deny,Allow\nDeny from all\n");
+        }
+
+        $config = self::loadConfig();
+        $driver = strtolower($config['db_driver'] ?? 'sqlite');
+        $timestamp = date('Ymd_His');
+
+        if ($driver === 'sqlite') {
+            $sqlitePath = $config['sqlite']['path'] ?? (__DIR__ . '/../database.sqlite');
+            if (!file_exists($sqlitePath)) {
+                return [
+                    'success' => false,
+                    'message' => 'File database SQLite tidak ditemukan: ' . $sqlitePath
+                ];
+            }
+
+            $destName = "db_backup_sqlite_{$timestamp}.sqlite";
+            $destPath = $backupDir . '/' . $destName;
+
+            if (!copy($sqlitePath, $destPath)) {
+                throw new Exception("Gagal membuat salinan file SQLite ke {$destPath}");
+            }
+
+            $sizeBytes = filesize($destPath);
+            $sizeFormatted = round($sizeBytes / 1024, 1) . ' KB';
+
+            return [
+                'success'     => true,
+                'driver'      => 'sqlite',
+                'backup_file' => $destName,
+                'path'        => $destPath,
+                'size'        => $sizeFormatted,
+                'created_at'  => date('Y-m-d H:i:s')
+            ];
+        } else {
+            // MySQL Snapshot Export via PDO
+            $pdo = self::getConnection();
+            $destName = "db_backup_mysql_{$timestamp}.sql";
+            $destPath = $backupDir . '/' . $destName;
+
+            $tables = ['users', 'courses', 'classes', 'students', 'tasks', 'grades', 'class_task_folders', 'settings', 'migrations'];
+            $sqlDump = "-- Snapshot Cadangan Otomatis Asisten Penilaian Mandiri\n";
+            $sqlDump .= "-- Waktu Pembuatan: " . date('Y-m-d H:i:s') . "\n";
+            $sqlDump .= "-- Host: " . ($config['mysql']['host'] ?? 'localhost') . "\n\n";
+            $sqlDump .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
+
+            foreach ($tables as $tbl) {
+                try {
+                    $chk = $pdo->query("SHOW TABLES LIKE '{$tbl}'")->fetch();
+                    if (!$chk) continue;
+
+                    $createRow = $pdo->query("SHOW CREATE TABLE `{$tbl}`")->fetch(PDO::FETCH_NUM);
+                    if ($createRow && isset($createRow[1])) {
+                        $sqlDump .= "DROP TABLE IF EXISTS `{$tbl}`;\n";
+                        $sqlDump .= $createRow[1] . ";\n\n";
+
+                        $rows = $pdo->query("SELECT * FROM `{$tbl}`")->fetchAll(PDO::FETCH_ASSOC);
+                        if (!empty($rows)) {
+                            foreach ($rows as $r) {
+                                $cols = array_map(fn($c) => "`{$c}`", array_keys($r));
+                                $vals = array_map(function($v) use ($pdo) {
+                                    return $v === null ? 'NULL' : $pdo->quote((string)$v);
+                                }, array_values($r));
+                                $sqlDump .= "INSERT INTO `{$tbl}` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ");\n";
+                            }
+                            $sqlDump .= "\n";
+                        }
+                    }
+                } catch (Exception $e) {
+                    $sqlDump .= "-- Gagal mencadangkan tabel {$tbl}: " . $e->getMessage() . "\n";
+                }
+            }
+
+            $sqlDump .= "SET FOREIGN_KEY_CHECKS=1;\n";
+
+            file_put_contents($destPath, $sqlDump);
+            $sizeBytes = filesize($destPath);
+            $sizeFormatted = round($sizeBytes / 1024, 1) . ' KB';
+
+            return [
+                'success'     => true,
+                'driver'      => 'mysql',
+                'backup_file' => $destName,
+                'path'        => $destPath,
+                'size'        => $sizeFormatted,
+                'created_at'  => date('Y-m-d H:i:s')
+            ];
+        }
     }
 
     /**

@@ -980,7 +980,184 @@ Database::initDatabase();
         </div>
       </div>
 
-      <!-- 5. KARTU ADMIN: ZONA PEMELIHARAAN & RESET DATABASE (KHUSUS ADMIN) -->
+      <!-- 5. KARTU ADMIN: PEMBARUAN & DEPLOYMENT SISTEM (KHUSUS ADMIN) -->
+      <div id="adminSystemUpdateSection" class="hidden bg-white p-6 rounded-2xl border border-blue-200/90 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-100">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span>Pembaruan &amp; Deploy Sistem (Git &amp; Database)</span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Terapkan update kode dari GitHub dan migrasikan struktur database ke server secara otomatis tanpa cPanel</p>
+          </div>
+          <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase self-start sm:self-auto">Admin Only</span>
+        </div>
+
+        <!-- Banner Status Pembaruan -->
+        <div id="deployStatusBanner" class="p-4 rounded-xl border transition-all duration-300 bg-slate-50 border-slate-200">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <div id="deployStatusIcon" class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 id="deployStatusTitle" class="text-sm font-bold text-slate-900">Memeriksa Pembaruan...</h4>
+                  <span id="deployStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-700">Checking</span>
+                </div>
+                <p id="deployStatusDesc" class="text-xs text-slate-600 mt-0.5">Menghubungkan ke remote repository GitHub...</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" onclick="checkSystemUpdate(true)" id="btnCheckUpdate" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <span>Cek Update</span>
+              </button>
+              <button type="button" onclick="confirmAndDeploySystem()" id="btnTriggerDeploy" class="hidden px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg>
+                <span>Perbarui &amp; Deploy Sekarang</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail Perbandingan Commit & Migrasi -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <!-- Kolom A: Versi Server Lokal Saat Ini -->
+          <div class="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-2">
+            <div class="flex items-center justify-between text-slate-700 font-bold text-[11px] uppercase tracking-wider">
+              <span>Versi Aktif di Server</span>
+              <span id="deployLocalShortSha" class="font-mono bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded text-[10px]">-</span>
+            </div>
+            <div class="space-y-1 text-slate-600">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Versi Rilis:</span>
+                <span id="deployLocalVersion" class="font-semibold text-slate-800">2.0.0</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Waktu Deploy:</span>
+                <span id="deployLocalTime" class="font-medium text-slate-700">-</span>
+              </div>
+              <div class="pt-1 border-t border-slate-200/60">
+                <span class="text-slate-400 block text-[10px] mb-0.5">Pesan Commit Aktif:</span>
+                <p id="deployLocalMessage" class="text-slate-700 italic line-clamp-2 leading-relaxed font-mono text-[11px]">-</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kolom B: Versi Remote GitHub (Head Master) -->
+          <div class="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-2">
+            <div class="flex items-center justify-between text-slate-700 font-bold text-[11px] uppercase tracking-wider">
+              <span>Head Remote GitHub</span>
+              <span id="deployRemoteShortSha" class="font-mono bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-[10px]">-</span>
+            </div>
+            <div class="space-y-1 text-slate-600">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Pengembang:</span>
+                <span id="deployRemoteAuthor" class="font-semibold text-slate-800">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Waktu Commit:</span>
+                <span id="deployRemoteTime" class="font-medium text-slate-700">-</span>
+              </div>
+              <div class="pt-1 border-t border-slate-200/60">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-400 text-[10px]">Pesan Commit Remote:</span>
+                  <a id="deployRemoteCommitLink" href="#" target="_blank" rel="noopener" class="text-blue-600 hover:underline text-[10px] font-medium">Buka GitHub &rarr;</a>
+                </div>
+                <p id="deployRemoteMessage" class="text-slate-700 italic line-clamp-2 leading-relaxed font-mono text-[11px]">-</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Baris Status Migrasi & Backup -->
+        <div class="p-3 bg-amber-50/70 border border-amber-200/70 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+          <div class="flex items-center gap-2 text-amber-900">
+            <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+            <div>
+              <span class="font-bold">Status Migrasi Database:</span>
+              <span id="deployMigrationInfo" class="ml-1 text-slate-700 font-medium">Memeriksa struktur tabel...</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="runDatabaseMigrationsOnly()" id="btnRunMigrationOnly" class="px-3 py-1.5 bg-white hover:bg-amber-100/60 text-amber-900 border border-amber-300 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer">
+              <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <span>Migrasi Database Saja</span>
+            </button>
+            <button type="button" onclick="backupDatabaseNow()" id="btnBackupDbOnly" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer">
+              <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+              <span>Backup Database</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Deployment Progress Panel -->
+        <div id="deployProgressPanel" class="hidden bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl shadow-lg border border-blue-800/40 space-y-3.5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0">
+                <svg id="deployProgressSpinner" class="w-5 h-5 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+              </div>
+              <div>
+                <h4 id="deployProgressTitle" class="text-sm font-bold text-white tracking-wide">Menjalankan Deployment Otomatis...</h4>
+                <p id="deployProgressSubtitle" class="text-xs text-blue-200 mt-0.5">Membuat cadangan, mengunduh kode terbaru, dan memigrasikan database...</p>
+              </div>
+            </div>
+            <div id="deployProgressStepBadge" class="text-[11px] px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 font-semibold self-start sm:self-auto">
+              Memproses...
+            </div>
+          </div>
+
+          <!-- Terminal Log Box -->
+          <div id="deployTerminalBox" class="bg-black/40 border border-white/10 rounded-xl p-3 text-xs font-mono text-slate-300 max-h-56 overflow-y-auto space-y-1.5 select-text">
+            <div class="text-slate-400 italic">Menunggu log eksekusi deployment...</div>
+          </div>
+        </div>
+
+        <!-- Pengaturan Repositori Deployment (Collapsible) -->
+        <div class="pt-2 border-t border-slate-100">
+          <button type="button" onclick="toggleDeployRepoSettings()" class="text-xs text-slate-600 hover:text-slate-900 font-semibold flex items-center gap-1.5 cursor-pointer">
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Pengaturan Repositori &amp; Token (Opsional)</span>
+            <svg id="deployRepoSettingsArrow" class="w-3.5 h-3.5 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+
+          <div id="deployRepoSettingsPanel" class="hidden mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3.5 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Target Repository GitHub</label>
+                <input type="text" id="inputDeployRepo" placeholder="suhadi95/AsistenPenilaianMandiri" value="suhadi95/AsistenPenilaianMandiri" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono text-[11px]">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Target Branch</label>
+                <input type="text" id="inputDeployBranch" placeholder="master" value="master" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono text-[11px]">
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">GitHub Personal Access Token (Opsional)</label>
+              <input type="password" id="inputDeployGithubToken" placeholder="ghp_... (Diperlukan jika repo private atau limit kuota IP hosting habis)" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono text-[11px]">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Direktori Repositori cPanel Lokal (Opsional / Otomatis)</label>
+              <input type="text" id="inputDeployCpanelPath" placeholder="/home/suhadipc/repositories/AsistenPenilaianMandiri" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-mono text-[11px]">
+              <p class="text-[10px] text-slate-400 mt-1">Jika terdeteksi di server, sistem akan memperbarui repositori cPanel lokal agar riwayat cPanel tetap sinkron.</p>
+            </div>
+            <div class="pt-1 flex items-center justify-between">
+              <button type="button" onclick="saveDeploySettings()" id="btnSaveDeployConfig" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition cursor-pointer">
+                Simpan Konfigurasi Repositori
+              </button>
+              <div id="saveDeployConfigAlert" class="hidden text-xs font-semibold"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 6. KARTU ADMIN: ZONA PEMELIHARAAN & RESET DATABASE (KHUSUS ADMIN) -->
       <div id="adminResetDbSection" class="hidden bg-white p-6 rounded-2xl border border-rose-200 shadow-sm space-y-4">
         <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider text-rose-600 flex items-center gap-1.5">
           <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> <span>Pemeliharaan &amp; Reset Basis Data (Khusus Admin)</span>
@@ -2108,6 +2285,7 @@ Database::initDatabase();
           const navUsers = document.getElementById('nav-tab-users');
           const adminOAuth = document.getElementById('adminGlobalOAuthConfig');
           const adminReset = document.getElementById('adminResetDbSection');
+          const adminUpdate = document.getElementById('adminSystemUpdateSection');
           if (data.currentUser.role === 'admin' && !data.currentUser.isImpersonating) {
             if (navUsers) {
               navUsers.classList.remove('hidden');
@@ -2115,6 +2293,10 @@ Database::initDatabase();
             }
             if (adminOAuth) adminOAuth.classList.remove('hidden');
             if (adminReset) adminReset.classList.remove('hidden');
+            if (adminUpdate) {
+              adminUpdate.classList.remove('hidden');
+              checkSystemUpdate(false);
+            }
           } else {
             if (navUsers) {
               navUsers.classList.add('hidden');
@@ -2122,6 +2304,7 @@ Database::initDatabase();
             }
             if (adminOAuth) adminOAuth.classList.add('hidden');
             if (adminReset) adminReset.classList.add('hidden');
+            if (adminUpdate) adminUpdate.classList.add('hidden');
           }
 
           // Nilai awal formulir profil di pengaturan
@@ -2259,6 +2442,10 @@ Database::initDatabase();
         }
       } else if (tabId === 'tab-users') {
         loadAdminUsers();
+      } else if (tabId === 'tab-settings') {
+        if (appState.currentUser && appState.currentUser.role === 'admin' && !appState.currentUser.isImpersonating) {
+          checkSystemUpdate(false);
+        }
       }
     }
 
@@ -6000,6 +6187,339 @@ Database::initDatabase();
       const input = document.getElementById('inputClassOverrideFolder');
       if (input) input.value = '';
       await saveClassFolderOverride();
+    }
+
+    // ==========================================
+    // PEMBARUAN & DEPLOYMENT OTOMATIS (KHUSUS ADMIN)
+    // ==========================================
+    function toggleDeployRepoSettings() {
+      const panel = document.getElementById('deployRepoSettingsPanel');
+      const arrow = document.getElementById('deployRepoSettingsArrow');
+      if (!panel) return;
+      panel.classList.toggle('hidden');
+      if (arrow) {
+        arrow.classList.toggle('rotate-180');
+      }
+    }
+
+    async function saveDeploySettings() {
+      const repo = (document.getElementById('inputDeployRepo')?.value || '').trim();
+      const branch = (document.getElementById('inputDeployBranch')?.value || '').trim();
+      const token = (document.getElementById('inputDeployGithubToken')?.value || '').trim();
+      const cpanelPath = (document.getElementById('inputDeployCpanelPath')?.value || '').trim();
+      const alertBox = document.getElementById('saveDeployConfigAlert');
+      const btn = document.getElementById('btnSaveDeployConfig');
+
+      if (!repo) return alert('Target repository GitHub wajib diisi.');
+      if (!branch) return alert('Target branch GitHub wajib diisi.');
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await AppAPI.saveUpdateSettings({ repo, branch, token, cpanel_path: cpanelPath });
+        if (alertBox) {
+          alertBox.className = 'text-xs font-semibold text-emerald-600 block';
+          alertBox.textContent = '✅ ' + (res.message || 'Konfigurasi repositori berhasil disimpan.');
+          setTimeout(() => alertBox.classList.add('hidden'), 5000);
+        }
+        await checkSystemUpdate(false);
+      } catch (err) {
+        if (alertBox) {
+          alertBox.className = 'text-xs font-semibold text-rose-600 block';
+          alertBox.textContent = '❌ ' + err.message;
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    let isCheckingUpdate = false;
+    async function checkSystemUpdate(showToast = false) {
+      if (isCheckingUpdate) return;
+      isCheckingUpdate = true;
+
+      const btnCheck = document.getElementById('btnCheckUpdate');
+      const btnDeploy = document.getElementById('btnTriggerDeploy');
+      const banner = document.getElementById('deployStatusBanner');
+      const icon = document.getElementById('deployStatusIcon');
+      const title = document.getElementById('deployStatusTitle');
+      const badge = document.getElementById('deployStatusBadge');
+      const desc = document.getElementById('deployStatusDesc');
+
+      if (btnCheck) {
+        btnCheck.disabled = true;
+        btnCheck.innerHTML = '<span class="spinner inline-block w-3.5 h-3.5 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></span> <span>Memeriksa...</span>';
+      }
+
+      try {
+        const res = await AppAPI.getUpdateStatus();
+
+        // 1. Render Informasi Lokal
+        const localSha = res.current?.short_commit || '-';
+        const localVer = res.current?.version || '2.0.0';
+        const localTime = res.current?.deployed_at || '-';
+        const localMsg = res.current?.message || '-';
+
+        const elLocalSha = document.getElementById('deployLocalShortSha');
+        const elLocalVer = document.getElementById('deployLocalVersion');
+        const elLocalTime = document.getElementById('deployLocalTime');
+        const elLocalMsg = document.getElementById('deployLocalMessage');
+
+        if (elLocalSha) elLocalSha.textContent = localSha;
+        if (elLocalVer) elLocalVer.textContent = localVer;
+        if (elLocalTime) elLocalTime.textContent = localTime;
+        if (elLocalMsg) elLocalMsg.textContent = localMsg;
+
+        // 2. Render Informasi Remote
+        const remoteSha = res.remote?.short_sha || '-';
+        const remoteAuthor = res.remote?.author || '-';
+        const remoteTime = res.remote?.date || '-';
+        const remoteMsg = res.remote?.message || '-';
+        const remoteUrl = res.remote?.html_url || '#';
+
+        const elRemoteSha = document.getElementById('deployRemoteShortSha');
+        const elRemoteAuthor = document.getElementById('deployRemoteAuthor');
+        const elRemoteTime = document.getElementById('deployRemoteTime');
+        const elRemoteMsg = document.getElementById('deployRemoteMessage');
+
+        if (elRemoteSha) elRemoteSha.textContent = remoteSha;
+        if (elRemoteAuthor) elRemoteAuthor.textContent = remoteAuthor;
+        if (elRemoteTime) elRemoteTime.textContent = remoteTime;
+        if (elRemoteMsg) elRemoteMsg.textContent = remoteMsg;
+
+        const linkEl = document.getElementById('deployRemoteCommitLink');
+        if (linkEl) {
+          linkEl.href = remoteUrl;
+          linkEl.title = 'Buka commit ' + remoteSha + ' di GitHub';
+        }
+
+        // Isi form konfigurasi jika ada
+        if (res.config) {
+          const inpRepo = document.getElementById('inputDeployRepo');
+          const inpBranch = document.getElementById('inputDeployBranch');
+          const inpCpanel = document.getElementById('inputDeployCpanelPath');
+          if (inpRepo && res.config.repo) inpRepo.value = res.config.repo;
+          if (inpBranch && res.config.branch) inpBranch.value = res.config.branch;
+          if (inpCpanel && res.config.cpanel_path) inpCpanel.value = res.config.cpanel_path;
+        }
+
+        // 3. Render Status Migrasi
+        const migInfo = document.getElementById('deployMigrationInfo');
+        if (migInfo) {
+          if (res.migration_count > 0) {
+            migInfo.innerHTML = `<span class="text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded">${res.migration_count} migrasi skema database tertunda</span> (akan otomatis dieksekusi saat deploy)`;
+          } else {
+            migInfo.innerHTML = `<span class="text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded">Skema database mutakhir ✅</span>`;
+          }
+        }
+
+        // 4. Render Banner Status
+        if (!banner || !icon || !title || !badge || !desc) return;
+
+        if (res.remote?.error) {
+          banner.className = 'p-4 rounded-xl border transition-all duration-300 bg-rose-50 border-rose-200';
+          icon.className = 'w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 mt-0.5';
+          icon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
+          title.textContent = 'Pemeriksaan Remote GitHub Terkendala';
+          badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-200 text-rose-800';
+          badge.textContent = 'Koneksi Gagal';
+          desc.textContent = res.remote?.errorMessage || 'Pastikan server memiliki koneksi internet dan repositori dapat diakses.';
+          if (btnDeploy) btnDeploy.classList.add('hidden');
+        } else if (res.is_up_to_date) {
+          banner.className = 'p-4 rounded-xl border transition-all duration-300 bg-emerald-50/90 border-emerald-200';
+          icon.className = 'w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5';
+          icon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+          title.textContent = 'Sistem Sudah Menggunakan Versi Terbaru';
+          badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-200 text-emerald-900';
+          badge.textContent = 'Sistem Mutakhir ✅';
+          desc.textContent = `Server berada pada commit [${localSha}]: "${localMsg}". Seluruh berkas dan skema sinkron dengan master remote.`;
+          
+          if (btnDeploy) {
+            btnDeploy.classList.remove('hidden');
+            btnDeploy.className = 'px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer';
+            btnDeploy.innerHTML = '<svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> <span>Deploy Ulang (Re-deploy)</span>';
+          }
+        } else {
+          banner.className = 'p-4 rounded-xl border transition-all duration-300 bg-blue-50/90 border-blue-200';
+          icon.className = 'w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5';
+          icon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg>';
+          title.textContent = `Pembaruan Tersedia: Commit [${remoteSha}]`;
+          badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-200 text-blue-900 animate-pulse';
+          badge.textContent = 'Pembaruan Tersedia 🚀';
+          desc.textContent = `"${remoteMsg}" oleh ${remoteAuthor} (${remoteTime}). Siap dideploy ke server.`;
+
+          if (btnDeploy) {
+            btnDeploy.classList.remove('hidden');
+            btnDeploy.className = 'px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer ring-2 ring-blue-400/40 animate-pulse';
+            btnDeploy.innerHTML = '<svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg> <span>Perbarui &amp; Deploy Sekarang</span>';
+          }
+        }
+
+        if (showToast) {
+          showGlobalAlert('Pemeriksaan pembaruan selesai. Sistem siap digunakan.', 'success');
+        }
+      } catch (err) {
+        console.error('Error checkSystemUpdate:', err);
+        if (showToast) {
+          showGlobalAlert('Gagal memeriksa pembaruan: ' + err.message, 'error');
+        }
+      } finally {
+        isCheckingUpdate = false;
+        if (btnCheck) {
+          btnCheck.disabled = false;
+          btnCheck.innerHTML = '<svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> <span>Cek Update</span>';
+        }
+      }
+    }
+
+    async function confirmAndDeploySystem() {
+      const confirmMsg = "KONFIRMASI DEPLOYMENT OTOMATIS:\n\n" +
+        "Apakah Anda yakin ingin menerapkan pembaruan sistem ke server?\n\n" +
+        "Sistem akan otomatis menjalankan:\n" +
+        "1. Snapshot cadangan database sebelum perubahan\n" +
+        "2. Pengunduhan kode commit terbaru dari GitHub\n" +
+        "3. Penerapan berkas baru (config & data uploads terproteksi mutlak)\n" +
+        "4. Migrasi otomatis skema tabel & kolom database\n" +
+        "5. Reset bytecode OPcache PHP\n\n" +
+        "Lanjutkan proses?";
+
+      if (!confirm(confirmMsg)) return;
+
+      const panel = document.getElementById('deployProgressPanel');
+      const box = document.getElementById('deployTerminalBox');
+      const title = document.getElementById('deployProgressTitle');
+      const subtitle = document.getElementById('deployProgressSubtitle');
+      const badge = document.getElementById('deployProgressStepBadge');
+      const spinner = document.getElementById('deployProgressSpinner');
+      const btnDeploy = document.getElementById('btnTriggerDeploy');
+      const btnCheck = document.getElementById('btnCheckUpdate');
+
+      if (panel) panel.classList.remove('hidden');
+      if (spinner) spinner.classList.remove('hidden');
+      if (title) title.textContent = 'Menjalankan Deployment Otomatis...';
+      if (subtitle) subtitle.textContent = 'Membuat cadangan, mengunduh kode terbaru, dan memigrasikan database...';
+      if (badge) {
+        badge.className = 'text-[11px] px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 font-semibold self-start sm:self-auto';
+        badge.textContent = 'Sedang Berjalan...';
+      }
+      if (btnDeploy) btnDeploy.disabled = true;
+      if (btnCheck) btnCheck.disabled = true;
+
+      if (box) {
+        box.innerHTML = `
+          <div class="text-blue-300 font-semibold flex items-center gap-1.5">
+            <span class="inline-block w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
+            <span>[${new Date().toLocaleTimeString()}] Memulai pipeline update & deploy otomatis...</span>
+          </div>
+          <div class="text-slate-400">Menghubungkan ke GitHub dan menyiapkan cadangan lingkungan...</div>
+        `;
+      }
+
+      showGlobalAlert('Deployment sistem sedang berlangsung. Mohon jangan menutup halaman ini...', 'info');
+
+      try {
+        const res = await AppAPI.deployUpdate();
+
+        if (box && res.logs && Array.isArray(res.logs)) {
+          box.innerHTML = '';
+          res.logs.forEach(logLine => {
+            const row = document.createElement('div');
+            if (logLine.includes('✅') || logLine.includes('🎉')) {
+              row.className = 'text-emerald-400 font-medium';
+            } else if (logLine.includes('⚠️')) {
+              row.className = 'text-amber-400';
+            } else if (logLine.includes('❌')) {
+              row.className = 'text-rose-400 font-bold';
+            } else if (logLine.includes('🚀') || logLine.includes('📌')) {
+              row.className = 'text-blue-300 font-semibold';
+            } else {
+              row.className = 'text-slate-300';
+            }
+            row.textContent = logLine;
+            box.appendChild(row);
+          });
+          box.scrollTop = box.scrollHeight;
+        }
+
+        if (title) title.textContent = 'Deployment Berhasil Diselesaikan! 🎉';
+        if (subtitle) subtitle.textContent = `Sistem kini berjalan pada commit [${res.short_commit}]: "${res.message}" (${res.elapsed_sec} detik).`;
+        if (badge) {
+          badge.className = 'text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 font-bold self-start sm:self-auto';
+          badge.textContent = 'Selesai (Sukses) ✅';
+        }
+        if (spinner) spinner.classList.add('hidden');
+
+        playSuccessChime();
+        showGlobalAlert('Selamat! Sistem dan basis data berhasil diperbarui ke versi terbaru.', 'success');
+
+        // Segarkan status dan data aplikasi
+        await checkSystemUpdate(false);
+      } catch (err) {
+        console.error('Error deployUpdate:', err);
+        if (title) title.textContent = 'Deployment Mengalami Kendala';
+        if (subtitle) subtitle.textContent = err.message;
+        if (badge) {
+          badge.className = 'text-[11px] px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-400/30 text-rose-300 font-bold self-start sm:self-auto';
+          badge.textContent = 'Gagal ❌';
+        }
+        if (spinner) spinner.classList.add('hidden');
+
+        if (box) {
+          const errDiv = document.createElement('div');
+          errDiv.className = 'text-rose-400 font-bold pt-2 border-t border-rose-500/20';
+          errDiv.textContent = '❌ Galat: ' + err.message;
+          box.appendChild(errDiv);
+        }
+
+        showGlobalAlert('Deployment terhenti: ' + err.message, 'error');
+      } finally {
+        if (btnDeploy) btnDeploy.disabled = false;
+        if (btnCheck) btnCheck.disabled = false;
+      }
+    }
+
+    async function runDatabaseMigrationsOnly() {
+      if (!confirm('Apakah Anda ingin memindai dan mengeksekusi seluruh migrasi skema database yang tertunda sekarang?')) return;
+
+      const btn = document.getElementById('btnRunMigrationOnly');
+      if (btn) btn.disabled = true;
+      showGlobalAlert('Sedang memindai dan menjalankan migrasi database...', 'info');
+
+      try {
+        const res = await AppAPI.runDatabaseMigrations();
+        const logs = res.logs || [];
+        let summary = (res.count > 0)
+          ? `Sukses mengeksekusi ${res.count} migrasi database.\n\n` + logs.join("\n")
+          : 'Skema basis data sudah mutakhir. Seluruh tabel dan kolom sudah sesuai.';
+        alert(summary);
+        showGlobalAlert(res.message || 'Migrasi database berhasil.', 'success');
+        await checkSystemUpdate(false);
+      } catch (err) {
+        alert('Gagal mengeksekusi migrasi database: ' + err.message);
+        showGlobalAlert('Galat migrasi: ' + err.message, 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function backupDatabaseNow() {
+      const btn = document.getElementById('btnBackupDbOnly');
+      if (btn) btn.disabled = true;
+      showGlobalAlert('Sedang membuat cadangan snapshot database...', 'info');
+
+      try {
+        const res = await AppAPI.backupDatabase();
+        if (res.success) {
+          alert(`✅ Cadangan basis data berhasil dibuat!\n\nNama File: ${res.backup_file}\nUkuran: ${res.size}\nLokasi: folder /backups/ (terproteksi)`);
+          showGlobalAlert(`Basis data berhasil dicadangkan (${res.size}).`, 'success');
+        } else {
+          alert('Peringatan backup: ' + (res.message || 'Gagal'));
+        }
+      } catch (err) {
+        alert('Gagal mencadangkan database: ' + err.message);
+        showGlobalAlert('Galat backup: ' + err.message, 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     }
 
     function confirmResetDatabase() {
