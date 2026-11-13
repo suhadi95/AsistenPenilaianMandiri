@@ -138,10 +138,10 @@ class IntegrityService {
             }
         }
 
-        // Normalisasi spasi dan baris
+        // Normalisasi spasi dan baris serta validasi encoding UTF-8
         $cleaned = preg_replace('/[ \t]+/', ' ', $textResult);
         $cleaned = preg_replace('/[\r\n]+/', "\n", $cleaned);
-        $finalText = trim($cleaned);
+        $finalText = trim(mb_convert_encoding($cleaned, 'UTF-8', 'UTF-8'));
 
         // Jika teks hasil ekstraksi terdeteksi sebagai sampah karakter biner/font acak, kosongkan agar tidak memicu false positive
         if (self::isGibberish($finalText)) {
@@ -224,7 +224,11 @@ class IntegrityService {
         $trimmed = trim($text);
         if (strlen($trimmed) < 20) return false;
 
-        $tokens = preg_split('/\s+/u', $trimmed);
+        // Normalisasi encoding UTF-8 agar fungsi pemrosesan teks tidak gagal
+        $validUtf8 = mb_convert_encoding($trimmed, 'UTF-8', 'UTF-8');
+        $tokens = preg_split('/\s+/', $validUtf8);
+        if (!is_array($tokens)) return true;
+
         $total = count($tokens);
         if ($total < 10) return false;
 
@@ -446,7 +450,9 @@ class IntegrityService {
         }
 
         $patterns = self::getAiBotPatterns();
-        $lines = preg_split('/\r\n|\r|\n/', $trimmed);
+        $validUtf8 = mb_convert_encoding($trimmed, 'UTF-8', 'UTF-8');
+        $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $validUtf8));
+        if (!is_array($lines)) $lines = [];
         $totalLines = count($lines);
 
         $matchesFound = [];
@@ -627,17 +633,22 @@ class IntegrityService {
      * Menjamin hanya mengekstrak kata-kata linguistik alami (bukan angka/koordinat/glyph ID)
      */
     public static function tokenizeAndFilter(string $text): array {
-        $lower = mb_strtolower($text, 'UTF-8');
+        $validUtf8 = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        $lower = mb_strtolower($validUtf8, 'UTF-8');
         // Ganti tanda baca dengan spasi
         $clean = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $lower);
-        $words = preg_split('/\s+/', trim($clean));
+        if ($clean === null) {
+            $clean = preg_replace('/[^a-zA-Z0-9]+/', ' ', $lower);
+        }
+        $words = preg_split('/\s+/', trim($clean ?? ''));
+        if (!is_array($words)) return [];
 
         // Filter kata: HANYA ambil kata yang memiliki huruf alfabet (bukan angka/koordinat/glyph index)
         return array_values(array_filter($words, function ($w) {
             $w = trim($w);
             if ($w === '') return false;
             // WAJIB memiliki minimal satu huruf alfabet
-            if (!preg_match('/\p{L}/u', $w)) return false;
+            if (!preg_match('/\p{L}/u', $w) && !preg_match('/[a-zA-Z]/', $w)) return false;
             // Abaikan huruf tunggal acak (a, b, c)
             if (mb_strlen($w) < 2) return false;
             // Abaikan kata berulang tidak wajar (misal: sssssssssssssssssss)
@@ -894,7 +905,7 @@ class IntegrityService {
         foreach ($studentTexts as $nim => $rawTxt) {
             if (empty(trim($rawTxt))) continue;
             $words = self::tokenizeAndFilter($rawTxt);
-            if (count($words) >= 4) {
+            if (!empty($words) && is_array($words) && count($words) >= 4) {
                 $validSubmissionsCount++;
                 $studentSh = array_unique(self::createShingles($words, 4));
                 foreach ($studentSh as $sh) {
