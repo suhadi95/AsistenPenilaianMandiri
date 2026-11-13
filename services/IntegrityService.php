@@ -13,6 +13,10 @@ class IntegrityService {
     /**
      * Ekstraksi teks dari berkas PDF murni PHP tanpa ketergantungan library eksternal
      */
+    /**
+     * Ekstraksi teks dari berkas PDF murni PHP tanpa ketergantungan library eksternal
+     * Mendukung dekompresi FlateDecode dan translasi ToUnicode CMap (CIDFont/Identity-H)
+     */
     public static function extractTextFromPdf(string $filePath): string {
         if (!file_exists($filePath) || !is_readable($filePath)) {
             return '';
@@ -23,114 +27,141 @@ class IntegrityService {
             return '';
         }
 
+        // 1. Kumpulkan seluruh objek PDF (ISO 32000-1)
+        $objects = [];
+        if (preg_match_all('#(\d+)\s+(\d+)\s+obj\b([\s\S]*?)\bendobj\b#', $content, $rawObjs, PREG_SET_ORDER)) {
+            foreach ($rawObjs as $ro) {
+                $objects[(int)$ro[1]] = $ro[3];
+            }
+        }
+
+        // 2. Ekstraksi dan parsing seluruh ToUnicode CMap stream
+        $cmaps = [];
+        foreach ($objects as $num => $body) {
+            if (!preg_match('#stream[\r\n]+([\s\S]*?)[\r\n]+endstream#', $body, $sm)) {
+                continue;
+            }
+            $decomp = self::decompressPdfStream($sm[1]);
+            if ($decomp && strpos($decomp, 'begincmap') !== false) {
+                $cmaps[$num] = self::parseCMapStream($decomp);
+            }
+        }
+
+        // 3. Petakan font dan font name ke CMap
+        $fontObjToCMap = [];
+        foreach ($objects as $num => $body) {
+            if (preg_match('#/Type\s*/Font\b#', $body) && preg_match('#/ToUnicode\s+(\d+)\s+\d+\s+R#', $body, $tum)) {
+                $tuNum = (int)$tum[1];
+                if (isset($cmaps[$tuNum])) {
+                    $fontObjToCMap[$num] = $cmaps[$tuNum];
+                }
+            }
+        }
+
+        $fontNameToCMap = [];
+        foreach ($objects as $num => $body) {
+            if (preg_match('#/Font\s*<<([\s\S]*?)>>#', $body, $fm)) {
+                if (preg_match_all('#/([A-Za-z0-9_\-]+)\s+(\d+)\s+\d+\s+R#', $fm[1], $frs, PREG_SET_ORDER)) {
+                    foreach ($frs as $fr) {
+                        $fName = $fr[1];
+                        $fObj = (int)$fr[2];
+                        if (isset($fontObjToCMap[$fObj])) {
+                            $fontNameToCMap[$fName] = $fontObjToCMap[$fObj];
+                        }
+                    }
+                }
+            }
+        }
+
+        // CMap gabungan sebagai fallback jika font name tidak terdeteksi
+        $mergedCMap = [];
+        foreach ($cmaps as $cm) {
+            foreach ($cm as $cid => $char) {
+                $mergedCMap[$cid] = $char;
+            }
+        }
+
         $textResult = '';
 
-        // 1. Ekstraksi berbasis objek PDF standar (ISO 32000-1)
-        // Cari setiap blok objek: \d+ \d+ obj ... endobj
-        if (preg_match_all('#\d+\s+\d+\s+obj\b([\s\S]*?)\bendobj\b#', $content, $objects)) {
-            foreach ($objects[1] as $objBody) {
-                if (!preg_match('#(?:<<([\s\S]*?)>>)?\s*stream[\r\n]+([\s\S]*?)[\r\n]+endstream#', $objBody, $sm)) {
-                    continue;
-                }
+        // 4. Ekstraksi teks dari content streams
+        foreach ($objects as $num => $body) {
+            // Lewati stream biner non-konten (Font file, image, XRef, Metadata, dll)
+            if (preg_match('#/(?:FontFile[123]?|Type\s*/\s*Font\b|Subtype\s*/\s*(?:Image|Type1C|TrueType|CIDFontType[02]|ICCBased)|Type\s*/\s*(?:XRef|Metadata|ObjStm))#i', $body)) {
+                continue;
+            }
 
-                $dict = $sm[1] ?? '';
-                $streamData = $sm[2];
+            if (!preg_match('#stream[\r\n]+([\s\S]*?)[\r\n]+endstream#', $body, $sm)) {
+                continue;
+            }
 
-                // Lewati stream biner non-teks: Font file, gambar, XRef, Metadata, ICC Profile
-                if (!empty($dict) && preg_match('#/(?:FontFile[123]?|Type\s*/\s*Font\b|Subtype\s*/\s*(?:Image|Type1C|TrueType|CIDFontType[02]|ICCBased)|Type\s*/\s*(?:XRef|Metadata|ObjStm))#i', $dict)) {
-                    continue;
-                }
+            $decomp = self::decompressPdfStream($sm[1]);
+            if (!$decomp || strpos($decomp, 'BT') === false) {
+                continue;
+            }
 
-                $uncompressed = '';
-                // Coba decompress FlateDecode (zlib gzuncompress atau gzinflate)
-                if (function_exists('gzuncompress')) {
-                    $uncompressed = @gzuncompress($streamData);
-                }
-                if (!$uncompressed && function_exists('gzinflate')) {
-                    $uncompressed = @gzinflate($streamData);
-                    if (!$uncompressed && strlen($streamData) > 2) {
-                        $uncompressed = @gzinflate(substr($streamData, 2));
+            // Ekstraksi teks HANYA dari blok BT ... ET
+            if (preg_match_all('#\bBT\b([\s\S]*?)\bET\b#s', $decomp, $btBlocks)) {
+                foreach ($btBlocks[1] as $bt) {
+                    $currentFontMap = $mergedCMap;
+                    if (preg_match('#/([A-Za-z0-9_\-]+)\s+[\d\.]+\s+Tf#', $bt, $tfm)) {
+                        $fName = $tfm[1];
+                        if (isset($fontNameToCMap[$fName])) {
+                            $currentFontMap = $fontNameToCMap[$fName];
+                        }
                     }
-                }
-                if (!$uncompressed) {
-                    $uncompressed = $streamData;
-                }
 
-                // Ekstraksi teks HANYA dari blok BT ... ET (Begin Text ... End Text)
-                if (preg_match_all('#\bBT\b([\s\S]*?)\bET\b#', $uncompressed, $btMatches)) {
-                    foreach ($btMatches[1] as $textBlock) {
-                        // (teks) Tj
-                        if (preg_match_all('#\((.*?)\)\s*Tj#s', $textBlock, $tjMatches)) {
-                            foreach ($tjMatches[1] as $tm) {
-                                $textResult .= ' ' . self::decodePdfString($tm);
-                            }
-                        }
-
-                        // [(teks1) 10 (teks2)] TJ
-                        if (preg_match_all('#\[(.*?)\]\s*TJ#s', $textBlock, $tjArrayMatches)) {
-                            foreach ($tjArrayMatches[1] as $block) {
-                                if (preg_match_all('#\((.*?)\)#s', $block, $inner)) {
-                                    foreach ($inner[1] as $str) {
-                                        $textResult .= ' ' . self::decodePdfString($str);
-                                    }
+                    // TJ array: [(teks1) 10 <hex2>] TJ
+                    if (preg_match_all('#\[(.*?)\]\s*TJ#s', $bt, $tjArr)) {
+                        foreach ($tjArr[1] as $block) {
+                            if (preg_match_all('#<([0-9a-fA-F]+)>#', $block, $hexMatches)) {
+                                foreach ($hexMatches[1] as $h) {
+                                    $textResult .= self::decodeHexPdfStringWithCMap($h, $currentFontMap, $mergedCMap);
                                 }
-                                if (preg_match_all('#<([0-9a-fA-F]+)>#', $block, $innerHex)) {
-                                    foreach ($innerHex[1] as $hexStr) {
-                                        $textResult .= ' ' . self::decodeHexPdfString($hexStr);
-                                    }
+                            }
+                            if (preg_match_all('#\((.*?)\)#s', $block, $litMatches)) {
+                                foreach ($litMatches[1] as $lit) {
+                                    $textResult .= self::decodePdfString($lit);
                                 }
                             }
                         }
+                        $textResult .= ' ';
+                    }
 
-                        // <hex> Tj
-                        if (preg_match_all('#<([0-9a-fA-F]+)>\s*Tj#', $textBlock, $hexMatches)) {
-                            foreach ($hexMatches[1] as $hexStr) {
-                                $textResult .= ' ' . self::decodeHexPdfString($hexStr);
-                            }
+                    // <hex> Tj
+                    if (preg_match_all('#<([0-9a-fA-F]+)>\s*Tj#', $bt, $hexTj)) {
+                        foreach ($hexTj[1] as $h) {
+                            $textResult .= self::decodeHexPdfStringWithCMap($h, $currentFontMap, $mergedCMap);
                         }
+                        $textResult .= ' ';
+                    }
 
-                        // Operator ' dan "
-                        if (preg_match_all('#\((.*?)\)\s*[\'"]#s', $textBlock, $quoteMatches)) {
-                            foreach ($quoteMatches[1] as $qm) {
-                                $textResult .= ' ' . self::decodePdfString($qm);
-                            }
+                    // (text) Tj
+                    if (preg_match_all('#\((.*?)\)\s*Tj#s', $bt, $litTj)) {
+                        foreach ($litTj[1] as $lit) {
+                            $textResult .= self::decodePdfString($lit) . ' ';
+                        }
+                    }
+
+                    // Operator ' dan "
+                    if (preg_match_all('#\((.*?)\)\s*[\'"]#s', $bt, $quoteMatches)) {
+                        foreach ($quoteMatches[1] as $qm) {
+                            $textResult .= self::decodePdfString($qm) . ' ';
                         }
                     }
                 }
             }
         }
 
-        // 2. Fallback jika parsing per-objek tidak menemukan teks
+        // Fallback jika tidak ada objek yang berhasil diekstrak
         if (empty(trim($textResult)) && preg_match_all('#stream[\r\n]+([\s\S]*?)[\r\n]+endstream#', $content, $allStreams)) {
             foreach ($allStreams[1] as $streamData) {
-                $uncompressed = '';
-                if (function_exists('gzuncompress')) {
-                    $uncompressed = @gzuncompress($streamData);
-                }
-                if (!$uncompressed && function_exists('gzinflate')) {
-                    $uncompressed = @gzinflate($streamData);
-                    if (!$uncompressed && strlen($streamData) > 2) {
-                        $uncompressed = @gzinflate(substr($streamData, 2));
-                    }
-                }
-                if (!$uncompressed) {
-                    $uncompressed = $streamData;
-                }
-
-                if (preg_match_all('#\bBT\b([\s\S]*?)\bET\b#', $uncompressed, $btMatches)) {
-                    foreach ($btMatches[1] as $textBlock) {
-                        if (preg_match_all('#\((.*?)\)\s*Tj#s', $textBlock, $tjMatches)) {
+                $decomp = self::decompressPdfStream($streamData);
+                if (!$decomp || strpos($decomp, 'BT') === false) continue;
+                if (preg_match_all('#\bBT\b([\s\S]*?)\bET\b#s', $decomp, $btBlocks)) {
+                    foreach ($btBlocks[1] as $bt) {
+                        if (preg_match_all('#\((.*?)\)\s*Tj#s', $bt, $tjMatches)) {
                             foreach ($tjMatches[1] as $tm) {
                                 $textResult .= ' ' . self::decodePdfString($tm);
-                            }
-                        }
-                        if (preg_match_all('#\[(.*?)\]\s*TJ#s', $textBlock, $tjArrayMatches)) {
-                            foreach ($tjArrayMatches[1] as $block) {
-                                if (preg_match_all('#\((.*?)\)#s', $block, $inner)) {
-                                    foreach ($inner[1] as $str) {
-                                        $textResult .= ' ' . self::decodePdfString($str);
-                                    }
-                                }
                             }
                         }
                     }
@@ -138,17 +169,96 @@ class IntegrityService {
             }
         }
 
+        // Bersihkan kontrol karakter non-printable (null bytes, form feed, dsb)
+        $cleaned = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', ' ', $textResult);
         // Normalisasi spasi dan baris serta validasi encoding UTF-8
-        $cleaned = preg_replace('/[ \t]+/', ' ', $textResult);
+        $cleaned = preg_replace('/[ \t]+/', ' ', $cleaned);
         $cleaned = preg_replace('/[\r\n]+/', "\n", $cleaned);
         $finalText = trim(mb_convert_encoding($cleaned, 'UTF-8', 'UTF-8'));
 
-        // Jika teks hasil ekstraksi terdeteksi sebagai sampah karakter biner/font acak, kosongkan agar tidak memicu false positive
         if (self::isGibberish($finalText)) {
             return '';
         }
 
         return $finalText;
+    }
+
+    /**
+     * Dekompresi stream PDF dengan penanganan zlib/gzuncompress/gzinflate
+     */
+    private static function decompressPdfStream(string $streamData): string {
+        $uncompressed = '';
+        if (function_exists('gzuncompress')) {
+            $uncompressed = @gzuncompress($streamData);
+        }
+        if (!$uncompressed && function_exists('gzinflate')) {
+            $uncompressed = @gzinflate($streamData);
+            if (!$uncompressed && strlen($streamData) > 2) {
+                $uncompressed = @gzinflate(substr($streamData, 2));
+            }
+        }
+        return $uncompressed ?: '';
+    }
+
+    /**
+     * Parsing ToUnicode CMap (ISO 32000-1) untuk menerjemahkan glyph/CID ke karakter UTF-8 asli
+     */
+    private static function parseCMapStream(string $cmapText): array {
+        $mapping = [];
+        if (preg_match_all('#\d+\s+beginbfchar([\s\S]*?)endbfchar#', $cmapText, $charBlocks)) {
+            foreach ($charBlocks[1] as $block) {
+                if (preg_match_all('#<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>#', $block, $entries, PREG_SET_ORDER)) {
+                    foreach ($entries as $e) {
+                        $src = hexdec($e[1]);
+                        $dst = hexdec($e[2]);
+                        $mapping[$src] = mb_chr($dst, 'UTF-8');
+                    }
+                }
+            }
+        }
+        if (preg_match_all('#\d+\s+beginbfrange([\s\S]*?)endbfrange#', $cmapText, $rangeBlocks)) {
+            foreach ($rangeBlocks[1] as $block) {
+                if (preg_match_all('#<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>#', $block, $seqRanges, PREG_SET_ORDER)) {
+                    foreach ($seqRanges as $sr) {
+                        $start = hexdec($sr[1]);
+                        $end = hexdec($sr[2]);
+                        $destStart = hexdec($sr[3]);
+                        for ($c = $start; $c <= $end; $c++) {
+                            $mapping[$c] = mb_chr($destStart + ($c - $start), 'UTF-8');
+                        }
+                    }
+                }
+            }
+        }
+        return $mapping;
+    }
+
+    /**
+     * Decode string heksadesimal dalam PDF menggunakan ToUnicode CMap jika tersedia (CIDFont / Type0)
+     */
+    private static function decodeHexPdfStringWithCMap(string $hex, array $fontMap, array $fallbackMap): string {
+        $clean = preg_replace('/[^0-9a-fA-F]/', '', $hex);
+        if (empty($clean)) return '';
+
+        $len = strlen($clean);
+        // Type0 / 2-byte CID: setiap 4 hex digit adalah 1 karakter CID
+        if ($len % 4 === 0 && (!empty($fontMap) || !empty($fallbackMap))) {
+            $result = '';
+            for ($i = 0; $i < $len; $i += 4) {
+                $cid = hexdec(substr($clean, $i, 4));
+                if (isset($fontMap[$cid])) {
+                    $result .= $fontMap[$cid];
+                } elseif (isset($fallbackMap[$cid])) {
+                    $result .= $fallbackMap[$cid];
+                } else {
+                    $result .= ' ';
+                }
+            }
+            return $result;
+        }
+
+        // Fallback 1-byte hex string standar
+        return self::decodeHexPdfString($hex);
     }
 
     /**
@@ -579,6 +689,19 @@ class IntegrityService {
             ];
         }
 
+        // Ambang batas volume minimal: Teks jawaban unik harus memiliki minimal 10 shingle (~35 kata bermakna)
+        // Dokumen dengan sisa kata sangat sedikit (< 10 shingle) tidak valid untuk didakwa plagiasi
+        if ($countA < 10 || $countB < 10) {
+            return [
+                'percentage'      => 0.0,
+                'jaccard'         => 0.0,
+                'containmentA'    => 0.0,
+                'containmentB'    => 0.0,
+                'matchingPhrases' => [],
+                'note'            => 'Teks jawaban unik terlalu pendek untuk dianalisis plagiasi.'
+            ];
+        }
+
         // Jika kedua teks jawaban murni identik persis
         if ($setA === $setB) {
             $matchingPhrases = self::findMatchingPhrases($cleanA, $cleanB, 4, $templateShingles);
@@ -653,6 +776,8 @@ class IntegrityService {
             if (mb_strlen($w) < 2) return false;
             // Abaikan kata berulang tidak wajar (misal: sssssssssssssssssss)
             if (preg_match('/(.)\1{3,}/u', $w)) return false;
+            // Abaikan kata artefak font-shifted yang menyisipkan angka di awal atau di tengah huruf (misal: 3hudqfdqjdq, 6lvwhp, 5htxluhphqw)
+            if (preg_match('/^[0-9]+[a-zA-Z]/', $w) || preg_match('/[a-zA-Z]+[0-9]+[a-zA-Z]+/', $w)) return false;
             return true;
         }));
     }
@@ -846,6 +971,24 @@ class IntegrityService {
                 if ($qPayload && !empty($qPayload['isTextOnly']) && !empty($qPayload['textContent'])) {
                     $rawTaskTemplate .= ' ' . $qPayload['textContent'];
                 }
+                // Ekstrak teks berkas soal acuan jika berupa dokumen PDF atau Word di server
+                $qDir = FileService::getTaskQuestionsDir($taskId);
+                if (is_dir($qDir)) {
+                    $qFiles = array_diff(scandir($qDir), ['.', '..']);
+                    if (!empty($qFiles)) {
+                        $qPath = "{$qDir}/" . reset($qFiles);
+                        $extractedQ = self::extractTextFromFile($qPath);
+                        if (!empty($extractedQ)) {
+                            $rawTaskTemplate .= ' ' . $extractedQ;
+                        }
+                    }
+                }
+                if (!empty($taskData['task_file_ref']) && file_exists($taskData['task_file_ref'])) {
+                    $extractedRef = self::extractTextFromFile($taskData['task_file_ref']);
+                    if (!empty($extractedRef)) {
+                        $rawTaskTemplate .= ' ' . $extractedRef;
+                    }
+                }
             }
             if (!empty(trim($rawTaskTemplate))) {
                 $tmplWords = self::tokenizeAndFilter($rawTaskTemplate);
@@ -858,8 +1001,9 @@ class IntegrityService {
             // Lanjutkan jika query task gagal
         }
 
-        // 2b. Kamus Frasa Template Penugasan Akademik Standar
+        // 2b. Kamus Frasa Template Penugasan Akademik Standar (TuTur & TuRi)
         $commonAcademicTemplates = [
+            // TuTur 1, 2, dst (Class Diagram, Activity Diagram, Use Case, ERD)
             'tugas terstruktur pertemuan class diagram activity diagram use case sequence erd',
             'mahasiswa mampu mengidentifikasi kelas atribut dan hubungan antarkelas',
             'serta menggambarkannya dalam class diagram sederhana menggunakan notasi uml',
@@ -888,7 +1032,36 @@ class IntegrityService {
             'kumpulkan satu file pdf berisi jawaban dan class diagram diagram boleh',
             'dibuat terpisah lalu ditempelkan ke lembar jawaban catatan fokus tugas',
             'adalah memahami kelas atribut relasi dan multiplicity',
-            'komponen isian nama mahasiswa nim kelas objek studi nama sistem tanggal pengumpulan'
+            'komponen isian nama mahasiswa nim kelas objek studi nama sistem tanggal pengumpulan',
+
+            // TuRi 1, 2, dst (Requirement Engineering, MoSCoW, Acceptance Criteria, Traceability Matrix)
+            'analisis dan perancangan sistem apsi pertemuan prioritas acceptance criteria validasi dan traceability kebutuhan',
+            'template tugas mandiri turi deskripsi dan tujuan turi turi merupakan tugas mandiri yang melanjutkan hasil analisis pada pertemuan',
+            'mahasiswa tidak perlu mengulang proses elicitation dari awal gunakan hasil sebelumnya dari problem statement evidence stakeholder scope system boundary dan daftar requirement',
+            'sebagai bahan untuk memperbaiki memprioritaskan memvalidasi dan menelusuri requirement output akhir turi harus menunjukkan bahwa setiap requirement memiliki dasar yang jelas',
+            'prioritas yang dapat dijelaskan acceptance criteria yang dapat diperiksa status validasi serta hubungan yang dapat ditelusuri ke masalah stakeholder dan evidence',
+            'petunjuk pengerjaan kerjakan secara individual meskipun objek studi dapat sama dengan anggota kelompok gunakan objek studi yang sama dan pertahankan kesinambungan dengan hasil tugas sebelumnya',
+            'jangan membuat requirement berdasarkan asumsi semata setiap requirement harus memiliki dasar dari problem statement stakeholder atau evidence',
+            'periksa kembali apakah requirement masih berada dalam scope system boundary yang telah ditetapkan gunakan id requirement yang konsisten misalnya fr untuk functional requirement dan nfr untuk non functional requirement',
+            'prioritas harus disertai alasan bukan hanya label must should could won acceptance criteria harus dapat digunakan untuk memeriksa apakah requirement telah terpenuhi',
+            'rtm awal harus memperlihatkan hubungan requirement dengan masalah stakeholder dan evidence review dan spesifikasi requirement',
+            'pilih requirement dari hasil pertemuan kemudian perbaiki rumusannya agar spesifik jelas relevan layak dan dapat diverifikasi jangan langsung menambahkan fitur baru tanpa dasar evidence',
+            'ringkasan requirement yang digunakan id jenis requirement stakeholder dasar evidence fungsional non fungsional sistem',
+            'panduan singkat must have sangat penting agar masalah utama dapat ditangani atau sistem dapat menjalankan tujuan utamanya',
+            'should have penting tetapi sistem masih dapat berjalan tanpa requirement tersebut untuk sementara',
+            'could have memberikan nilai tambahan tetapi bukan kebutuhan utama won have tidak dikerjakan pada scope versi saat ini jelaskan alasan pembatasannya',
+            'acceptance criteria untuk setiap requirement prioritas utama tuliskan kondisi yang memungkinkan requirement tersebut diperiksa gunakan format given when then jika sesuai',
+            'id req given kondisi awal when aksi kejadian then hasil yang diharapkan hindari acceptance criteria seperti sistem mudah digunakan tanpa ukuran atau kondisi pemeriksaan',
+            'kriteria harus cukup jelas sehingga pihak lain dapat memahami cara memeriksanya validasi requirement periksa kembali requirement menggunakan evidence hasil elicitation',
+            'catat apakah requirement sudah dapat diterima sebagai dasar perancangan atau masih memerlukan klarifikasi sudah spesifik sudah terukur sudah realistis konsisten dengan evidence status',
+            'status yang dapat digunakan valid perlu klarifikasi direvisi tidak digunakan requirement traceability matrix rtm awal rtm digunakan untuk menelusuri hubungan antara masalah evidence stakeholder dan requirement',
+            'gunakan id yang konsisten agar hubungan antarartefak mudah diperiksa req id problem id stakeholder evidence id priority acceptance criteria id status ringkasan hasil analisis',
+            'tuliskan kesimpulan singkat perubahan utama pada requirement setelah dilakukan review dan spesifikasi prioritas requirement yang paling krusial untuk diselesaikan terlebih dahulu',
+            'catatan validasi hal yang masih memerlukan klarifikasi atau konfirmasi lebih lanjut manfaat rtm yang dirasakan dalam menjaga konsistensi perancangan',
+            'prioritas requirement gunakan pendekatan moscow sebagai teknik praktis must have should have could have dan won have untuk scope saat ini prioritas harus mempertimbangkan dampak terhadap masalah kebutuhan stakeholder dan batasan scope id req prioritas alasan penetapan prioritas konsekuensi jika ditunda',
+            'catatan penting untuk pertemuan hasil turi akan menjadi input untuk tahap pemodelan pada pertemuan karena itu pastikan requirement yang dipertahankan sudah cukup jelas dan tervalidasi untuk diturunkan menjadi aktor use case dan use case specification',
+            'contoh id untuk problem untuk evidence ac untuk acceptance criteria ringkasan hasil analisis tuliskan ringkasan singkat paragraf pertanyaan jawaban requirement mana yang menjadi prioritas tertinggi dan mengapa',
+            'alternatif jika given when then tidak cocok id req acceptance criteria yang dapat diverifikasi'
         ];
         foreach ($commonAcademicTemplates as $tmplPhrase) {
             $tWords = self::tokenizeAndFilter($tmplPhrase);
@@ -898,7 +1071,38 @@ class IntegrityService {
             }
         }
 
-        // 2c. Deteksi Otomatis Korpus Kelas: Shingle yang muncul di >= 3 mahasiswa (atau >= 20% submissions)
+        // Tambahkan variasi Caesar-shift (+1 s.d. +4) dari kata kunci judul template tugas untuk mencegah false positive pada PDF dengan font subset tanpa CMap
+        $headingKeywords = [
+            'analisis dan perancangan sistem',
+            'deskripsi dan tujuan turi',
+            'petunjuk pengerjaan review dan spesifikasi requirement',
+            'prioritas requirement acceptance criteria validasi requirement',
+            'requirement traceability matrix awal ringkasan hasil analisis'
+        ];
+        foreach ($headingKeywords as $hk) {
+            foreach ([1, 2, 3, 4] as $shift) {
+                $shiftedWords = [];
+                foreach (explode(' ', $hk) as $w) {
+                    $sw = '';
+                    for ($c = 0; $c < strlen($w); $c++) {
+                        $ch = $w[$c];
+                        if (ctype_alpha($ch)) {
+                            $base = ctype_upper($ch) ? 65 : 97;
+                            $sw .= chr(($base + (ord($ch) - $base + $shift) % 26));
+                        } else {
+                            $sw .= $ch;
+                        }
+                    }
+                    $shiftedWords[] = $sw;
+                }
+                $sSh = self::createShingles($shiftedWords, 4);
+                foreach ($sSh as $sh) {
+                    $templateShingles[$sh] = true;
+                }
+            }
+        }
+
+        // 2c. Deteksi Otomatis Korpus Kelas: Shingle yang muncul di >= 2 mahasiswa (atau >= 20% submissions)
         // Jika suatu 4-gram muncul berulang di banyak mahasiswa, pasti merupakan template soal/tabel penugasan
         $shingleFrequency = [];
         $validSubmissionsCount = 0;
@@ -913,8 +1117,8 @@ class IntegrityService {
                 }
             }
         }
-        if ($validSubmissionsCount >= 3) {
-            $freqThreshold = max(3, (int)ceil($validSubmissionsCount * 0.20));
+        if ($validSubmissionsCount >= 2) {
+            $freqThreshold = max(2, (int)ceil($validSubmissionsCount * 0.20));
             foreach ($shingleFrequency as $sh => $freq) {
                 if ($freq >= $freqThreshold) {
                     $templateShingles[$sh] = true;
