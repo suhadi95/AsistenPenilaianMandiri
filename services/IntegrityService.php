@@ -218,7 +218,7 @@ class IntegrityService {
     }
 
     /**
-     * Memeriksa apakah teks yang diekstrak merupakan sampah karakter biner / font terenkripsi (bukan teks bacaan alami)
+     * Memeriksa apakah teks yang diekstrak merupakan sampah karakter biner / font terenkripsi / deretan angka koordinat (bukan teks bacaan alami)
      */
     public static function isGibberish(string $text): bool {
         $trimmed = trim($text);
@@ -230,17 +230,26 @@ class IntegrityService {
 
         $singleLetters = 0;
         $vowelDeficient = 0;
+        $numberTokens = 0;
         foreach ($tokens as $t) {
             $len = mb_strlen($t);
-            if ($len === 1 && !is_numeric($t)) {
+            if (is_numeric($t)) {
+                $numberTokens++;
+            }
+            if ($len === 1) {
                 $singleLetters++;
             } elseif ($len >= 6 && !preg_match('/[aiueo]/i', $t)) {
                 $vowelDeficient++;
             }
         }
 
-        $ratio = ($singleLetters + $vowelDeficient) / $total;
-        return $ratio > 0.30;
+        // Teks dianggap sampah artefak jika didominasi angka murni (>35%), huruf tunggal (>30%), atau kata tanpa vokal (>25%)
+        if (($numberTokens / $total) > 0.35 || ($singleLetters / $total) > 0.30 || ($vowelDeficient / $total) > 0.25) {
+            return true;
+        }
+
+        $ratio = ($singleLetters + $vowelDeficient + $numberTokens) / $total;
+        return $ratio > 0.45;
     }
 
     /**
@@ -497,15 +506,16 @@ class IntegrityService {
 
     /**
      * Menghitung kemiripan teks antar dua dokumen menggunakan Word Shingling & Jaccard/Dice Index
+     * Mendukung filter shingle template soal / petunjuk tugas agar hanya membandingkan teks jawaban murni mahasiswa
      */
-    public static function calculateSimilarity(string $textA, string $textB, int $k = 4): array {
+    public static function calculateSimilarity(string $textA, string $textB, int $k = 4, array $templateShingles = []): array {
         $cleanA = self::tokenizeAndFilter($textA);
         $cleanB = self::tokenizeAndFilter($textB);
 
         $lenA = count($cleanA);
         $lenB = count($cleanB);
 
-        // Jika salah satu dokumen terlalu pendek (< 3 kata)
+        // Jika salah satu dokumen terlalu pendek (< 3 kata bermakna)
         if ($lenA < 3 || $lenB < 3) {
             return [
                 'percentage'      => 0.0,
@@ -513,22 +523,6 @@ class IntegrityService {
                 'containmentA'    => 0.0,
                 'containmentB'    => 0.0,
                 'matchingPhrases' => []
-            ];
-        }
-
-        // Jika kedua teks identik persis
-        if ($cleanA === $cleanB) {
-            return [
-                'percentage'      => 100.0,
-                'jaccard'         => 100.0,
-                'containmentA'    => 100.0,
-                'containmentB'    => 100.0,
-                'matchingPhrases' => [
-                    [
-                        'wordCount' => $lenA,
-                        'phrase'    => implode(' ', array_slice($cleanA, 0, 50))
-                    ]
-                ]
             ];
         }
 
@@ -545,43 +539,67 @@ class IntegrityService {
             ];
         }
 
-        // Jika dokumen antara 3 sampai 4 kata (di bawah k-gram)
-        if ($lenA < $k || $lenB < $k) {
-            $intersection = count(array_intersect($cleanA, $cleanB));
-            $pct = round(($intersection / max($lenA, $lenB)) * 100, 1);
+        // Buat shingles k-gram
+        $rawShinglesA = self::createShingles($cleanA, $k);
+        $rawShinglesB = self::createShingles($cleanB, $k);
+
+        // Filter shingle: buang seluruh shingle yang berasal dari template soal / instruksi penugasan
+        $shinglesA = [];
+        foreach ($rawShinglesA as $sh) {
+            if (empty($templateShingles) || !isset($templateShingles[$sh])) {
+                $shinglesA[] = $sh;
+            }
+        }
+        $shinglesB = [];
+        foreach ($rawShinglesB as $sh) {
+            if (empty($templateShingles) || !isset($templateShingles[$sh])) {
+                $shinglesB[] = $sh;
+            }
+        }
+
+        $setA = array_unique($shinglesA);
+        $setB = array_unique($shinglesB);
+        $countA = count($setA);
+        $countB = count($setB);
+
+        // Jika setelah template soal dibuang tidak ada sisa teks jawaban unik
+        if ($countA === 0 || $countB === 0) {
             return [
-                'percentage'      => $pct,
-                'jaccard'         => $pct,
-                'containmentA'    => $pct,
-                'containmentB'    => $pct,
-                'matchingPhrases' => [
+                'percentage'      => 0.0,
+                'jaccard'         => 0.0,
+                'containmentA'    => 0.0,
+                'containmentB'    => 0.0,
+                'matchingPhrases' => []
+            ];
+        }
+
+        // Jika kedua teks jawaban murni identik persis
+        if ($setA === $setB) {
+            $matchingPhrases = self::findMatchingPhrases($cleanA, $cleanB, 4, $templateShingles);
+            return [
+                'percentage'      => 100.0,
+                'jaccard'         => 100.0,
+                'containmentA'    => 100.0,
+                'containmentB'    => 100.0,
+                'matchingPhrases' => !empty($matchingPhrases) ? array_slice($matchingPhrases, 0, 5) : [
                     [
-                        'wordCount' => $intersection,
-                        'phrase'    => implode(' ', array_intersect($cleanA, $cleanB))
+                        'wordCount' => $lenA,
+                        'phrase'    => implode(' ', array_slice($cleanA, 0, 50))
                     ]
                 ]
             ];
         }
 
-        // Buat shingles k-gram
-        $shinglesA = self::createShingles($cleanA, $k);
-        $shinglesB = self::createShingles($cleanB, $k);
-
-        $setA = array_flip($shinglesA);
-        $setB = array_flip($shinglesB);
-
-        // Hitung irisan (Intersection)
+        // Hitung irisan (Intersection) hanya pada teks jawaban unik mahasiswa
         $intersection = 0;
-        foreach ($setA as $shingle => $_) {
-            if (isset($setB[$shingle])) {
+        $setBFlip = array_flip($setB);
+        foreach ($setA as $shingle) {
+            if (isset($setBFlip[$shingle])) {
                 $intersection++;
             }
         }
 
-        $countA = count($setA);
-        $countB = count($setB);
         $union = $countA + $countB - $intersection;
-
         $jaccard = $union > 0 ? ($intersection / $union) : 0.0;
         $dice = ($countA + $countB) > 0 ? ((2 * $intersection) / ($countA + $countB)) : 0.0;
         $containmentA = $countA > 0 ? ($intersection / $countA) : 0.0;
@@ -591,9 +609,9 @@ class IntegrityService {
         $effectiveScore = max($dice, ($containmentA + $containmentB) / 2);
         $percentage = round($effectiveScore * 100, 1);
 
-        // Temukan kalimat/blok teks identik (minimal 5 kata berturut-turut, atau 3 jika dokumen pendek)
+        // Temukan kalimat/blok teks identik (minimal 5 kata berturut-turut, abaikan template soal)
         $minPhraseLen = ($lenA < 10 || $lenB < 10) ? 3 : 5;
-        $matchingPhrases = self::findMatchingPhrases($cleanA, $cleanB, $minPhraseLen);
+        $matchingPhrases = self::findMatchingPhrases($cleanA, $cleanB, $minPhraseLen, $templateShingles);
 
         return [
             'percentage'      => $percentage,
@@ -606,19 +624,22 @@ class IntegrityService {
 
     /**
      * Tokenisasi teks dan pembersihan karakter non-alfanumerik
+     * Menjamin hanya mengekstrak kata-kata linguistik alami (bukan angka/koordinat/glyph ID)
      */
-    private static function tokenizeAndFilter(string $text): array {
+    public static function tokenizeAndFilter(string $text): array {
         $lower = mb_strtolower($text, 'UTF-8');
         // Ganti tanda baca dengan spasi
         $clean = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $lower);
         $words = preg_split('/\s+/', trim($clean));
 
-        // Filter kata yang kosong, abaikan huruf tunggal acak (noise), dan karakter berulang ekstrem
+        // Filter kata: HANYA ambil kata yang memiliki huruf alfabet (bukan angka/koordinat/glyph index)
         return array_values(array_filter($words, function ($w) {
             $w = trim($w);
             if ($w === '') return false;
-            // Abaikan huruf tunggal alfabet acak (a-z) kecuali angka, karena di n-gram shingling huruf tunggal acak menciptakan false-positive
-            if (mb_strlen($w) === 1 && !is_numeric($w)) return false;
+            // WAJIB memiliki minimal satu huruf alfabet
+            if (!preg_match('/\p{L}/u', $w)) return false;
+            // Abaikan huruf tunggal acak (a, b, c)
+            if (mb_strlen($w) < 2) return false;
             // Abaikan kata berulang tidak wajar (misal: sssssssssssssssssss)
             if (preg_match('/(.)\1{3,}/u', $w)) return false;
             return true;
@@ -628,10 +649,10 @@ class IntegrityService {
     /**
      * Membentuk k-gram shingles dari daftar token kata
      */
-    private static function createShingles(array $words, int $k = 4): array {
+    public static function createShingles(array $words, int $k = 4): array {
         $count = count($words);
         if ($count < $k) {
-            return [implode(' ', $words)];
+            return !empty($words) ? [md5(implode(' ', $words))] : [];
         }
 
         $shingles = [];
@@ -644,8 +665,9 @@ class IntegrityService {
 
     /**
      * Menemukan potongan frasa yang identik antar dua dokumen (panjang min 5 kata)
+     * Mengabaikan frasa yang berasal dari template soal / instruksi tugas
      */
-    private static function findMatchingPhrases(array $wordsA, array $wordsB, int $minLen = 5): array {
+    private static function findMatchingPhrases(array $wordsA, array $wordsB, int $minLen = 5, array $templateShingles = []): array {
         $matches = [];
         $dictB = [];
         $lenB = count($wordsB);
@@ -660,7 +682,7 @@ class IntegrityService {
         while ($i < $lenA) {
             $word = $wordsA[$i];
             $bestMatchLen = 0;
-            $bestPhrase = '';
+            $bestPhraseWords = [];
 
             if (isset($dictB[$word])) {
                 foreach ($dictB[$word] as $startB) {
@@ -672,16 +694,43 @@ class IntegrityService {
                     }
 
                     if ($matchLen >= $minLen && $matchLen > $bestMatchLen) {
-                        $bestMatchLen = $matchLen;
-                        $bestPhrase = implode(' ', array_slice($wordsA, $i, $matchLen));
+                        $slice = array_slice($wordsA, $i, $matchLen);
+
+                        // Periksa apakah frasa ini berasal dari template soal
+                        $isTemplate = false;
+                        if (!empty($templateShingles) && $matchLen >= 4) {
+                            $phraseShingles = self::createShingles($slice, 4);
+                            $templateMatchCount = 0;
+                            foreach ($phraseShingles as $psh) {
+                                if (isset($templateShingles[$psh])) {
+                                    $templateMatchCount++;
+                                }
+                            }
+                            if (count($phraseShingles) > 0 && ($templateMatchCount / count($phraseShingles)) >= 0.4) {
+                                $isTemplate = true;
+                            }
+                        }
+
+                        // Frasa WAJIB memiliki minimal 2 kata alfabet yang bermakna
+                        $alphaWords = 0;
+                        foreach ($slice as $sw) {
+                            if (preg_match('/\p{L}/u', $sw) && mb_strlen($sw) >= 2) {
+                                $alphaWords++;
+                            }
+                        }
+
+                        if (!$isTemplate && $alphaWords >= 2) {
+                            $bestMatchLen = $matchLen;
+                            $bestPhraseWords = $slice;
+                        }
                     }
                 }
             }
 
-            if ($bestMatchLen >= $minLen) {
+            if ($bestMatchLen >= $minLen && !empty($bestPhraseWords)) {
                 $matches[] = [
                     'wordCount' => $bestMatchLen,
-                    'phrase'    => $bestPhrase
+                    'phrase'    => implode(' ', $bestPhraseWords)
                 ];
                 $i += $bestMatchLen;
             } else {
@@ -770,7 +819,99 @@ class IntegrityService {
             }
         }
 
-        // 2. Pembandingan Kemiripan Berpasangan (Pairwise Comparison)
+        // 2. Kumpulkan Teks Template Soal / Petunjuk Tugas untuk Difilter
+        // Teks soal, instruksi penugasan, dan rubrik akan difilter keluar agar yang dinilai murni teks jawaban mahasiswa
+        $templateShingles = [];
+
+        // 2a. Dari data Tugas (Judul, Deskripsi, Rubrik, dan Dokumen Soal Acuan)
+        try {
+            $taskData = Database::fetchOne("SELECT judul_tugas, deskripsi, task_file_ref, rubrik_text FROM tasks WHERE id_tugas = ?", [$taskId]);
+            $rawTaskTemplate = '';
+            if ($taskData) {
+                $rawTaskTemplate .= ' ' . ($taskData['judul_tugas'] ?? '');
+                $rawTaskTemplate .= ' ' . ($taskData['deskripsi'] ?? '');
+                $rawTaskTemplate .= ' ' . ($taskData['rubrik_text'] ?? '');
+                $qPayload = FileService::getTaskQuestionPayload($taskId, $taskData['task_file_ref'] ?? null);
+                if ($qPayload && !empty($qPayload['isTextOnly']) && !empty($qPayload['textContent'])) {
+                    $rawTaskTemplate .= ' ' . $qPayload['textContent'];
+                }
+            }
+            if (!empty(trim($rawTaskTemplate))) {
+                $tmplWords = self::tokenizeAndFilter($rawTaskTemplate);
+                $tmplSh = self::createShingles($tmplWords, 4);
+                foreach ($tmplSh as $sh) {
+                    $templateShingles[$sh] = true;
+                }
+            }
+        } catch (Throwable $e) {
+            // Lanjutkan jika query task gagal
+        }
+
+        // 2b. Kamus Frasa Template Penugasan Akademik Standar
+        $commonAcademicTemplates = [
+            'tugas terstruktur pertemuan class diagram activity diagram use case sequence erd',
+            'mahasiswa mampu mengidentifikasi kelas atribut dan hubungan antarkelas',
+            'serta menggambarkannya dalam class diagram sederhana menggunakan notasi uml',
+            'pelajari video pembelajaran berikut sebelum mengerjakan video youtube watch',
+            'ketentuan tugas dikerjakan secara individual gunakan objek studi yang sama',
+            'agar analisis berkesinambungan gunakan requirement yang telah diprioritaskan',
+            'jangan menambahkan fitur tanpa dasar modelkan kelas domain bukan sekadar',
+            'halaman menu atau antarmuka ui boleh menggunakan diagrams draw lucidchart',
+            'staruml visual paradigm tidak boleh generate dari ai diagram boleh',
+            'dibuat digital pastikan teks multiplicity dan relasi dapat dibaca',
+            'cantumkan asumsi yang diperlukan bedakan fakta dari asumsi soal',
+            'dan langkah pengerjaan tentukan kelas tentukan kelas paling penting',
+            'pilih konsep objek domain bukan nama halaman atau menu aplikasi',
+            'tentukan atribut tuliskan minimal atribut untuk setiap kelas cantumkan',
+            'nama atribut dan tipe data contoh nama string tanggal date jumlah integer',
+            'tentukan hubungan antarkelas hubungkan kelas kelas yang memang memiliki hubungan',
+            'beri penjelasan singkat dan multiplicity jika belum yakin jenis relasinya',
+            'gunakan association gambar class diagram buat satu diagram yang memuat',
+            'kelas dengan nama jelas minimal atribut per kelas beserta tipe data',
+            'relasi antarkelas dan multiplicity yang sesuai gunakan kotak kelas nama',
+            'kelas dan atribut operasi metode tidak diwajibkan pada tugas sederhana ini',
+            'penjelasan singkat mengapa anda memilih kelas kelas tersebut jelaskan satu',
+            'hubungan antarkelas dan arti multiplicity nya sebutkan satu asumsi yang',
+            'digunakan saat membuat diagram kriteria penilaian identifikasi kelas',
+            'atribut relasi dan multiplicity diagram dan penjelasan pengumpulan',
+            'kumpulkan satu file pdf berisi jawaban dan class diagram diagram boleh',
+            'dibuat terpisah lalu ditempelkan ke lembar jawaban catatan fokus tugas',
+            'adalah memahami kelas atribut relasi dan multiplicity',
+            'komponen isian nama mahasiswa nim kelas objek studi nama sistem tanggal pengumpulan'
+        ];
+        foreach ($commonAcademicTemplates as $tmplPhrase) {
+            $tWords = self::tokenizeAndFilter($tmplPhrase);
+            $tSh = self::createShingles($tWords, 4);
+            foreach ($tSh as $sh) {
+                $templateShingles[$sh] = true;
+            }
+        }
+
+        // 2c. Deteksi Otomatis Korpus Kelas: Shingle yang muncul di >= 3 mahasiswa (atau >= 20% submissions)
+        // Jika suatu 4-gram muncul berulang di banyak mahasiswa, pasti merupakan template soal/tabel penugasan
+        $shingleFrequency = [];
+        $validSubmissionsCount = 0;
+        foreach ($studentTexts as $nim => $rawTxt) {
+            if (empty(trim($rawTxt))) continue;
+            $words = self::tokenizeAndFilter($rawTxt);
+            if (count($words) >= 4) {
+                $validSubmissionsCount++;
+                $studentSh = array_unique(self::createShingles($words, 4));
+                foreach ($studentSh as $sh) {
+                    $shingleFrequency[$sh] = ($shingleFrequency[$sh] ?? 0) + 1;
+                }
+            }
+        }
+        if ($validSubmissionsCount >= 3) {
+            $freqThreshold = max(3, (int)ceil($validSubmissionsCount * 0.20));
+            foreach ($shingleFrequency as $sh => $freq) {
+                if ($freq >= $freqThreshold) {
+                    $templateShingles[$sh] = true;
+                }
+            }
+        }
+
+        // 3. Pembandingan Kemiripan Berpasangan (Pairwise Comparison)
         $pairwiseScores = []; // [nimA][nimB] => result
         $suspiciousPairs = []; // Pasangan yang terindikasi plagiasi
         $maxScores = [];      // [nim] => ['score' => float, 'targetNim' => str, 'targetNama' => str, 'phrases' => array]
@@ -843,7 +984,7 @@ class IntegrityService {
                 }
                 // Prioritas 3: Analisis Kesamaan Teks Dokumen (Shingling & Jaccard/Dice)
                 elseif (!empty($textA) && !empty($textB)) {
-                    $sim = self::calculateSimilarity($textA, $textB);
+                    $sim = self::calculateSimilarity($textA, $textB, 4, $templateShingles);
                 }
                 else {
                     $sim = [
