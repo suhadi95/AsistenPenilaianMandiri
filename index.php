@@ -5700,7 +5700,8 @@ Database::initDatabase();
             ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">Administrator</span>'
             : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">Dosen</span>';
           
-          const statusBadge = u.status === 'aktif'
+          const isActive = u.status === 'aktif' || u.status === 'active';
+          const statusBadge = isActive
             ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">Aktif</span>'
             : '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700">Nonaktif</span>';
 
@@ -5766,7 +5767,8 @@ Database::initDatabase();
       document.getElementById('modalUserEmail').value = u.email || '';
       document.getElementById('modalUserPassword').value = '';
       document.getElementById('modalUserRole').value = u.role || 'dosen';
-      document.getElementById('modalUserStatus').value = u.status || 'aktif';
+      const isUserActive = u.status === 'aktif' || u.status === 'active';
+      document.getElementById('modalUserStatus').value = isUserActive ? 'aktif' : 'nonaktif';
       document.getElementById('userModalAlert').className = 'hidden';
       openModal('userModal');
     }

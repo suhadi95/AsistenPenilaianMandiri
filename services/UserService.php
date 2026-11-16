@@ -123,7 +123,7 @@ class UserService {
             'nama_lengkap'           => $user['nama'] ?? '',
             'email'                  => $user['email'] ?? '',
             'role'                   => $user['role'] ?? 'dosen',
-            'status'                 => $user['status'] ?? 'active',
+            'status'                 => in_array($user['status'] ?? '', ['inactive', 'nonaktif'], true) ? 'nonaktif' : 'aktif',
             'hasGeminiApiKey'        => $hasKey,
             'hasApiKey'              => $hasKey,
             'geminiApiKey'           => $hasKey ? Helper::maskApiKey($user['gemini_api_key']) : '',
@@ -174,7 +174,7 @@ class UserService {
         $email = strtolower(trim($data['email'] ?? ''));
         $password = trim($data['password'] ?? '');
         $role = in_array($data['role'] ?? '', ['admin', 'dosen'], true) ? $data['role'] : 'dosen';
-        $status = in_array($data['status'] ?? '', ['active', 'aktif', 'inactive', 'nonaktif'], true) ? ($data['status'] === 'nonaktif' ? 'inactive' : 'active') : 'active';
+        $status = in_array($data['status'] ?? '', ['active', 'aktif', 'inactive', 'nonaktif'], true) ? (in_array($data['status'], ['inactive', 'nonaktif'], true) ? 'inactive' : 'active') : 'active';
 
         if (empty($nama) || empty($email) || empty($password)) {
             throw new Exception("Nama, email, dan kata sandi wajib diisi.");
@@ -218,7 +218,7 @@ class UserService {
         $nama = trim($data['nama'] ?? ($data['nama_lengkap'] ?? $target['nama']));
         $email = strtolower(trim($data['email'] ?? $target['email']));
         $role = in_array($data['role'] ?? '', ['admin', 'dosen'], true) ? $data['role'] : $target['role'];
-        $status = in_array($data['status'] ?? '', ['active', 'aktif', 'inactive', 'nonaktif'], true) ? ($data['status'] === 'nonaktif' ? 'inactive' : 'active') : $target['status'];
+        $status = in_array($data['status'] ?? '', ['active', 'aktif', 'inactive', 'nonaktif'], true) ? (in_array($data['status'], ['inactive', 'nonaktif'], true) ? 'inactive' : 'active') : $target['status'];
 
         if (empty($nama) || empty($email)) {
             throw new Exception("Nama dan email tidak boleh kosong.");
@@ -317,7 +317,7 @@ class UserService {
         }
 
         $admin = Database::fetchOne("SELECT * FROM users WHERE id_user = ?", [$adminId]);
-        if (!$admin || $admin['role'] !== 'admin' || $admin['status'] !== 'active') {
+        if (!$admin || $admin['role'] !== 'admin' || in_array($admin['status'], ['inactive', 'nonaktif'], true)) {
             throw new Exception("Hanya Administrator yang memiliki wewenang untuk masuk sebagai pengguna lain.", 403);
         }
 
@@ -358,7 +358,7 @@ class UserService {
         }
 
         $admin = Database::fetchOne("SELECT * FROM users WHERE id_user = ?", [$adminId]);
-        if (!$admin || $admin['status'] !== 'active') {
+        if (!$admin || in_array($admin['status'], ['inactive', 'nonaktif'], true)) {
             throw new Exception("Akun administrator tidak ditemukan atau nonaktif.");
         }
 
