@@ -415,6 +415,10 @@ Database::initDatabase();
               <!-- Rendered via JS -->
             </select>
           </div>
+          <button type="button" onclick="syncAllTasksDriveFolder()" id="btnSyncAllTasks" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer" title="Sinkronkan berkas Google Drive untuk seluruh tugas pada mata kuliah ini sekaligus">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            <span>Sinkron Semua Tugas</span>
+          </button>
           <button onclick="openCreateTaskModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-1.5">
             + Buat Tugas Baru
           </button>
@@ -435,6 +439,9 @@ Database::initDatabase();
           </div>
           <div class="flex items-center space-x-2.5">
             <span id="tasksProgressPanelCounter" class="bg-blue-800/80 border border-blue-700/60 px-3 py-1 rounded-xl text-xs font-mono font-bold text-blue-200">0%</span>
+            <button type="button" onclick="abortSyncAllTasks()" id="btnAbortSyncTasks" class="hidden px-3 py-1.5 bg-rose-600/80 hover:bg-rose-600 text-white font-semibold rounded-xl text-xs transition flex items-center gap-1 shadow-sm cursor-pointer" title="Hentikan sinkronisasi tugas yang tersisa">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg> <span>Hentikan</span>
+            </button>
             <button type="button" onclick="closeTasksProgressPanel()" id="btnCloseTasksProgress" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition flex items-center gap-1 shadow-sm cursor-pointer">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg> <span>Tutup</span>
             </button>
@@ -2714,6 +2721,12 @@ Database::initDatabase();
     // Ganti Mata Kuliah Aktif untuk Tab Tugas
     function switchTaskCourse(courseId) {
       if (!courseId) return;
+      if (typeof syncAllTasksState !== 'undefined' && syncAllTasksState.isRunning) {
+        alert('Sinkronisasi semua tugas sedang berlangsung. Harap tunggu hingga selesai atau hentikan terlebih dahulu.');
+        const taskSelect = document.getElementById('taskCourseSelect');
+        if (taskSelect) taskSelect.value = appState.activeCourseId;
+        return;
+      }
       appState.activeCourseId = courseId;
       const taskSelect = document.getElementById('taskCourseSelect');
       if (taskSelect) taskSelect.value = courseId;
@@ -4029,6 +4042,12 @@ Database::initDatabase();
     }
 
     function closeTasksProgressPanel() {
+      if (typeof syncAllTasksState !== 'undefined' && syncAllTasksState.isRunning) {
+        if (!confirm('Proses sinkronisasi semua tugas sedang berjalan. Apakah Anda ingin menghentikannya dan menutup panel?')) {
+          return;
+        }
+        syncAllTasksState.isAborted = true;
+      }
       const panel = document.getElementById('tasksProgressPanel');
       if (panel) panel.classList.add('hidden');
     }
@@ -6299,6 +6318,186 @@ Database::initDatabase();
         }
         showGlobalAlert('Gagal menyinkronkan tugas dari Drive: ' + err.message, 'error');
       }
+    }
+
+    // ========================================================
+    // SINKRONISASI SEMUA TUGAS SEKALIGUS (BULK SYNC DRIVE)
+    // ========================================================
+    let syncAllTasksState = {
+      isRunning: false,
+      isAborted: false
+    };
+
+    function abortSyncAllTasks() {
+      if (!syncAllTasksState.isRunning) return;
+      if (confirm('Hentikan proses sinkronisasi semua tugas? Tugas yang sudah selesai disinkronkan akan tetap tersimpan di server.')) {
+        syncAllTasksState.isAborted = true;
+        showProgressLog('[PENGHENTIAN] Permintaan penghentian diterima. Menunggu tugas saat ini selesai...', 'tasksProgressBox');
+      }
+    }
+
+    async function syncAllTasksDriveFolder() {
+      if (syncAllTasksState.isRunning) {
+        return alert('Proses sinkronisasi semua tugas sedang berjalan.');
+      }
+
+      const tasks = appState.currentTasks || [];
+      if (tasks.length === 0) {
+        return showGlobalAlert('Belum ada tugas pada mata kuliah ini.', 'warning');
+      }
+
+      const isOAuthConnected = appState.settings?.googleOAuth?.isConnected;
+      if (!isOAuthConnected) {
+        showGlobalAlert('Akun Google Drive belum terhubung. Silakan hubungkan akun Google di menu Pengaturan.', 'warning');
+        switchTab('tab-settings');
+        return;
+      }
+
+      const tasksWithDrive = tasks.filter(t => !!t.drive_folder_id);
+      if (tasksWithDrive.length === 0) {
+        return showGlobalAlert('Tidak ada tugas dengan folder Google Drive yang terhubung pada mata kuliah ini. Silakan atur tautan folder Drive pada kartu tugas terlebih dahulu.', 'warning');
+      }
+
+      const confirmMsg = `Sinkronkan berkas Google Drive untuk seluruh tugas (${tasksWithDrive.length} tugas) pada mata kuliah ini?\n\nProses ini akan mengunduh berkas jawaban mahasiswa yang ada di folder Drive seluruh tugas dan memperbarui penyimpanan server.`;
+      if (!confirm(confirmMsg)) return;
+
+      const btnSyncAll = document.getElementById('btnSyncAllTasks');
+      const origBtnHtml = btnSyncAll ? btnSyncAll.innerHTML : '';
+      if (btnSyncAll) {
+        btnSyncAll.disabled = true;
+        btnSyncAll.className = 'bg-sky-100 border border-sky-300 text-sky-800 font-semibold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-not-allowed';
+        btnSyncAll.innerHTML = '<span class="spinner inline-block w-3.5 h-3.5 border-2 border-sky-600 border-t-white mr-1"></span> Menyinkronkan Semua...';
+      }
+
+      const panel = document.getElementById('tasksProgressPanel');
+      const titleEl = document.getElementById('tasksProgressPanelTitle');
+      const subEl = document.getElementById('tasksProgressPanelSubtitle');
+      const counterEl = document.getElementById('tasksProgressPanelCounter');
+      const barFill = document.getElementById('tasksProgressBarFill');
+      const box = document.getElementById('tasksProgressBox');
+      const btnClose = document.getElementById('btnCloseTasksProgress');
+      const btnAbort = document.getElementById('btnAbortSyncTasks');
+
+      if (panel) {
+        panel.classList.remove('hidden');
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      if (btnClose) btnClose.classList.add('hidden');
+      if (btnAbort) btnAbort.classList.remove('hidden');
+      if (box) box.innerHTML = '';
+
+      if (titleEl) titleEl.textContent = `Sinkronisasi Berkas Semua Tugas (${tasksWithDrive.length} Tugas)`;
+      if (subEl) subEl.textContent = `Memulai sinkronisasi massal dari Google Drive...`;
+      if (counterEl) counterEl.textContent = `0/${tasksWithDrive.length} (0%)`;
+      if (barFill) barFill.style.width = '0%';
+
+      showProgressLog(`[MULAI] Memulai sinkronisasi ${tasksWithDrive.length} tugas yang terhubung dengan Google Drive...`, 'tasksProgressBox');
+
+      syncAllTasksState.isRunning = true;
+      syncAllTasksState.isAborted = false;
+
+      let successCount = 0;
+      let failedCount = 0;
+      let totalFilesSynced = 0;
+
+      for (let i = 0; i < tasksWithDrive.length; i++) {
+        if (syncAllTasksState.isAborted) {
+          showProgressLog(`[DIHENTIKAN] Sinkronisasi tugas berikutnya dibatalkan oleh pengguna.`, 'tasksProgressBox');
+          break;
+        }
+
+        const task = tasksWithDrive[i];
+        const taskNum = i + 1;
+        const totalTasks = tasksWithDrive.length;
+        const progressPct = Math.round((i / totalTasks) * 100);
+
+        if (subEl) subEl.textContent = `[${taskNum}/${totalTasks}] Menyinkronkan "${task.judul_tugas}"...`;
+        if (counterEl) counterEl.textContent = `${i}/${totalTasks} (${progressPct}%)`;
+        if (barFill) barFill.style.width = `${progressPct}%`;
+
+        showProgressLog(`----------------------------------------`, 'tasksProgressBox');
+        showProgressLog(`[${taskNum}/${totalTasks}] Tugas: "${task.judul_tugas}"`, 'tasksProgressBox');
+
+        // Update tombol kartu jika kartu sedang tampil di layar
+        const cardBtn = document.getElementById('btnCardSync_' + task.id_tugas);
+        if (cardBtn) {
+          cardBtn.disabled = true;
+          cardBtn.className = 'bg-sky-100 border border-sky-300 text-sky-800 font-semibold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs';
+          cardBtn.innerHTML = '<span class="spinner inline-block w-3.5 h-3.5 border-2 border-sky-600 border-t-white mr-1"></span> Menyinkronkan...';
+        }
+
+        try {
+          const res = await AppAPI.syncTaskDriveFolder(task.id_tugas, '');
+          const count = (typeof res.syncedCount !== 'undefined') ? res.syncedCount : (res.totalInDrive || 0);
+          totalFilesSynced += count;
+          successCount++;
+
+          // Update task submission count di memori
+          task.submissionCount = count;
+          const tIdx = appState.currentTasks.findIndex(x => x.id_tugas === task.id_tugas);
+          if (tIdx !== -1) appState.currentTasks[tIdx].submissionCount = count;
+
+          showProgressLog(`  ✓ Berhasil: ${count} berkas aktif di server (Drive: ${res.totalInDrive || 0})`, 'tasksProgressBox');
+          if (res.deletedCount && res.deletedCount > 0) {
+            showProgressLog(`  ✓ Dibersihkan: ${res.deletedCount} berkas usang`, 'tasksProgressBox');
+          }
+
+          // Update badge kartu
+          const badgeEl = document.getElementById('cardSubmissionsBadge_' + task.id_tugas);
+          if (badgeEl) {
+            badgeEl.innerHTML = `
+              <span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-300 animate-pulse">
+                <svg class="w-3 h-3 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> <span>${count} Berkas di Server</span>
+              </span>
+            `;
+          }
+
+          if (cardBtn) {
+            cardBtn.disabled = false;
+            cardBtn.className = 'bg-emerald-50 border border-emerald-300 text-emerald-800 font-bold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs';
+            cardBtn.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> <span>${count} Berkas Tersimpan</span>`;
+          }
+        } catch (err) {
+          failedCount++;
+          showProgressLog(`  ✗ Gagal: ${err.message}`, 'tasksProgressBox');
+          if (cardBtn) {
+            cardBtn.disabled = false;
+            cardBtn.className = 'bg-rose-50 border border-rose-200 text-rose-700 font-semibold py-2 px-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs';
+            cardBtn.innerHTML = `<span>Gagal Sinkron</span>`;
+          }
+        }
+      }
+
+      syncAllTasksState.isRunning = false;
+
+      // Selesai seluruh loop
+      if (barFill) barFill.style.width = '100%';
+      if (counterEl) counterEl.textContent = '100%';
+      if (btnAbort) btnAbort.classList.add('hidden');
+      if (btnClose) btnClose.classList.remove('hidden');
+
+      if (syncAllTasksState.isAborted) {
+        if (subEl) subEl.textContent = `Sinkronisasi dihentikan: ${successCount} berhasil, ${failedCount} gagal dari ${tasksWithDrive.length} tugas.`;
+        showGlobalAlert(`Sinkronisasi dihentikan. ${successCount} tugas berhasil disinkronkan (${totalFilesSynced} total berkas).`, 'warning');
+      } else {
+        if (subEl) subEl.textContent = `Selesai! Seluruh ${successCount} tugas berhasil disinkronkan (${totalFilesSynced} total berkas di server).`;
+        showProgressLog(`========================================`, 'tasksProgressBox');
+        showProgressLog(`[SELESAI] Total tugas sukses: ${successCount} | Gagal: ${failedCount} | Total berkas: ${totalFilesSynced}`, 'tasksProgressBox');
+        playSuccessChime();
+        showGlobalAlert(`Berhasil menyinkronkan seluruh tugas! ${successCount} tugas diperbarui (${totalFilesSynced} total berkas aktif di server).`, 'success');
+      }
+
+      // Kembalikan tombol Sinkron Semua ke status normal
+      if (btnSyncAll) {
+        btnSyncAll.disabled = false;
+        btnSyncAll.className = 'bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer';
+        btnSyncAll.innerHTML = origBtnHtml || `
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          <span>Sinkron Semua Tugas</span>
+        `;
+      }
+
+      renderDashboardStats();
     }
 
     async function openClassFolderOverrideModal() {
