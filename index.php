@@ -2332,14 +2332,19 @@ Database::initDatabase();
 
           // Cek parameter callback Google OAuth dari URL
           const currentUrl = window.location.href;
+          let isOAuthRedirect = false;
           if (currentUrl.includes('oauth=connected')) {
             showGlobalAlert('Akun Google Drive berhasil terhubung! Anda sekarang dapat menyinkronkan tugas langsung dari Google Drive.', 'success');
-            window.history.replaceState({}, document.title, window.location.pathname);
-            switchTab('tab-settings');
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState({}, document.title, window.location.pathname + '#settings');
+            }
+            isOAuthRedirect = true;
           } else if (currentUrl.includes('oauth=failed')) {
             showGlobalAlert('Gagal menghubungkan Google Drive. Periksa kembali izin akun Google Anda.', 'error');
-            window.history.replaceState({}, document.title, window.location.pathname);
-            switchTab('tab-settings');
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState({}, document.title, window.location.pathname + '#settings');
+            }
+            isOAuthRedirect = true;
           }
 
           // Inisialisasi activeCourseId dan activeClassId
@@ -2367,10 +2372,28 @@ Database::initDatabase();
             switchActiveClass(appState.activeClassId);
           } else if (appState.activeCourseId) {
             switchTaskCourse(appState.activeCourseId);
-            showLoading(false);
-          } else {
-            showLoading(false);
           }
+
+          // Sinkronkan tab aktif berdasarkan URL Hash atau riwayat terakhir
+          const route = getRouteInfoFromUrl();
+          if (route.tabId === 'tab-grading' && route.params.task) {
+            appState.selectedGradingTaskId = route.params.task;
+          }
+
+          if (isOAuthRedirect) {
+            switchTab('tab-settings', false);
+          } else {
+            switchTab(route.tabId, false);
+            if (!window.location.hash && route.slug) {
+              if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, document.title, window.location.pathname + window.location.search + '#' + route.slug);
+              } else {
+                window.location.hash = '#' + route.slug;
+              }
+            }
+          }
+
+          showLoading(false);
         })
         .withFailureHandler(function(err) {
           showLoading(false);
@@ -2379,17 +2402,126 @@ Database::initDatabase();
         .apiGetInitialData();
     }
 
-    // Navigasi Tab
-    function switchTab(tabId) {
-      if (tabId === 'reports') tabId = 'tab-reports';
-      if (tabId === 'classes') tabId = 'tab-classes';
-      if (tabId === 'tasks') tabId = 'tab-tasks';
-      if (tabId === 'grading') tabId = 'tab-grading';
-      if (tabId === 'dashboard') tabId = 'tab-dashboard';
-      if (tabId === 'settings') tabId = 'tab-settings';
-      if (tabId === 'guide') tabId = 'tab-guide';
+    // ==========================================
+    // SISTEM URL HASH ROUTING & NAVIGASI TAB
+    // ==========================================
+    const TAB_ROUTES = {
+      'dashboard': 'tab-dashboard',
+      'dash': 'tab-dashboard',
+      'classes': 'tab-classes',
+      'kelas': 'tab-classes',
+      'mk': 'tab-classes',
+      'tasks': 'tab-tasks',
+      'tugas': 'tab-tasks',
+      'grading': 'tab-grading',
+      'penilaian': 'tab-grading',
+      'nilai': 'tab-grading',
+      'reports': 'tab-reports',
+      'rekap': 'tab-reports',
+      'rekapitulasi': 'tab-reports',
+      'users': 'tab-users',
+      'pengguna': 'tab-users',
+      'settings': 'tab-settings',
+      'pengaturan': 'tab-settings',
+      'guide': 'tab-guide',
+      'panduan': 'tab-guide'
+    };
+
+    const TAB_TO_SLUG = {
+      'tab-dashboard': 'dashboard',
+      'tab-classes': 'classes',
+      'tab-tasks': 'tasks',
+      'tab-grading': 'grading',
+      'tab-reports': 'reports',
+      'tab-users': 'users',
+      'tab-settings': 'settings',
+      'tab-guide': 'guide'
+    };
+
+    let isInternalTabSwitch = false;
+
+    function isTabAllowed(tabId) {
+      if (tabId === 'tab-users') {
+        const user = appState.currentUser;
+        if (!user || user.role !== 'admin' || user.isImpersonating) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function getRouteInfoFromUrl() {
+      const hash = window.location.hash || '';
+      if (!hash || hash === '#') {
+        let savedSlug = '';
+        try {
+          savedSlug = localStorage.getItem('asisten_active_tab') || '';
+        } catch (e) {}
+        if (savedSlug && TAB_ROUTES[savedSlug]) {
+          const tabId = TAB_ROUTES[savedSlug];
+          return { tabId, slug: TAB_TO_SLUG[tabId] || 'dashboard', params: {} };
+        }
+        return { tabId: 'tab-dashboard', slug: 'dashboard', params: {} };
+      }
+
+      const cleanHash = hash.replace(/^#\/?/, '');
+      const parts = cleanHash.split('?');
+      const rawRoute = (parts[0] || '').toLowerCase().trim();
+      const queryString = parts[1] || '';
+
+      const params = {};
+      if (queryString) {
+        queryString.split('&').forEach(pair => {
+          const [k, v] = pair.split('=');
+          if (k) {
+            try {
+              params[decodeURIComponent(k)] = decodeURIComponent(v || '');
+            } catch (e) {
+              params[k] = v || '';
+            }
+          }
+        });
+      }
+
+      const tabId = TAB_ROUTES[rawRoute] || 'tab-dashboard';
+      const slug = TAB_TO_SLUG[tabId] || 'dashboard';
+
+      return { tabId, slug, params };
+    }
+
+    // Navigasi Tab dengan Sinkronisasi URL Hash
+    function switchTab(tabId, updateUrl = true) {
+      if (TAB_ROUTES[tabId]) {
+        tabId = TAB_ROUTES[tabId];
+      }
+
+      if (!isTabAllowed(tabId)) {
+        tabId = 'tab-dashboard';
+      }
 
       appState.activeTab = tabId;
+      const slug = TAB_TO_SLUG[tabId] || 'dashboard';
+
+      try {
+        localStorage.setItem('asisten_active_tab', slug);
+      } catch (e) {}
+
+      if (updateUrl) {
+        let newHash = '#' + slug;
+        if (tabId === 'tab-grading' && appState.selectedGradingTaskId) {
+          newHash += '?task=' + encodeURIComponent(appState.selectedGradingTaskId);
+        }
+        if (window.location.hash !== newHash) {
+          isInternalTabSwitch = true;
+          if (window.history && window.history.pushState) {
+            window.history.pushState(null, document.title, window.location.pathname + window.location.search + newHash);
+            isInternalTabSwitch = false;
+          } else {
+            window.location.hash = newHash;
+            setTimeout(() => { isInternalTabSwitch = false; }, 50);
+          }
+        }
+      }
 
       document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active', 'text-blue-600', 'bg-blue-50', 'font-semibold');
@@ -2448,6 +2580,20 @@ Database::initDatabase();
         }
       }
     }
+
+    // Listener Navigasi Riwayat Browser (Back / Forward)
+    function handleBrowserHistoryNavigation() {
+      if (isInternalTabSwitch) return;
+      const route = getRouteInfoFromUrl();
+      if (route.tabId !== appState.activeTab) {
+        if (route.tabId === 'tab-grading' && route.params.task) {
+          appState.selectedGradingTaskId = route.params.task;
+        }
+        switchTab(route.tabId, false);
+      }
+    }
+    window.addEventListener('hashchange', handleBrowserHistoryNavigation);
+    window.addEventListener('popstate', handleBrowserHistoryNavigation);
 
     function switchGuideTopic(topicId) {
       document.querySelectorAll('.guide-nav-btn').forEach(btn => {
@@ -2987,6 +3133,19 @@ Database::initDatabase();
         select.appendChild(opt);
       });
 
+      // Cek apakah ada taskId dari route params atau sessionStorage jika belum diset
+      if (!appState.selectedGradingTaskId) {
+        const route = getRouteInfoFromUrl();
+        if (route.params && route.params.task) {
+          appState.selectedGradingTaskId = route.params.task;
+        } else {
+          try {
+            const savedTaskId = sessionStorage.getItem('asisten_active_grading_task');
+            if (savedTaskId) appState.selectedGradingTaskId = savedTaskId;
+          } catch (e) {}
+        }
+      }
+
       // Periksa apakah selectedGradingTaskId sebelumnya masih ada pada daftar tugas kelas ini
       const isTaskValid = appState.currentTasks.some(t => t.id_tugas === appState.selectedGradingTaskId);
 
@@ -3007,7 +3166,10 @@ Database::initDatabase();
 
     function goToGradingTask(taskId) {
       appState.selectedGradingTaskId = taskId;
-      switchTab('tab-grading');
+      try {
+        if (taskId) sessionStorage.setItem('asisten_active_grading_task', taskId);
+      } catch (e) {}
+      switchTab('tab-grading', true);
       const select = document.getElementById('gradingTaskSelect');
       if (select) {
         select.value = taskId;
@@ -3239,6 +3401,15 @@ Database::initDatabase();
       }
 
       appState.selectedGradingTaskId = taskId;
+      try {
+        if (taskId) sessionStorage.setItem('asisten_active_grading_task', taskId);
+      } catch (e) {}
+      if (appState.activeTab === 'tab-grading' && taskId) {
+        const targetHash = '#grading?task=' + encodeURIComponent(taskId);
+        if (window.location.hash !== targetHash && window.history && window.history.replaceState) {
+          window.history.replaceState(null, document.title, window.location.pathname + window.location.search + targetHash);
+        }
+      }
       appState.selectedStudentNims.clear();
       updateSelectedCountBadge();
 
@@ -5552,6 +5723,11 @@ Database::initDatabase();
       } catch (err) {
         console.error(err);
       }
+      try {
+        localStorage.removeItem('asisten_active_tab');
+        sessionStorage.removeItem('asisten_active_grading_task');
+      } catch (e) {}
+      window.location.hash = '';
       // Hancurkan memori sesi dan muat ulang halaman ke formulir login bersih
       window.location.reload();
     }
