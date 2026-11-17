@@ -4982,7 +4982,7 @@ Database::initDatabase();
 
       const handleSuccess = function(res) {
         btn.disabled = false;
-        btn.textContent = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg> <span>Ekstrak dari Soal</span>';
+        btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg> <span>Ekstrak dari Soal</span>';
         if (res && res.success) {
           document.getElementById('modalTaskRubric').value = res.rubricText || '';
           alertBox.className = 'p-2 rounded-lg text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium block';
@@ -4995,7 +4995,7 @@ Database::initDatabase();
 
       const handleFailure = function(err) {
         btn.disabled = false;
-        btn.textContent = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg> <span>Ekstrak dari Soal</span>';
+        btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg> <span>Ekstrak dari Soal</span>';
         alertBox.className = 'p-2 rounded-lg text-[11px] bg-rose-50 text-rose-800 border border-rose-200 font-medium block';
         alertBox.textContent = 'Gagal ekstrak: ' + (err.message || err);
       };
@@ -5546,7 +5546,7 @@ Database::initDatabase();
       google.script.run
         .withSuccessHandler(function(res) {
           btn.disabled = false;
-          btn.textContent = '<svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>Uji Koneksi API Key</span>';
+          btn.innerHTML = '<svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>Uji Koneksi API Key</span>';
           if (res.success) {
             alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 block font-medium';
             alertBox.textContent = res.message;
@@ -5557,7 +5557,7 @@ Database::initDatabase();
         })
         .withFailureHandler(function(err) {
           btn.disabled = false;
-          btn.textContent = '<svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>Uji Koneksi API Key</span>';
+          btn.innerHTML = '<svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> <span>Uji Koneksi API Key</span>';
           alertBox.className = 'mt-2 p-3 rounded-xl text-xs bg-rose-50 text-rose-800 border border-rose-200 block font-medium';
           alertBox.textContent = 'Galat koneksi: ' + err.message;
         })
@@ -6915,7 +6915,7 @@ Database::initDatabase();
         .withSuccessHandler(function(res) {
           if (btn) {
             btn.disabled = false;
-            btn.textContent = '<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> <span>Reset / Mulai Bersih Database</span>';
+            btn.innerHTML = '<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> <span>Reset / Mulai Bersih Database</span>';
           }
           showLoading(false);
           showGlobalAlert(res.message, 'success');
@@ -6930,7 +6930,7 @@ Database::initDatabase();
         .withFailureHandler(function(err) {
           if (btn) {
             btn.disabled = false;
-            btn.textContent = '<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> <span>Reset / Mulai Bersih Database</span>';
+            btn.innerHTML = '<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> <span>Reset / Mulai Bersih Database</span>';
           }
           showLoading(false);
           showGlobalAlert('Gagal mereset database: ' + err.message, 'error');
